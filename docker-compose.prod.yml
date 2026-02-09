@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: msadetector-db-prod
+    environment:
+      POSTGRES_DB: ${DB_NAME:-msadetector}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Database password required}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - msadetector-network-prod
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # MSA Detector Backend
+  backend:
+    image: msadetector/backend:${VERSION:-latest}
+    build:
+      context: ../../../../../AppData/Local/Temp/Rar$DRa27388.40739.rartemp/msadetector
+      dockerfile: Dockerfile
+    container_name: msadetector-backend-prod
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-msadetector}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:?Database password required}
+      - JWT_SECRET=${JWT_SECRET:?JWT secret required}
+      - WORKSPACE_DIR=/app/workspace
+      - DESIGNITE_JAR_PATH=/app/lib/DesigniteJava.jar
+      - SERVER_PORT=8080
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - workspace_data_prod:/app/workspace
+      - ./lib/DesigniteJava.jar:/app/lib/DesigniteJava.jar:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - msadetector-network-prod
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  # Nginx Reverse Proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: msadetector-nginx-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+    networks:
+      - msadetector-network-prod
+    restart: unless-stopped
+    profiles:
+      - with-proxy
+
+volumes:
+  postgres_data_prod:
+  workspace_data_prod:
+
+networks:
+  msadetector-network-prod:
+    driver: bridge

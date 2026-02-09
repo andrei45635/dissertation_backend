@@ -1,0 +1,117 @@
+spring:
+  application:
+    name: msa-detector
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:msadetector}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      #ddl-auto: update
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+
+  jackson:
+    #serialization:
+      #write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+    date-format: yyyy-MM-dd'T'HH:mm:ss.SSSZ
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# Application-specific configuration
+app:
+  jwt:
+    secret: ${JWT_SECRET:your-256-bit-secret-key-here-change-in-production}
+    expiration-ms: ${JWT_EXPIRATION:86400000}  # 24 hours
+
+  analysis:
+    workspace-dir: ${WORKSPACE_DIR:/tmp/msa-detector/workspace}
+    designite-jar-path: ${DESIGNITE_JAR_PATH:/opt/designite/DesigniteJava.jar}
+    clone-timeout-seconds: ${CLONE_TIMEOUT:300}
+    analysis-timeout-seconds: ${ANALYSIS_TIMEOUT:1800}
+
+  thresholds:
+    nano-service-max-loc: ${NANO_MAX_LOC:500}
+    nano-service-max-endpoints: ${NANO_MAX_ENDPOINTS:2}
+    god-service-min-domains: ${GOD_MIN_DOMAINS:3}
+    chatty-service-min-calls: ${CHATTY_MIN_CALLS:5}
+    hardcoded-endpoint-patterns: "http://,https://,localhost:,127.0.0.1"
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    com.msadetector: DEBUG
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+
+# OpenAPI documentation
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+
+---
+# Development profile
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+
+logging:
+  level:
+    com.msadetector: DEBUG
+
+---
+# Production profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+logging:
+  level:
+    root: WARN
+    com.msadetector: INFO
