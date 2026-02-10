@@ -13,12 +13,15 @@ import com.msadetector.repository.ProjectRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -55,14 +58,21 @@ public class ProjectService {
 
         Path projectDir = extractZip(file, project.getId());
         project.setLocalPath(projectDir.toString());
-        projectRepository.save(project);
+        projectRepository.saveAndFlush(project);
 
         AnalysisJob job = AnalysisJob.builder()
                 .project(project)
                 .build();
-        job = analysisJobRepository.save(job);
+        job = analysisJobRepository.saveAndFlush(job);
 
-        analysisWorker.processJob(job.getId());
+        Long jobId = job.getId();
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                analysisWorker.processJob(jobId);
+            }
+        });
 
         return new UploadResponse(project.getId(), job.getId());
     }
@@ -122,8 +132,8 @@ public class ProjectService {
         try {
             List<Path> topLevel = Files.list(projectDir).toList();
 
-            if (topLevel.size() == 1 && Files.isDirectory(topLevel.get(0))) {
-                return topLevel.get(0);
+            if (topLevel.size() == 1 && Files.isDirectory(topLevel.getFirst())) {
+                return topLevel.getFirst();
             }
 
             return projectDir;
@@ -163,7 +173,7 @@ public class ProjectService {
     private void deleteDirectory(Path dir) throws IOException {
         if (Files.exists(dir)) {
             Files.walk(dir)
-                    .sorted((a, b) -> b.compareTo(a))
+                    .sorted(Comparator.reverseOrder())
                     .forEach(path -> {
                         try {
                             Files.delete(path);

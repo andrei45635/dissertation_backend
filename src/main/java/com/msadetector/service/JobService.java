@@ -47,7 +47,8 @@ public class JobService {
             throw new IllegalStateException("Job is not completed yet");
         }
 
-        AnalysisResult result = job.getResult();
+        AnalysisResult result = resultRepository.findByAnalysisJobWithAntiPatterns(job)
+                .orElseThrow(() -> new ResourceNotFoundException("Results not found for job: " + jobId));
         if (result == null) {
             throw new ResourceNotFoundException("Results not found for job: " + jobId);
         }
