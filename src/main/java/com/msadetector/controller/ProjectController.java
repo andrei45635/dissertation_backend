@@ -1,8 +1,10 @@
 package com.msadetector.controller;
 
+import com.msadetector.dto.GitCloneRequest;
 import com.msadetector.dto.ProjectResponse;
 import com.msadetector.dto.UploadResponse;
 import com.msadetector.service.ProjectService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,6 +30,16 @@ public class ProjectController {
             @RequestParam("name") @NotBlank String name
     ) {
         UploadResponse response = projectService.uploadAndAnalyze(file, name);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+    }
+
+    @PostMapping("/clone")
+    public ResponseEntity<UploadResponse> cloneProject(@Valid @RequestBody GitCloneRequest request) {
+        UploadResponse response = projectService.cloneAndAnalyze(
+                request.repoUrl(),
+                request.name(),
+                request.branch()
+        );
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 

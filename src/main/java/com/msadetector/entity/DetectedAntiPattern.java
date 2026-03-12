@@ -60,4 +60,7 @@ public class DetectedAntiPattern extends BaseEntity {
 
     @Column(name = "call_count")
     private Integer callCount;
+
+    @Column(name = "code_snippets", columnDefinition = "TEXT")
+    private String codeSnippetsJson;
 }

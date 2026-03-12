@@ -32,17 +32,20 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final AnalysisJobRepository analysisJobRepository;
     private final AnalysisWorker analysisWorker;
+    private final GitCloneService gitCloneService;
     private final Path workspaceDir;
 
     public ProjectService(
             ProjectRepository projectRepository,
             AnalysisJobRepository analysisJobRepository,
             AnalysisWorker analysisWorker,
+            GitCloneService gitCloneService,
             @Value("${app.analysis.workspace-dir}") String workspaceDir
     ) {
         this.projectRepository = projectRepository;
         this.analysisJobRepository = analysisJobRepository;
         this.analysisWorker = analysisWorker;
+        this.gitCloneService = gitCloneService;
         this.workspaceDir = Path.of(workspaceDir);
     }
 
@@ -57,6 +60,51 @@ public class ProjectService {
         project = projectRepository.save(project);
 
         Path projectDir = extractZip(file, project.getId());
+        project.setLocalPath(projectDir.toString());
+        projectRepository.saveAndFlush(project);
+
+        AnalysisJob job = AnalysisJob.builder()
+                .project(project)
+                .build();
+        job = analysisJobRepository.saveAndFlush(job);
+
+        Long jobId = job.getId();
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                analysisWorker.processJob(jobId);
+            }
+        });
+
+        return new UploadResponse(project.getId(), job.getId());
+    }
+
+    @Transactional
+    public UploadResponse cloneAndAnalyze(String repoUrl, String projectName, String branch) {
+        gitCloneService.validateRepoUrl(repoUrl);
+
+        String host = gitCloneService.extractHost(repoUrl);
+        SourceType sourceType = host.contains("gitlab") ? SourceType.GITLAB : SourceType.GITHUB;
+
+        // Use repo name as project name if not provided
+        if (projectName == null || projectName.isBlank()) {
+            projectName = gitCloneService.extractRepoName(repoUrl);
+        }
+
+        // Pass branch as-is; null/blank means "use remote default"
+        String effectiveBranch = (branch != null && !branch.isBlank()) ? branch : null;
+
+        Project project = Project.builder()
+                .name(projectName)
+                .sourceType(sourceType)
+                .sourceUrl(repoUrl)
+                .branch(effectiveBranch)
+                .build();
+        project = projectRepository.save(project);
+
+        // Clone the repository
+        Path projectDir = gitCloneService.cloneRepository(repoUrl, project.getId(), effectiveBranch);
         project.setLocalPath(projectDir.toString());
         projectRepository.saveAndFlush(project);
 

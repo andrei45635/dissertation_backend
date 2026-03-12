@@ -11,5 +11,14 @@ public record AntiPatternResponse(
         Severity severity,
         String description,
         List<String> affectedServices,
-        String remediation
-) {}
+        String remediation,
+        List<CodeSnippet> codeSnippets
+) {
+    public record CodeSnippet(
+            String file,
+            int startLine,
+            int endLine,
+            int highlightLine,
+            String snippet
+    ) {}
+}

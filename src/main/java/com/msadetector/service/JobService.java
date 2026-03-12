@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class JobService {
@@ -121,6 +122,7 @@ public class JobService {
 
     private AntiPatternResponse toAntiPatternResponse(DetectedAntiPattern pattern) {
         List<String> affectedServices = parseJsonList(pattern.getAffectedServicesJson());
+        List<AntiPatternResponse.CodeSnippet> codeSnippets = parseCodeSnippets(pattern.getCodeSnippetsJson());
 
         return new AntiPatternResponse(
                 pattern.getId(),
@@ -128,7 +130,8 @@ public class JobService {
                 pattern.getSeverity(),
                 pattern.getDescription(),
                 affectedServices,
-                pattern.getRemediation()
+                pattern.getRemediation(),
+                codeSnippets
         );
     }
 
@@ -138,6 +141,24 @@ public class JobService {
         }
         try {
             return objectMapper.readValue(json, new TypeReference<>() {});
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    private List<AntiPatternResponse.CodeSnippet> parseCodeSnippets(String json) {
+        if (json == null || json.isBlank()) {
+            return Collections.emptyList();
+        }
+        try {
+            List<Map<String, Object>> raw = objectMapper.readValue(json, new TypeReference<>() {});
+            return raw.stream().map(m -> new AntiPatternResponse.CodeSnippet(
+                    (String) m.getOrDefault("file", "unknown"),
+                    ((Number) m.getOrDefault("startLine", 0)).intValue(),
+                    ((Number) m.getOrDefault("endLine", 0)).intValue(),
+                    ((Number) m.getOrDefault("highlightLine", 0)).intValue(),
+                    (String) m.getOrDefault("snippet", "")
+            )).toList();
         } catch (Exception e) {
             return Collections.emptyList();
         }
