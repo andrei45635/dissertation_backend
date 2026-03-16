@@ -12,9 +12,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -32,6 +32,7 @@ public class AnalysisWorker {
     private final DesigniteService designiteService;
     private final MicroserviceDetector microserviceDetector;
     private final AntiPatternDetectorService antiPatternDetector;
+    private final JobProgressUpdater progressUpdater;
 
     public AnalysisWorker(
             AnalysisJobRepository jobRepository,
@@ -39,7 +40,8 @@ public class AnalysisWorker {
             MicroserviceRepository microserviceRepository,
             DesigniteService designiteService,
             MicroserviceDetector microserviceDetector,
-            AntiPatternDetectorService antiPatternDetector
+            AntiPatternDetectorService antiPatternDetector,
+            JobProgressUpdater progressUpdater
     ) {
         this.jobRepository = jobRepository;
         this.projectRepository = projectRepository;
@@ -47,34 +49,33 @@ public class AnalysisWorker {
         this.designiteService = designiteService;
         this.microserviceDetector = microserviceDetector;
         this.antiPatternDetector = antiPatternDetector;
+        this.progressUpdater = progressUpdater;
     }
 
     @Async
-    @Transactional
     public void processJob(Long jobId) {
-        AnalysisJob job = jobRepository.findById(jobId).orElse(null);
+        AnalysisJob job = jobRepository.findByIdWithProject(jobId).orElse(null);
         if (job == null) {
             log.error("Job not found: {}", jobId);
             return;
         }
 
         try {
-            job.start();
-            jobRepository.save(job);
+            progressUpdater.startJob(jobId);
 
             Project project = job.getProject();
             Path projectPath = Path.of(project.getLocalPath());
 
-            updateJobStatus(job, JobStatus.DETECTING_SERVICES, "Scanning for microservices", null, 0, 0);
+            progressUpdater.updateProgress(jobId, JobStatus.DETECTING_SERVICES, "Scanning for microservices", null, 0, 0);
             List<Microservice> microservices = detectMicroservices(project, projectPath);
 
             int total = microservices.size();
             int completed = 0;
 
-            updateJobStatus(job, JobStatus.ANALYZING_SERVICES, "Running code analysis", null, completed, total);
+            progressUpdater.updateProgress(jobId, JobStatus.ANALYZING_SERVICES, "Running code analysis", null, completed, total);
 
             for (Microservice ms : microservices) {
-                updateJobStatus(job, JobStatus.ANALYZING_SERVICES, "Analyzing service", ms.getName(), completed, total);
+                progressUpdater.updateProgress(jobId, JobStatus.ANALYZING_SERVICES, "Analyzing service", ms.getName(), completed, total);
 
                 if (job.isRunDesignite()) {
                     Path servicePath = projectPath.resolve(ms.getRelativePath());
@@ -82,24 +83,22 @@ public class AnalysisWorker {
                 }
 
                 completed++;
-                updateJobStatus(job, JobStatus.ANALYZING_SERVICES, "Analyzing service", ms.getName(), completed, total);
+                progressUpdater.updateProgress(jobId, JobStatus.ANALYZING_SERVICES, "Analyzing service", ms.getName(), completed, total);
             }
 
-            updateJobStatus(job, JobStatus.BUILDING_GRAPH, "Building dependency graph", null, completed, total);
+            progressUpdater.updateProgress(jobId, JobStatus.BUILDING_GRAPH, "Building dependency graph", null, completed, total);
             antiPatternDetector.buildDependencyGraph(project);
 
-            updateJobStatus(job, JobStatus.DETECTING_PATTERNS, "Detecting anti-patterns", null, completed, total);
+            progressUpdater.updateProgress(jobId, JobStatus.DETECTING_PATTERNS, "Detecting anti-patterns", null, completed, total);
             AnalysisResult result = antiPatternDetector.detectAntiPatterns(project, job);
 
-            job.complete(result);
-            jobRepository.save(job);
+            progressUpdater.completeJob(jobId, result);
 
             log.info("Analysis completed for job {}", jobId);
 
         } catch (Exception e) {
             log.error("Analysis failed for job {}", jobId, e);
-            job.fail(e.getMessage());
-            jobRepository.save(job);
+            progressUpdater.failJob(jobId, e.getMessage());
         }
     }
 
@@ -138,14 +137,9 @@ public class AnalysisWorker {
 
     private int countLines(Path file) {
         try {
-            return (int) Files.lines(file).count();
-        } catch (IOException e) {
+            return (int) Files.lines(file, java.nio.charset.StandardCharsets.ISO_8859_1).count();
+        } catch (IOException | UncheckedIOException e) {
             return 0;
         }
-    }
-
-    private void updateJobStatus(AnalysisJob job, JobStatus status, String phase, String currentService, int completed, int total) {
-        job.updateProgress(status, phase, currentService, completed, total);
-        jobRepository.save(job);
     }
 }

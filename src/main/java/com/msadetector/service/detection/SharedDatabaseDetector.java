@@ -77,7 +77,7 @@ public class SharedDatabaseDetector extends BaseDetector {
             if (!Files.exists(configFile)) continue;
 
             try {
-                List<String> lines = Files.readAllLines(configFile);
+                List<String> lines = Files.readAllLines(configFile, java.nio.charset.StandardCharsets.ISO_8859_1);
                 for (int i = 0; i < lines.size(); i++) {
                     String line = lines.get(i).toLowerCase();
                     if (line.contains("datasource") || line.contains("spring.datasource.url")) {

@@ -27,7 +27,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+
 
 /**
  * Builds the dependency graph for a microservices project by scanning
@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
  * - Parse application.yml / application.properties for datasource URLs
  * - Detect REST endpoints via Spring MVC annotations
  * - Detect inter-service calls via @FeignClient, RestTemplate, WebClient
+ * - Resolve @Value-injected URL fields and localhost:port references
  * - Populate Endpoint and ServiceDependency entities
  */
 @Service
@@ -47,6 +48,9 @@ public class DependencyGraphBuilder {
     private static final String SRC_MAIN_JAVA = "src/main/java";
 
     private static final Pattern API_VERSION_PATTERN = Pattern.compile("/v\\d+[/.]");
+
+    /** Matches Spring property placeholders like ${some.prop} or ${some.prop:default} */
+    private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\$\\{([^:}]+)(?::([^}]*))?}");
 
     private final MicroserviceRepository microserviceRepository;
     private final ServiceDependencyRepository dependencyRepository;
@@ -68,30 +72,108 @@ public class DependencyGraphBuilder {
         Path projectRoot = Path.of(project.getLocalPath());
 
         // Phase 1: Parse configuration files and detect endpoints
+        // Also collect server ports and spring.application.name for matching
+        Map<String, String> portToServiceName = new HashMap<>();
+        Map<String, Microservice> serviceByName = new HashMap<>();
+
         for (Microservice ms : microservices) {
             Path servicePath = projectRoot.resolve(ms.getRelativePath());
             parseDatasourceConfig(ms, servicePath);
             parseEndpoints(ms, servicePath);
+
+            // Read spring.application.name and server.port for matching
+            Map<String, String> configProps = readConfigProperties(servicePath);
+            String appName = configProps.get("spring.application.name");
+            String serverPort = configProps.get("server.port");
+
+            // Register the directory name
+            serviceByName.put(ms.getName().toLowerCase(), ms);
+
+            // Register spring.application.name as an alias
+            if (appName != null && !appName.isBlank()) {
+                String resolved = resolveDefaultPlaceholders(appName).toLowerCase().trim();
+                if (!resolved.isBlank()) {
+                    serviceByName.putIfAbsent(resolved, ms);
+                    log.debug("Registered alias '{}' for service '{}'", resolved, ms.getName());
+                }
+            }
+
+            // Register port mapping for localhost:PORT resolution
+            if (serverPort != null && !serverPort.isBlank()) {
+                String resolvedPort = resolveDefaultPlaceholders(serverPort).trim();
+                if (!resolvedPort.isBlank() && resolvedPort.matches("\\d+")) {
+                    portToServiceName.put(resolvedPort, ms.getName().toLowerCase());
+                    log.debug("Registered port {} for service '{}'", resolvedPort, ms.getName());
+                }
+            }
         }
 
-        // Build a lookup of service names for matching
-        Map<String, Microservice> serviceByName = microservices.stream()
-                .collect(Collectors.toMap(
-                        ms -> ms.getName().toLowerCase(),
-                        ms -> ms,
-                        (a, _) -> a
-                ));
+        log.info("Service name lookup has {} entries: {}", serviceByName.size(), serviceByName.keySet());
 
         // Phase 2: Detect inter-service calls and build dependencies
         for (Microservice ms : microservices) {
             Path servicePath = projectRoot.resolve(ms.getRelativePath());
-            detectInterServiceCalls(ms, servicePath, serviceByName);
+            detectInterServiceCalls(ms, servicePath, serviceByName, portToServiceName);
         }
     }
 
     // ========================================================================================
     // CONFIGURATION PARSING
     // ========================================================================================
+
+    /**
+     * Reads common configuration properties from a service's application.yml or
+     * application.properties. Returns a flat map of property keys to values.
+     */
+    private Map<String, String> readConfigProperties(Path servicePath) {
+        Map<String, String> props = new HashMap<>();
+        Path resourcesDir = servicePath.resolve("src/main/resources");
+
+        for (String filename : List.of("application.yml", "application.yaml")) {
+            Path yamlFile = resourcesDir.resolve(filename);
+            if (Files.exists(yamlFile)) {
+                try (InputStream is = Files.newInputStream(yamlFile)) {
+                    Yaml yaml = new Yaml();
+                    Map<String, Object> config = yaml.load(is);
+                    if (config != null) {
+                        flattenYaml("", config, props);
+                    }
+                } catch (Exception e) {
+                    log.debug("Could not read config from {}: {}", yamlFile, e.getMessage());
+                }
+                return props;
+            }
+        }
+
+        Path propsFile = resourcesDir.resolve("application.properties");
+        if (Files.exists(propsFile)) {
+            try {
+                Properties javaProps = new Properties();
+                javaProps.load(Files.newInputStream(propsFile));
+                javaProps.forEach((k, v) -> props.put(k.toString(), v.toString()));
+            } catch (IOException e) {
+                log.debug("Could not read config from {}: {}", propsFile, e.getMessage());
+            }
+        }
+
+        return props;
+    }
+
+    /**
+     * Flattens a nested YAML map into dot-separated property keys.
+     */
+    @SuppressWarnings("unchecked")
+    private void flattenYaml(String prefix, Map<String, Object> map, Map<String, String> result) {
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            String key = prefix.isEmpty() ? entry.getKey() : prefix + "." + entry.getKey();
+            Object value = entry.getValue();
+            if (value instanceof Map) {
+                flattenYaml(key, (Map<String, Object>) value, result);
+            } else if (value != null) {
+                result.put(key, value.toString());
+            }
+        }
+    }
 
     private void parseDatasourceConfig(Microservice ms, Path servicePath) {
         Path resourcesDir = servicePath.resolve("src/main/resources");
@@ -161,27 +243,31 @@ public class DependencyGraphBuilder {
             List<Endpoint> endpoints = new ArrayList<>();
 
             for (CtType<?> type : model.getAllTypes()) {
-                if (!isRestController(type)) continue;
+                try {
+                    if (!isRestController(type)) continue;
 
-                String classLevelPath = extractRequestMappingPath(type);
+                    String classLevelPath = extractRequestMappingPath(type);
 
-                for (CtMethod<?> method : type.getMethods()) {
-                    EndpointInfo info = extractEndpointInfo(method, classLevelPath);
-                    if (info != null) {
-                        boolean hasVersioning = API_VERSION_PATTERN.matcher(info.path()).find();
+                    for (CtMethod<?> method : type.getMethods()) {
+                        EndpointInfo info = extractEndpointInfo(method, classLevelPath);
+                        if (info != null) {
+                            boolean hasVersioning = API_VERSION_PATTERN.matcher(info.path()).find();
 
-                        Endpoint endpoint = Endpoint.builder()
-                                .path(info.path())
-                                .httpMethod(info.httpMethod())
-                                .controllerClass(type.getQualifiedName())
-                                .methodName(method.getSimpleName())
-                                .hasVersioning(hasVersioning)
-                                .apiVersion(hasVersioning ? extractVersionFromPath(info.path()) : null)
-                                .microservice(ms)
-                                .build();
+                            Endpoint endpoint = Endpoint.builder()
+                                    .path(info.path())
+                                    .httpMethod(info.httpMethod())
+                                    .controllerClass(type.getQualifiedName())
+                                    .methodName(method.getSimpleName())
+                                    .hasVersioning(hasVersioning)
+                                    .apiVersion(hasVersioning ? extractVersionFromPath(info.path()) : null)
+                                    .microservice(ms)
+                                    .build();
 
-                        endpoints.add(endpoint);
+                            endpoints.add(endpoint);
+                        }
                     }
+                } catch (Exception e) {
+                    log.debug("Skipping class {} in service {}: {}", type.getQualifiedName(), ms.getName(), e.getMessage());
                 }
             }
 
@@ -193,7 +279,7 @@ public class DependencyGraphBuilder {
             }
 
         } catch (Exception e) {
-            log.error("Failed to parse endpoints for service {}: {}", ms.getName(), e.getMessage());
+            log.warn("Failed to build Spoon model for service {}: {}", ms.getName(), e.getMessage());
         }
     }
 
@@ -202,22 +288,37 @@ public class DependencyGraphBuilder {
     // ========================================================================================
 
     private void detectInterServiceCalls(Microservice sourceService, Path servicePath,
-                                          Map<String, Microservice> serviceByName) {
+                                          Map<String, Microservice> serviceByName,
+                                          Map<String, String> portToServiceName) {
         Path srcDir = servicePath.resolve(SRC_MAIN_JAVA);
         if (!Files.exists(srcDir)) return;
 
+        // Read this service's config for resolving @Value properties
+        Map<String, String> serviceConfig = readConfigProperties(servicePath);
+
         try {
             CtModel model = buildSpoonModel(srcDir);
+
+            // Pre-scan: collect @Value field mappings for URL resolution
+            Map<String, String> valueFieldUrls = extractValueAnnotatedFields(model, serviceConfig);
+
             Map<String, List<CallEvidence>> callMap = new HashMap<>();
 
             for (CtType<?> type : model.getAllTypes()) {
-                detectFeignClients(type, callMap);
-                detectRestTemplateCalls(type, callMap);
-                detectWebClientCalls(type, callMap);
+                try {
+                    detectFeignClients(type, callMap, serviceConfig);
+                    detectRestTemplateCalls(type, callMap, valueFieldUrls);
+                    detectWebClientCalls(type, callMap, valueFieldUrls);
+                } catch (Exception e) {
+                    log.debug("Skipping class {} for inter-service call detection: {}", type.getQualifiedName(), e.getMessage());
+                }
             }
 
+            // Resolve call targets to actual microservices
             for (Map.Entry<String, List<CallEvidence>> entry : callMap.entrySet()) {
-                Microservice targetService = serviceByName.get(entry.getKey().toLowerCase());
+                String rawTarget = entry.getKey().toLowerCase();
+                Microservice targetService = resolveTargetService(rawTarget, serviceByName, portToServiceName);
+
                 if (targetService != null && !targetService.getId().equals(sourceService.getId())) {
                     List<CallEvidence> evidenceList = entry.getValue();
                     DependencyType depType = evidenceList.getFirst().dependencyType();
@@ -234,38 +335,174 @@ public class DependencyGraphBuilder {
                             .build();
 
                     dependencyRepository.save(dependency);
-                    log.info("Dependency: {} -> {} ({} calls, type: {})",
+                    log.info("Dependency: {} -> {} ({} calls, type: {}, raw target: '{}')",
                             sourceService.getName(), targetService.getName(),
-                            evidenceList.size(), depType);
+                            evidenceList.size(), depType, rawTarget);
+                } else if (targetService == null) {
+                    log.debug("Unresolved dependency target '{}' from service '{}' ({} calls)",
+                            rawTarget, sourceService.getName(), entry.getValue().size());
                 }
             }
 
         } catch (Exception e) {
-            log.error("Failed to detect inter-service calls for {}: {}", sourceService.getName(), e.getMessage());
+            log.warn("Failed to detect inter-service calls for {}: {}", sourceService.getName(), e.getMessage());
         }
     }
 
-    private void detectFeignClients(CtType<?> type, Map<String, List<CallEvidence>> callMap) {
-        for (CtAnnotation<?> annotation : type.getAnnotations()) {
-            String annotationName = annotation.getAnnotationType().getSimpleName();
-            if ("FeignClient".equals(annotationName)) {
-                String targetName = extractFeignClientTarget(annotation);
-                if (targetName != null) {
-                    String normalizedTarget = normalizeServiceName(targetName);
-                    callMap.computeIfAbsent(normalizedTarget, _ -> new ArrayList<>())
-                            .add(new CallEvidence(
-                                    DependencyType.FEIGN_CLIENT,
-                                    positionFile(type), positionLine(type),
-                                    "@FeignClient targeting " + targetName,
-                                    targetName
-                            ));
-                    log.debug("Found @FeignClient in {} targeting {}", type.getQualifiedName(), targetName);
+    /**
+     * Resolves a raw target name (from a Feign client or URL) to an actual Microservice.
+     * Tries multiple strategies:
+     * 1. Exact match against service names / spring.application.name aliases
+     * 2. Port-based matching for localhost:PORT
+     * 3. Fuzzy substring matching (target contains service name or vice versa)
+     */
+    private Microservice resolveTargetService(String rawTarget,
+                                               Map<String, Microservice> serviceByName,
+                                               Map<String, String> portToServiceName) {
+        // Strategy 1: Exact match
+        Microservice exact = serviceByName.get(rawTarget);
+        if (exact != null) return exact;
+
+        // Strategy 2: Port-based matching (for "localhost:8081" style targets)
+        // The rawTarget at this point might be "localhost:8081" if we kept port info
+        String port = extractPortFromTarget(rawTarget);
+        if (port != null) {
+            String serviceName = portToServiceName.get(port);
+            if (serviceName != null) {
+                Microservice byPort = serviceByName.get(serviceName);
+                if (byPort != null) {
+                    log.debug("Resolved '{}' via port {} -> '{}'", rawTarget, port, serviceName);
+                    return byPort;
                 }
+            }
+        }
+
+        // Strategy 3: Fuzzy matching — rawTarget contains a known service name, or vice versa
+        for (Map.Entry<String, Microservice> entry : serviceByName.entrySet()) {
+            String knownName = entry.getKey();
+            if (rawTarget.contains(knownName) || knownName.contains(rawTarget)) {
+                log.debug("Fuzzy matched '{}' to known service '{}'", rawTarget, knownName);
+                return entry.getValue();
+            }
+            // Also try without common suffixes/prefixes: e.g. "order" matches "order-service"
+            String stripped = knownName.replaceAll("-(service|svc|ms|api|server|app)$", "");
+            if (!stripped.equals(knownName) && (rawTarget.contains(stripped) || stripped.contains(rawTarget))) {
+                log.debug("Fuzzy matched '{}' to known service '{}' (stripped: '{}')", rawTarget, knownName, stripped);
+                return entry.getValue();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Extracts port number from a raw target that might look like "localhost:8081"
+     * or just "8081".
+     */
+    private String extractPortFromTarget(String rawTarget) {
+        // Pattern: something:PORT or just a port number
+        int colonIdx = rawTarget.lastIndexOf(':');
+        if (colonIdx >= 0 && colonIdx < rawTarget.length() - 1) {
+            String portPart = rawTarget.substring(colonIdx + 1);
+            // Remove any path after port
+            int slashIdx = portPart.indexOf('/');
+            if (slashIdx > 0) portPart = portPart.substring(0, slashIdx);
+            if (portPart.matches("\\d{4,5}")) return portPart;
+        }
+        return null;
+    }
+
+    /**
+     * Pre-scans the Spoon model for fields annotated with @Value that contain URL-like
+     * values, resolving them against the service's configuration properties.
+     * Returns a map of field name -> resolved URL value.
+     */
+    private Map<String, String> extractValueAnnotatedFields(CtModel model, Map<String, String> serviceConfig) {
+        Map<String, String> fieldUrls = new HashMap<>();
+
+        for (CtType<?> type : model.getAllTypes()) {
+            for (CtField<?> field : type.getFields()) {
+                for (CtAnnotation<?> annotation : field.getAnnotations()) {
+                    try {
+                        if ("Value".equals(annotation.getAnnotationType().getSimpleName())) {
+                            String valueExpr = extractStringValue(annotation.getValue("value"));
+                            if (valueExpr == null) continue;
+
+                            String resolvedUrl = resolveSpringPlaceholder(valueExpr, serviceConfig);
+                            if (resolvedUrl != null && !resolvedUrl.isBlank()) {
+                                fieldUrls.put(field.getSimpleName(), resolvedUrl);
+                                log.debug("@Value field '{}' resolved to '{}'", field.getSimpleName(), resolvedUrl);
+                            }
+                        }
+                    } catch (Exception e) {
+                        // Spoon may fail to resolve annotation type in no-classpath mode — skip it
+                    }
+                }
+            }
+        }
+
+        return fieldUrls;
+    }
+
+    /**
+     * Resolves a Spring property placeholder like "${user-service.url:http://localhost:8081}"
+     * against the provided config properties. Falls back to the default value if present.
+     */
+    private String resolveSpringPlaceholder(String expression, Map<String, String> config) {
+        Matcher matcher = PLACEHOLDER_PATTERN.matcher(expression);
+        if (matcher.find()) {
+            String propKey = matcher.group(1);
+            String defaultValue = matcher.group(2);
+
+            // Try to look up the property in config
+            String configValue = config.get(propKey);
+            if (configValue != null && !configValue.isBlank()) {
+                return resolveDefaultPlaceholders(configValue);
+            }
+            // Fall back to the default value
+            if (defaultValue != null && !defaultValue.isBlank()) {
+                return defaultValue;
+            }
+        }
+        // If no placeholder, return the expression itself if it looks like a URL
+        if (expression.startsWith("http://") || expression.startsWith("https://")) {
+            return expression;
+        }
+        return null;
+    }
+
+    private void detectFeignClients(CtType<?> type, Map<String, List<CallEvidence>> callMap,
+                                     Map<String, String> serviceConfig) {
+        for (CtAnnotation<?> annotation : type.getAnnotations()) {
+            try {
+                String annotationName = annotation.getAnnotationType().getSimpleName();
+                if ("FeignClient".equals(annotationName)) {
+                    String targetName = extractFeignClientTarget(annotation);
+                    if (targetName != null) {
+                        // Resolve placeholders in Feign target (e.g. ${user-service.name})
+                        String resolved = resolveSpringPlaceholder(targetName, serviceConfig);
+                        if (resolved != null) targetName = resolved;
+
+                        String normalizedTarget = normalizeServiceName(targetName);
+                        callMap.computeIfAbsent(normalizedTarget, _ -> new ArrayList<>())
+                                .add(new CallEvidence(
+                                        DependencyType.FEIGN_CLIENT,
+                                        positionFile(type), positionLine(type),
+                                        "@FeignClient targeting " + targetName,
+                                        targetName
+                                ));
+                        log.debug("Found @FeignClient in {} targeting '{}' (normalized: '{}')",
+                                type.getQualifiedName(), targetName, normalizedTarget);
+                    }
+                }
+            } catch (Exception e) {
+                // Spoon may fail to resolve annotation type in no-classpath mode — skip it
             }
         }
     }
 
-    private void detectRestTemplateCalls(CtType<?> type, Map<String, List<CallEvidence>> callMap) {
+    private void detectRestTemplateCalls(CtType<?> type, Map<String, List<CallEvidence>> callMap,
+                                          Map<String, String> valueFieldUrls) {
         Set<String> restTemplateMethods = Set.of(
                 "getForObject", "getForEntity",
                 "postForObject", "postForEntity",
@@ -284,7 +521,9 @@ public class DependencyGraphBuilder {
             }
 
             if (invocation.getArguments().isEmpty()) continue;
-            String urlValue = extractStringValue(invocation.getArguments().getFirst());
+
+            // Try to extract the URL — first as a literal, then via @Value field resolution
+            String urlValue = extractUrlFromExpression(invocation.getArguments().getFirst(), valueFieldUrls);
 
             if (urlValue != null) {
                 String targetServiceName = extractServiceNameFromUrl(urlValue);
@@ -293,21 +532,22 @@ public class DependencyGraphBuilder {
                             .add(new CallEvidence(
                                     DependencyType.REST_TEMPLATE,
                                     positionFile(invocation), positionLine(invocation),
-                                    invocation.toString(), urlValue
+                                    truncate(invocation.toString(), 200), urlValue
                             ));
                 }
             }
         }
     }
 
-    private void detectWebClientCalls(CtType<?> type, Map<String, List<CallEvidence>> callMap) {
+    private void detectWebClientCalls(CtType<?> type, Map<String, List<CallEvidence>> callMap,
+                                       Map<String, String> valueFieldUrls) {
         for (CtInvocation<?> invocation : type.getElements(new TypeFilter<>(CtInvocation.class))) {
             if (invocation.getExecutable() == null) continue;
 
             String methodName = invocation.getExecutable().getSimpleName();
 
             if ("uri".equals(methodName) && !invocation.getArguments().isEmpty() && isWebClientChain(invocation)) {
-                String urlValue = extractStringValue(invocation.getArguments().getFirst());
+                String urlValue = extractUrlFromExpression(invocation.getArguments().getFirst(), valueFieldUrls);
                 if (urlValue != null) {
                     String targetServiceName = extractServiceNameFromUrl(urlValue);
                     if (targetServiceName != null) {
@@ -315,18 +555,22 @@ public class DependencyGraphBuilder {
                                 .add(new CallEvidence(
                                         DependencyType.WEB_CLIENT,
                                         positionFile(invocation), positionLine(invocation),
-                                        invocation.toString(), urlValue
+                                        truncate(invocation.toString(), 200), urlValue
                                 ));
                     }
                 }
             }
 
-            if ("create".equals(methodName) && !invocation.getArguments().isEmpty()
-                    && invocation.getTarget() != null) {
-                String targetTypeName = invocation.getTarget().getType() != null
-                        ? invocation.getTarget().getType().getSimpleName() : "";
-                if ("WebClient".equals(targetTypeName)) {
-                    String urlValue = extractStringValue(invocation.getArguments().getFirst());
+            if (("create".equals(methodName) || "baseUrl".equals(methodName))
+                    && !invocation.getArguments().isEmpty()) {
+                boolean isWebClient = false;
+                if (invocation.getTarget() != null) {
+                    String targetTypeName = invocation.getTarget().getType() != null
+                            ? invocation.getTarget().getType().getSimpleName() : "";
+                    isWebClient = targetTypeName.contains("WebClient");
+                }
+                if (isWebClient || isWebClientChain(invocation)) {
+                    String urlValue = extractUrlFromExpression(invocation.getArguments().getFirst(), valueFieldUrls);
                     if (urlValue != null) {
                         String targetServiceName = extractServiceNameFromUrl(urlValue);
                         if (targetServiceName != null) {
@@ -334,13 +578,56 @@ public class DependencyGraphBuilder {
                                     .add(new CallEvidence(
                                             DependencyType.WEB_CLIENT,
                                             positionFile(invocation), positionLine(invocation),
-                                            invocation.toString(), urlValue
+                                            truncate(invocation.toString(), 200), urlValue
                                     ));
                         }
                     }
                 }
             }
         }
+    }
+
+    // ========================================================================================
+    // URL EXTRACTION HELPERS
+    // ========================================================================================
+
+    /**
+     * Attempts to extract a URL string from a Spoon expression. Tries multiple strategies:
+     * 1. Direct string literal extraction
+     * 2. If the expression is a field access, check if that field has an @Value URL
+     * 3. If it's a concatenation with a field, resolve the field part
+     */
+    private String extractUrlFromExpression(CtExpression<?> expr, Map<String, String> valueFieldUrls) {
+        // Strategy 1: Direct literal value
+        String direct = extractStringValue(expr);
+        if (direct != null) return direct;
+
+        // Strategy 2: Field access — check @Value-resolved URLs
+        if (expr instanceof CtFieldRead<?> fieldRead) {
+            String fieldName = fieldRead.getVariable().getSimpleName();
+            String resolved = valueFieldUrls.get(fieldName);
+            if (resolved != null) {
+                log.debug("Resolved field '{}' to URL '{}'", fieldName, resolved);
+                return resolved;
+            }
+        }
+
+        // Strategy 3: Binary operator (concatenation) — try to resolve left side as field
+        if (expr instanceof CtBinaryOperator<?> binOp) {
+            String left = extractUrlFromExpression(binOp.getLeftHandOperand(), valueFieldUrls);
+            String right = extractStringValue(binOp.getRightHandOperand());
+            if (left != null && right != null) return left + right;
+            if (left != null) return left; // partial URL is still useful for service name extraction
+        }
+
+        // Strategy 4: Variable read — check if variable name suggests a URL field
+        if (expr instanceof CtVariableRead<?> varRead) {
+            String varName = varRead.getVariable().getSimpleName();
+            String resolved = valueFieldUrls.get(varName);
+            if (resolved != null) return resolved;
+        }
+
+        return null;
     }
 
     // ========================================================================================
@@ -353,22 +640,32 @@ public class DependencyGraphBuilder {
         launcher.getEnvironment().setNoClasspath(true);
         launcher.getEnvironment().setComplianceLevel(17);
         launcher.getEnvironment().setShouldCompile(false);
+        launcher.getEnvironment().setIgnoreSyntaxErrors(true);
+        launcher.getEnvironment().setLevel("OFF");
         launcher.buildModel();
         return launcher.getModel();
     }
 
     private boolean isRestController(CtType<?> type) {
         for (CtAnnotation<?> annotation : type.getAnnotations()) {
-            String name = annotation.getAnnotationType().getSimpleName();
-            if ("RestController".equals(name) || "Controller".equals(name)) return true;
+            try {
+                String name = annotation.getAnnotationType().getSimpleName();
+                if ("RestController".equals(name) || "Controller".equals(name)) return true;
+            } catch (Exception e) {
+                // Spoon may fail to resolve annotation type in no-classpath mode — skip it
+            }
         }
         return false;
     }
 
     private String extractRequestMappingPath(CtType<?> type) {
         for (CtAnnotation<?> annotation : type.getAnnotations()) {
-            if ("RequestMapping".equals(annotation.getAnnotationType().getSimpleName())) {
-                return extractPathFromAnnotation(annotation);
+            try {
+                if ("RequestMapping".equals(annotation.getAnnotationType().getSimpleName())) {
+                    return extractPathFromAnnotation(annotation);
+                }
+            } catch (Exception e) {
+                // Spoon may fail to resolve annotation type in no-classpath mode — skip it
             }
         }
         return "";
@@ -387,15 +684,19 @@ public class DependencyGraphBuilder {
         );
 
         for (CtAnnotation<?> annotation : method.getAnnotations()) {
-            String annotationName = annotation.getAnnotationType().getSimpleName();
-            HttpMethod httpMethod = mappingAnnotations.get(annotationName);
+            try {
+                String annotationName = annotation.getAnnotationType().getSimpleName();
+                HttpMethod httpMethod = mappingAnnotations.get(annotationName);
 
-            if (httpMethod != null) {
-                if ("RequestMapping".equals(annotationName)) {
-                    httpMethod = extractHttpMethodFromRequestMapping(annotation);
+                if (httpMethod != null) {
+                    if ("RequestMapping".equals(annotationName)) {
+                        httpMethod = extractHttpMethodFromRequestMapping(annotation);
+                    }
+                    String methodPath = extractPathFromAnnotation(annotation);
+                    return new EndpointInfo(normalizePath(classLevelPath + methodPath), httpMethod);
                 }
-                String methodPath = extractPathFromAnnotation(annotation);
-                return new EndpointInfo(normalizePath(classLevelPath + methodPath), httpMethod);
+            } catch (Exception e) {
+                // Spoon may fail to resolve annotation type in no-classpath mode — skip it
             }
         }
         return null;
@@ -481,17 +782,32 @@ public class DependencyGraphBuilder {
     // URL / SERVICE NAME HELPERS
     // ========================================================================================
 
+    /**
+     * Extracts a target service identifier from a URL. Now handles localhost:PORT by
+     * preserving the port information for later resolution.
+     */
     private String extractServiceNameFromUrl(String url) {
         if (url == null) return null;
         String stripped = url.replaceFirst("https?://", "");
         int slashIdx = stripped.indexOf('/');
-        String host = slashIdx > 0 ? stripped.substring(0, slashIdx) : stripped;
-        int colonIdx = host.indexOf(':');
-        if (colonIdx > 0) host = host.substring(0, colonIdx);
-        if (host.equals("localhost") || host.matches("\\d+\\.\\d+\\.\\d+\\.\\d+")
-                || host.isEmpty() || host.equals("0.0.0.0")) {
+        String hostPort = slashIdx > 0 ? stripped.substring(0, slashIdx) : stripped;
+
+        int colonIdx = hostPort.indexOf(':');
+        String host = colonIdx > 0 ? hostPort.substring(0, colonIdx) : hostPort;
+        String port = colonIdx > 0 ? hostPort.substring(colonIdx + 1) : null;
+
+        if (host.isEmpty() || host.equals("0.0.0.0")) {
             return null;
         }
+
+        // For localhost and IP addresses, return "localhost:PORT" so port-based matching can work
+        if (host.equals("localhost") || host.matches("\\d+\\.\\d+\\.\\d+\\.\\d+")) {
+            if (port != null && port.matches("\\d+")) {
+                return "localhost:" + port;
+            }
+            return null; // localhost without port — can't resolve
+        }
+
         return normalizeServiceName(host);
     }
 

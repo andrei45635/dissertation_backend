@@ -100,7 +100,7 @@ public class ApiVersioningDetector extends BaseDetector {
 
         if (Files.exists(controllerFile)) {
             try {
-                List<String> lines = Files.readAllLines(controllerFile);
+                List<String> lines = Files.readAllLines(controllerFile, java.nio.charset.StandardCharsets.ISO_8859_1);
                 // Find the @RestController or @Controller annotation line
                 for (int i = 0; i < lines.size(); i++) {
                     String line = lines.get(i).trim();

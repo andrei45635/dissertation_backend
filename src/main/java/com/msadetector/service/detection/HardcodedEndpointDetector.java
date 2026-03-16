@@ -95,7 +95,7 @@ public class HardcodedEndpointDetector extends BaseDetector {
 
         try (Stream<Path> javaFiles = Files.walk(srcDir).filter(p -> p.toString().endsWith(".java"))) {
             for (Path javaFile : javaFiles.toList()) {
-                List<String> lines = Files.readAllLines(javaFile);
+                List<String> lines = Files.readAllLines(javaFile, java.nio.charset.StandardCharsets.ISO_8859_1);
                 String relativePath = servicePath.relativize(javaFile).toString();
 
                 if (relativePath.contains("test") || relativePath.contains("Test")) {

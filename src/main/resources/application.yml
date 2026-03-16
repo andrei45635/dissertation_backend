@@ -14,7 +14,7 @@ spring:
     show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
 
@@ -61,8 +61,21 @@ logging:
   level:
     root: INFO
     com.msadetector: DEBUG
-    org.hibernate.SQL: WARN
-    org.hibernate.type.descriptor.sql: WARN
+    # Silence Hibernate SQL & query logging
+    org.hibernate.SQL: OFF
+    org.hibernate.type: OFF
+    org.hibernate.type.descriptor.sql: OFF
+    org.hibernate.type.descriptor.sql.BasicBinder: OFF
+    org.hibernate.orm.jdbc.bind: OFF
+    org.hibernate.stat: OFF
+    org.hibernate.engine: WARN
+    org.hibernate.event: WARN
+    org.hibernate.cache: WARN
+    org.hibernate.resource: WARN
+    # Silence Spring Data / JPA internals
+    org.springframework.orm.jpa: WARN
+    org.springframework.transaction: WARN
+    org.springframework.data: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
@@ -92,7 +105,7 @@ spring:
       on-profile: dev
 
   jpa:
-    show-sql: true
+    show-sql: false
     hibernate:
       ddl-auto: update
 

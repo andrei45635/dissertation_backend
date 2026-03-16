@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -121,7 +122,7 @@ public class DesigniteService {
         }
 
         try {
-            List<String> lines = Files.readAllLines(csvFile);
+            List<String> lines = Files.readAllLines(csvFile, java.nio.charset.StandardCharsets.ISO_8859_1);
 
             for (int i = 1; i < lines.size(); i++) {
                 String line = lines.get(i);
@@ -131,8 +132,8 @@ public class DesigniteService {
                     CodeSmell smell = CodeSmell.builder()
                             .microservice(microservice)
                             .smellType(parts[3].trim())
-                            .className(parts.length > 2 ? parts[2].trim() : null)
-                            .filePath(parts.length > 1 ? parts[1].trim() : null)
+                            .className(parts[2].trim())
+                            .filePath(parts[1].trim())
                             .severity(mapSeverity(parts[3].trim()))
                             .sourceTool("DesigniteJava")
                             .description(category + " smell: " + parts[3].trim())
@@ -181,8 +182,8 @@ public class DesigniteService {
         Path typeMetrics = outputDir.resolve("TypeMetrics.csv");
         if (Files.exists(typeMetrics)) {
             try {
-                return (int) Files.lines(typeMetrics).count() - 1;
-            } catch (IOException e) {
+                return (int) Files.lines(typeMetrics, java.nio.charset.StandardCharsets.ISO_8859_1).count() - 1;
+            } catch (IOException | UncheckedIOException e) {
                 return 0;
             }
         }

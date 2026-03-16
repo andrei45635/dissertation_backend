@@ -56,7 +56,7 @@ public abstract class BaseDetector implements AntiPatternDetector {
             return null;
         }
         try {
-            List<String> allLines = Files.readAllLines(filePath);
+            List<String> allLines = Files.readAllLines(filePath, java.nio.charset.StandardCharsets.ISO_8859_1);
             int startLine = Math.max(1, lineNumber - contextLines);
             int endLine = Math.min(allLines.size(), lineNumber + contextLines);
 

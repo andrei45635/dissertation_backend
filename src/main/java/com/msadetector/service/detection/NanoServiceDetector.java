@@ -80,7 +80,7 @@ public class NanoServiceDetector extends BaseDetector {
         if (srcDir == null || !Files.exists(srcDir)) return null;
         try (Stream<Path> files = Files.walk(srcDir).filter(p -> p.toString().endsWith(".java"))) {
             for (Path file : files.toList()) {
-                String content = Files.readString(file);
+                String content = Files.readString(file, java.nio.charset.StandardCharsets.ISO_8859_1);
                 if (content.contains("@SpringBootApplication") || content.contains("public static void main")) {
                     return file;
                 }

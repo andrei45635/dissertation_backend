@@ -33,6 +33,9 @@ public interface AnalysisJobRepository extends JpaRepository<AnalysisJob, Long> 
     @Query("SELECT j FROM AnalysisJob j LEFT JOIN FETCH j.result WHERE j.id = :id")
     Optional<AnalysisJob> findByIdWithResult(@Param("id") Long id);
 
+    @Query("SELECT j FROM AnalysisJob j JOIN FETCH j.project WHERE j.id = :id")
+    Optional<AnalysisJob> findByIdWithProject(@Param("id") Long id);
+
     @Query("SELECT j FROM AnalysisJob j WHERE j.id = :id AND j.project.owner = :owner")
     Optional<AnalysisJob> findByIdAndOwner(@Param("id") Long id, @Param("owner") User owner);
 
