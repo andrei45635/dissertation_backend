@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: msadetector-db
@@ -22,26 +21,8 @@ services:
     networks:
       - msadetector-network
 
-  # Redis (for caching and job queue - optional)
-  redis:
-    image: redis:7-alpine
-    container_name: msadetector-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - msadetector-network
-
-  # MSA Detector Backend
   backend:
     build:
-      # context: ../../../../../AppData/Local/Temp/Rar$DRa27388.40739.rartemp/dissertation_backend
       context: .
       dockerfile: Dockerfile
     container_name: msadetector-backend
@@ -60,13 +41,35 @@ services:
     volumes:
       - workspace_data:/app/workspace
       - ./lib/DesigniteJava.jar:/app/lib/DesigniteJava.jar:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - msadetector-network
+    restart: unless-stopped
 
-  # pgAdmin (optional - for database management)
+  # Builds from the sibling frontend repository.
+  # Adjust 'context' if your directory layout differs.
+  frontend:
+    build:
+      context: ../dissertation_frontend
+      dockerfile: Dockerfile
+    container_name: msadetector-frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - msadetector-network
+    restart: unless-stopped
+
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: msadetector-pgadmin
@@ -84,7 +87,6 @@ services:
 
 volumes:
   postgres_data:
-  redis_data:
   workspace_data:
 
 networks:

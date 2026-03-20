@@ -1,14 +1,6 @@
 -- Database initialization script
 -- This runs automatically when the PostgreSQL container starts for the first time
+-- Schema creation is handled by Flyway migrations (src/main/resources/db/migration/)
 
--- Create extensions if needed
+-- Create extensions if needed (also in V1 migration, but safe to repeat)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- Grant privileges (if using different users)
--- GRANT ALL PRIVILEGES ON DATABASE msadetector TO postgres;
-
--- Any initial data can be added here
--- For example, a default admin user (password should be hashed in production)
-
--- Note: Tables are created by Hibernate based on entity definitions
--- This file is for any additional setup not covered by JPA

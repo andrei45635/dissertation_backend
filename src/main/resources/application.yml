@@ -8,14 +8,19 @@ spring:
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
         format_sql: false
-        dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
 
   servlet:
@@ -31,15 +36,11 @@ spring:
 
 server:
   port: ${SERVER_PORT:8080}
-  error:
-    include-message: always
-    include-binding-errors: always
 
-# Application-specific configuration
 app:
   jwt:
     secret: ${JWT_SECRET:your-256-bit-secret-key-here-change-in-production}
-    expiration-ms: ${JWT_EXPIRATION:86400000}  # 24 hours
+    expiration-ms: ${JWT_EXPIRATION:86400000}
 
   analysis:
     workspace-dir: ${WORKSPACE_DIR:/tmp/msa-detector/workspace}
@@ -56,7 +57,6 @@ app:
     wrong-cuts-min-feature-envy: ${WRONG_CUTS_MIN_FEATURE_ENVY:3}
     esb-mediator-threshold: ${ESB_MEDIATOR_THRESHOLD:0.5}
 
-# Logging configuration
 logging:
   level:
     root: INFO
@@ -76,6 +76,8 @@ logging:
     org.springframework.orm.jpa: WARN
     org.springframework.transaction: WARN
     org.springframework.data: WARN
+    # Suppress 'Using generated security password' warning (no auth in use)
+    org.springframework.boot.autoconfigure.security: OFF
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
@@ -89,7 +91,6 @@ management:
     health:
       show-details: when_authorized
 
-# OpenAPI documentation
 springdoc:
   api-docs:
     path: /api-docs
@@ -104,10 +105,13 @@ spring:
     activate:
       on-profile: dev
 
+  flyway:
+    clean-disabled: false
+
   jpa:
     show-sql: false
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
 
 logging:
   level:
@@ -119,6 +123,9 @@ spring:
   config:
     activate:
       on-profile: prod
+
+  flyway:
+    clean-disabled: true
 
   jpa:
     hibernate:
