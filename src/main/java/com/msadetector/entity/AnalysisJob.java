@@ -54,6 +54,10 @@ public class AnalysisJob extends BaseEntity {
     @Column(name = "error_message", length = 2000)
     private String errorMessage;
 
+    @Column(name = "analysis_number")
+    @Builder.Default
+    private Integer analysisNumber = 1;
+
     @Column(name = "run_designite")
     @Builder.Default
     private boolean runDesignite = true;

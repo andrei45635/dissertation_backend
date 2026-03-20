@@ -5,11 +5,13 @@ import com.msadetector.dto.ProjectResponse;
 import com.msadetector.dto.UploadResponse;
 import com.msadetector.entity.AnalysisJob;
 import com.msadetector.entity.Project;
+import com.msadetector.entity.User;
 import com.msadetector.enums.SourceType;
 import com.msadetector.exception.InvalidFileException;
 import com.msadetector.exception.ResourceNotFoundException;
 import com.msadetector.repository.AnalysisJobRepository;
 import com.msadetector.repository.ProjectRepository;
+import com.msadetector.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final AnalysisJobRepository analysisJobRepository;
+    private final UserRepository userRepository;
     private final AnalysisWorker analysisWorker;
     private final GitCloneService gitCloneService;
     private final Path workspaceDir;
@@ -38,25 +41,31 @@ public class ProjectService {
     public ProjectService(
             ProjectRepository projectRepository,
             AnalysisJobRepository analysisJobRepository,
+            UserRepository userRepository,
             AnalysisWorker analysisWorker,
             GitCloneService gitCloneService,
             @Value("${app.analysis.workspace-dir}") String workspaceDir
     ) {
         this.projectRepository = projectRepository;
         this.analysisJobRepository = analysisJobRepository;
+        this.userRepository = userRepository;
         this.analysisWorker = analysisWorker;
         this.gitCloneService = gitCloneService;
         this.workspaceDir = Path.of(workspaceDir);
     }
 
     @Transactional
-    public UploadResponse uploadAndAnalyze(MultipartFile file, String projectName) {
+    public UploadResponse uploadAndAnalyze(MultipartFile file, String projectName, Long userId) {
         validateFile(file);
+
+        User owner = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         Project project = Project.builder()
                 .name(projectName)
                 .sourceType(SourceType.UPLOAD)
                 .build();
+        project.setOwner(owner);
         project = projectRepository.save(project);
 
         Path projectDir = extractZip(file, project.getId());
@@ -81,18 +90,19 @@ public class ProjectService {
     }
 
     @Transactional
-    public UploadResponse cloneAndAnalyze(String repoUrl, String projectName, String branch) {
+    public UploadResponse cloneAndAnalyze(String repoUrl, String projectName, String branch, Long userId) {
         gitCloneService.validateRepoUrl(repoUrl);
+
+        User owner = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         String host = gitCloneService.extractHost(repoUrl);
         SourceType sourceType = host.contains("gitlab") ? SourceType.GITLAB : SourceType.GITHUB;
 
-        // Use repo name as project name if not provided
         if (projectName == null || projectName.isBlank()) {
             projectName = gitCloneService.extractRepoName(repoUrl);
         }
 
-        // Pass branch as-is; null/blank means "use remote default"
         String effectiveBranch = (branch != null && !branch.isBlank()) ? branch : null;
 
         Project project = Project.builder()
@@ -101,9 +111,9 @@ public class ProjectService {
                 .sourceUrl(repoUrl)
                 .branch(effectiveBranch)
                 .build();
+        project.setOwner(owner);
         project = projectRepository.save(project);
 
-        // Clone the repository
         Path projectDir = gitCloneService.cloneRepository(repoUrl, project.getId(), effectiveBranch);
         project.setLocalPath(projectDir.toString());
         projectRepository.saveAndFlush(project);
@@ -123,6 +133,151 @@ public class ProjectService {
         });
 
         return new UploadResponse(project.getId(), job.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProjectResponse> getProjectsForUser(Long userId) {
+        User owner = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+        return projectRepository.findByOwnerOrderByCreatedAtDesc(owner).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ProjectResponse getProjectForUser(Long projectId, Long userId) {
+        User owner = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+        Project project = projectRepository.findByIdAndOwner(projectId, owner)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found: " + projectId));
+        return toResponse(project);
+    }
+
+    @Transactional
+    public void deleteProjectForUser(Long projectId, Long userId) {
+        User owner = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+        Project project = projectRepository.findByIdAndOwner(projectId, owner)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found: " + projectId));
+
+        if (project.getLocalPath() != null) {
+            try {
+                deleteDirectory(Path.of(project.getLocalPath()));
+            } catch (IOException e) {
+                // log warning but continue with deletion
+            }
+        }
+
+        projectRepository.delete(project);
+    }
+
+    /**
+     * Re-analyze an existing project using its current source.
+     * <ul>
+     *   <li>Git projects: re-clones the repo (picks up new commits).</li>
+     *   <li>Upload projects: re-uses the existing local files.</li>
+     * </ul>
+     * Optionally, the caller can supply a {@code repoUrl} + {@code branch}
+     * to <b>switch</b> the project's source from Upload → Git (or update
+     * the Git URL/branch).
+     */
+    @Transactional
+    public UploadResponse reanalyze(Long projectId, Long userId,
+                                    String repoUrl, String branch) {
+        User owner = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+        Project project = projectRepository.findByIdAndOwner(projectId, owner)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found: " + projectId));
+
+        // If a new Git URL was provided, switch the project source
+        if (repoUrl != null && !repoUrl.isBlank()) {
+            gitCloneService.validateRepoUrl(repoUrl);
+
+            String host = gitCloneService.extractHost(repoUrl);
+            SourceType newSourceType = host.contains("gitlab") ? SourceType.GITLAB : SourceType.GITHUB;
+            String effectiveBranch = (branch != null && !branch.isBlank()) ? branch : null;
+
+            cleanLocalPath(project);
+
+            // Clone the new repo
+            Path projectDir = gitCloneService.cloneRepository(repoUrl, project.getId(), effectiveBranch);
+            project.setSourceType(newSourceType);
+            project.setSourceUrl(repoUrl);
+            project.setBranch(effectiveBranch);
+            project.setLocalPath(projectDir.toString());
+
+        } else if (project.getSourceUrl() != null && !project.getSourceUrl().isBlank()) {
+            // Git project — re-clone to pick up latest commits
+            cleanLocalPath(project);
+
+            Path projectDir = gitCloneService.cloneRepository(
+                    project.getSourceUrl(), project.getId(), project.getBranch());
+            project.setLocalPath(projectDir.toString());
+        }
+        // else: Upload project with no repoUrl override — reuse existing files
+
+        return createReanalysisJob(project);
+    }
+
+    /**
+     * Re-upload a new ZIP file for an existing project and trigger
+     * a fresh analysis.  The project's source type is set to UPLOAD
+     * (regardless of what it was before).
+     */
+    @Transactional
+    public UploadResponse reuploadAndAnalyze(Long projectId, MultipartFile file, Long userId) {
+        validateFile(file);
+
+        User owner = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+        Project project = projectRepository.findByIdAndOwner(projectId, owner)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found: " + projectId));
+
+        cleanLocalPath(project);
+
+        Path projectDir = extractZip(file, project.getId());
+        project.setSourceType(SourceType.UPLOAD);
+        project.setSourceUrl(null);
+        project.setBranch(null);
+        project.setLocalPath(projectDir.toString());
+
+        return createReanalysisJob(project);
+    }
+
+
+    private UploadResponse createReanalysisJob(Project project) {
+        // Clear old microservices (cascades to endpoints, dependencies, code smells)
+        project.getMicroservices().clear();
+        projectRepository.saveAndFlush(project);
+
+        int nextNumber = analysisJobRepository.countByProject(project) + 1;
+
+        AnalysisJob job = AnalysisJob.builder()
+                .project(project)
+                .analysisNumber(nextNumber)
+                .build();
+        job = analysisJobRepository.saveAndFlush(job);
+
+        Long jobId = job.getId();
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                analysisWorker.processJob(jobId);
+            }
+        });
+
+        return new UploadResponse(project.getId(), job.getId());
+    }
+
+    private void cleanLocalPath(Project project) {
+        if (project.getLocalPath() != null) {
+            try {
+                deleteDirectory(Path.of(project.getLocalPath()));
+            } catch (IOException e) {
+                // log warning but continue
+            }
+        }
     }
 
     private void validateFile(MultipartFile file) {
@@ -190,33 +345,6 @@ public class ProjectService {
         }
     }
 
-    public List<ProjectResponse> getAllProjects() {
-        return projectRepository.findAll().stream()
-                .map(this::toResponse)
-                .toList();
-    }
-
-    public ProjectResponse getProject(Long id) {
-        Project project = projectRepository.findByIdWithMicroservices(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found: " + id));
-        return toResponse(project);
-    }
-
-    @Transactional
-    public void deleteProject(Long id) {
-        Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found: " + id));
-
-        if (project.getLocalPath() != null) {
-            try {
-                deleteDirectory(Path.of(project.getLocalPath()));
-            } catch (IOException e) {
-                // log warning but continue with deletion
-            }
-        }
-
-        projectRepository.delete(project);
-    }
 
     private void deleteDirectory(Path dir) throws IOException {
         if (Files.exists(dir)) {
@@ -243,13 +371,22 @@ public class ProjectService {
                 ))
                 .toList();
 
+        int analysisCount = analysisJobRepository.countByProject(project);
+
+        Long latestJobId = analysisJobRepository.findFirstByProjectOrderByCreatedAtDesc(project)
+                .map(j -> j.getId())
+                .orElse(null);
+
         return new ProjectResponse(
                 project.getId(),
                 project.getName(),
                 project.getSourceType(),
                 project.getSourceUrl(),
+                project.getBranch(),
                 project.getCreatedAt(),
-                microservices
+                microservices,
+                analysisCount,
+                latestJobId
         );
     }
 }

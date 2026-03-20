@@ -3,17 +3,25 @@ package com.msadetector.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.msadetector.dto.*;
+import com.msadetector.dto.HealthScoreBreakdownResponse;
 import com.msadetector.entity.AnalysisJob;
 import com.msadetector.entity.AnalysisResult;
 import com.msadetector.entity.DetectedAntiPattern;
+import com.msadetector.entity.User;
+import com.msadetector.entity.Project;
 import com.msadetector.enums.JobStatus;
 import com.msadetector.exception.ResourceNotFoundException;
 import com.msadetector.repository.AnalysisJobRepository;
 import com.msadetector.repository.AnalysisResultRepository;
+import com.msadetector.repository.ProjectRepository;
+import com.msadetector.repository.UserRepository;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -22,26 +30,42 @@ public class JobService {
 
     private final AnalysisJobRepository jobRepository;
     private final AnalysisResultRepository resultRepository;
+    private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
     private final ObjectMapper objectMapper;
+    private final HealthScoreCalculator healthScoreCalculator;
+    private final AnalysisDiffService analysisDiffService;
 
     public JobService(
             AnalysisJobRepository jobRepository,
             AnalysisResultRepository resultRepository,
-            ObjectMapper objectMapper
+            UserRepository userRepository,
+            ProjectRepository projectRepository,
+            ObjectMapper objectMapper,
+            HealthScoreCalculator healthScoreCalculator,
+            AnalysisDiffService analysisDiffService
     ) {
         this.jobRepository = jobRepository;
         this.resultRepository = resultRepository;
+        this.userRepository = userRepository;
+        this.projectRepository = projectRepository;
         this.objectMapper = objectMapper;
+        this.healthScoreCalculator = healthScoreCalculator;
+        this.analysisDiffService = analysisDiffService;
     }
 
-    public AnalysisJobResponse getJobStatus(Long jobId) {
-        AnalysisJob job = jobRepository.findById(jobId)
+    @Transactional(readOnly = true)
+    public AnalysisJobResponse getJobStatus(Long jobId, Long userId) {
+        User owner = findUser(userId);
+        AnalysisJob job = jobRepository.findByIdAndOwner(jobId, owner)
                 .orElseThrow(() -> new ResourceNotFoundException("Job not found: " + jobId));
         return toJobResponse(job);
     }
 
-    public AnalysisResultResponse getJobResults(Long jobId) {
-        AnalysisJob job = jobRepository.findByIdWithResult(jobId)
+    @Transactional(readOnly = true)
+    public AnalysisResultResponse getJobResults(Long jobId, Long userId) {
+        User owner = findUser(userId);
+        AnalysisJob job = jobRepository.findByIdAndOwnerWithResult(jobId, owner)
                 .orElseThrow(() -> new ResourceNotFoundException("Job not found: " + jobId));
 
         if (job.getStatus() != JobStatus.COMPLETED) {
@@ -50,24 +74,77 @@ public class JobService {
 
         AnalysisResult result = resultRepository.findByAnalysisJobWithAntiPatterns(job)
                 .orElseThrow(() -> new ResourceNotFoundException("Results not found for job: " + jobId));
-        if (result == null) {
-            throw new ResourceNotFoundException("Results not found for job: " + jobId);
-        }
 
-        return toResultResponse(result);
+        // Try to build a diff against the previous analysis for the same project
+        AnalysisDiffResponse diff = buildDiffIfAvailable(result, job);
+
+        return toResultResponse(result, diff);
     }
 
-    public List<AnalysisJobResponse> getRecentJobs() {
-        return jobRepository.findAll().stream()
-                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
-                .limit(20)
+    /**
+     * Get the diff between the current job's result and the previous analysis
+     * for the same project. Returns null if this is the first analysis.
+     */
+    @Transactional(readOnly = true)
+    public AnalysisDiffResponse getDiff(Long jobId, Long userId) {
+        User owner = findUser(userId);
+        AnalysisJob job = jobRepository.findByIdAndOwnerWithResult(jobId, owner)
+                .orElseThrow(() -> new ResourceNotFoundException("Job not found: " + jobId));
+
+        if (job.getStatus() != JobStatus.COMPLETED) {
+            throw new IllegalStateException("Job is not completed yet");
+        }
+
+        AnalysisResult result = resultRepository.findByAnalysisJobWithAntiPatterns(job)
+                .orElseThrow(() -> new ResourceNotFoundException("Results not found for job: " + jobId));
+
+        AnalysisDiffResponse diff = buildDiffIfAvailable(result, job);
+        if (diff == null) {
+            throw new ResourceNotFoundException("No previous analysis found for comparison");
+        }
+
+        return diff;
+    }
+
+    /**
+     * Get the full analysis history for a project — all completed analysis
+     * results ordered newest first. Each result includes a diff against
+     * its predecessor (if any).
+     */
+    @Transactional(readOnly = true)
+    public List<AnalysisResultResponse> getProjectHistory(Long projectId, Long userId) {
+        Project projectEntity = findProjectForUser(projectId, userId);
+        List<AnalysisResult> results = resultRepository.findAllByProjectWithAntiPatterns(projectEntity);
+
+        List<AnalysisResultResponse> responses = new ArrayList<>();
+        for (int i = 0; i < results.size(); i++) {
+            AnalysisResult current = results.get(i);
+            AnalysisDiffResponse diff = null;
+            if (i + 1 < results.size()) {
+                AnalysisResult previous = results.get(i + 1);
+                int analysisNum = current.getAnalysisJob().getAnalysisNumber() != null
+                        ? current.getAnalysisJob().getAnalysisNumber() : (results.size() - i);
+                diff = analysisDiffService.buildDiff(current, previous, analysisNum);
+            }
+            responses.add(toResultResponse(current, diff));
+        }
+        return responses;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AnalysisJobResponse> getRecentJobsForUser(Long userId) {
+        User owner = findUser(userId);
+        return jobRepository.findByOwner(owner,
+                        PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt")))
+                .getContent().stream()
                 .map(this::toJobResponse)
                 .toList();
     }
 
     @Transactional
-    public void cancelJob(Long jobId) {
-        AnalysisJob job = jobRepository.findById(jobId)
+    public void cancelJob(Long jobId, Long userId) {
+        User owner = findUser(userId);
+        AnalysisJob job = jobRepository.findByIdAndOwner(jobId, owner)
                 .orElseThrow(() -> new ResourceNotFoundException("Job not found: " + jobId));
 
         if (job.getStatus() == JobStatus.COMPLETED || job.getStatus() == JobStatus.FAILED) {
@@ -76,6 +153,11 @@ public class JobService {
 
         job.cancel();
         jobRepository.save(job);
+    }
+
+    private User findUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
     }
 
     private AnalysisJobResponse toJobResponse(AnalysisJob job) {
@@ -90,21 +172,24 @@ public class JobService {
                 job.getProgressPercentage(),
                 job.getStartedAt(),
                 job.getCompletedAt(),
-                job.getErrorMessage()
+                job.getErrorMessage(),
+                job.getAnalysisNumber()
         );
     }
 
-    private AnalysisResultResponse toResultResponse(AnalysisResult result) {
+    private AnalysisResultResponse toResultResponse(AnalysisResult result, AnalysisDiffResponse diff) {
         List<AntiPatternResponse> antiPatterns = result.getDetectedAntiPatterns().stream()
                 .map(this::toAntiPatternResponse)
                 .toList();
 
         DependencyGraphResponse graph = parseDependencyGraph(result.getDependencyGraphJson());
 
+        HealthScoreBreakdownResponse breakdown = healthScoreCalculator.calculate(result);
+
         return new AnalysisResultResponse(
                 result.getId(),
                 result.getAnalysisJob().getId(),
-                result.getHealthScore(),
+                breakdown.overallScore(),
                 result.getServicesAnalyzed(),
                 result.getTotalAntiPatterns(),
                 result.getTotalCodeSmells(),
@@ -116,8 +201,26 @@ public class JobService {
                 result.getAverageServiceSize(),
                 result.getCycleCount(),
                 antiPatterns,
-                graph
+                graph,
+                breakdown,
+                diff
         );
+    }
+
+    private AnalysisDiffResponse buildDiffIfAvailable(AnalysisResult current, AnalysisJob job) {
+        Project project = job.getProject();
+        return resultRepository.findPreviousResultForProject(project, current.getId())
+                .map(previous -> {
+                    int analysisNum = job.getAnalysisNumber() != null ? job.getAnalysisNumber() : 1;
+                    return analysisDiffService.buildDiff(current, previous, analysisNum);
+                })
+                .orElse(null);
+    }
+
+    private Project findProjectForUser(Long projectId, Long userId) {
+        User owner = findUser(userId);
+        return projectRepository.findByIdAndOwner(projectId, owner)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found: " + projectId));
     }
 
     private AntiPatternResponse toAntiPatternResponse(DetectedAntiPattern pattern) {

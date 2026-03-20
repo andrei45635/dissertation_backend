@@ -10,6 +10,9 @@ public record ProjectResponse(
         String name,
         SourceType sourceType,
         String sourceUrl,
+        String branch,
         LocalDateTime createdAt,
-        List<MicroserviceResponse> microservices
+        List<MicroserviceResponse> microservices,
+        Integer analysisCount,
+        Long latestJobId
 ) {}

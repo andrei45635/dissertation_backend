@@ -50,4 +50,10 @@ public interface AnalysisJobRepository extends JpaRepository<AnalysisJob, Long> 
 
     @Query("SELECT j.status, COUNT(j) FROM AnalysisJob j WHERE j.project = :project GROUP BY j.status")
     List<Object[]> countByStatusForProject(@Param("project") Project project);
+
+    @Query("SELECT COUNT(j) FROM AnalysisJob j WHERE j.project = :project")
+    int countByProject(@Param("project") Project project);
+
+    @Query("SELECT j FROM AnalysisJob j WHERE j.project = :project AND j.status = 'COMPLETED' ORDER BY j.createdAt DESC")
+    List<AnalysisJob> findCompletedByProject(@Param("project") Project project);
 }

@@ -30,4 +30,15 @@ public interface AnalysisResultRepository extends JpaRepository<AnalysisResult, 
 
     @Query("SELECT AVG(ar.healthScore) FROM AnalysisResult ar WHERE ar.analysisJob.project = :project")
     Double avgHealthScoreByProject(@Param("project") Project project);
+
+    @Query("SELECT ar FROM AnalysisResult ar LEFT JOIN FETCH ar.detectedAntiPatterns " +
+           "WHERE ar.analysisJob.project = :project AND ar.id <> :excludeId " +
+           "ORDER BY ar.createdAt DESC LIMIT 1")
+    Optional<AnalysisResult> findPreviousResultForProject(
+            @Param("project") Project project,
+            @Param("excludeId") Long excludeId);
+
+    @Query("SELECT ar FROM AnalysisResult ar JOIN FETCH ar.analysisJob LEFT JOIN FETCH ar.detectedAntiPatterns " +
+           "WHERE ar.analysisJob.project = :project ORDER BY ar.createdAt DESC")
+    List<AnalysisResult> findAllByProjectWithAntiPatterns(@Param("project") Project project);
 }

@@ -102,38 +102,145 @@ Graph-based anti-pattern detection encompasses several analytical techniques. Cy
 \subsection{Health Score Computation}
 \label{subsec:health-score}
 
-% TO-DO: go into a bit more depth maybe and/or revise this score
+\indent \par To provide an overall assessment of the system's architectural health, this dissertation computes a composite health score that combines multiple quality dimensions into a single 0--100 metric. Rather than applying a flat severity-weighted deduction, the score budget is partitioned into four complementary categories, each capturing a distinct aspect of microservice quality. This category-based approach gives teams an at-a-glance numeric score while also providing a detailed breakdown that highlights \textit{where} the score was lost.
 
-\indent \par To provide an overall assessment of the system's architectural health, this dissertation computes a composite health score based on the detected anti-patterns and their severity levels. The score starts at 100 and is decremented based on the number and severity of detected issues:
+\subsubsection{Score Categories}
+\label{subsubsec:score-categories}
 
-\begin{equation}
-    H = \max\!\Big(0,\; 100 - 15\,n_{\mathrm{crit}} - 10\,n_{\mathrm{high}} - 5\,n_{\mathrm{med}} - 2\,n_{\mathrm{low}}\Big)
-    \label{eq:health-score}
-\end{equation}
-
-\noindent where $n_{\mathrm{crit}}$, $n_{\mathrm{high}}$, $n_{\mathrm{med}}$, and $n_{\mathrm{low}}$ represent the number of detected anti-patterns at each severity level. This scoring mechanism provides a quick, at-a-glance assessment that can be tracked over time to monitor architectural health trends.
-
-Table~\ref{tab:severity-weights} details the severity levels, their corresponding penalty weights in the health score formula, and examples of anti-patterns assigned to each level.
+The total budget of 100 points is distributed across four categories as shown in Table~\ref{tab:score-categories}.
 
 \begin{table}[htbp]
 \centering
 \footnotesize
-\begin{tabular}{|l|c|c|p{6.5cm}|}
+\begin{tabular}{|l|c|p{8cm}|}
 \hline
-\textbf{Severity} & \textbf{Weight} & \textbf{Penalty} & \textbf{Example Anti-Patterns} \\
+\textbf{Category} & \textbf{Max Points} & \textbf{What It Measures} \\
 \hline\hline
-Critical & 4 & $-15$ per issue & Cyclic Dependency, Distributed Monolith \\
+Anti-Patterns & 40 & Detected architectural anti-patterns, weighted by severity \\
 \hline
-High & 3 & $-10$ per issue & Shared Database, God Service, Wrong Cuts, Chatty Service, ESB Misuse \\
+Code Quality & 20 & Code smell density from static analysis (DesigniteJava) \\
 \hline
-Medium & 2 & $-5$ per issue & Nano Service, Hardcoded Endpoints, API Versioning Absence \\
+Architecture & 25 & Inter-service coupling coefficient and dependency cycles \\
 \hline
-Low & 1 & $-2$ per issue & --- \\
+Service Sizing & 15 & Appropriateness of individual service sizes (Nano / God) \\
 \hline
 \end{tabular}
-\caption{Severity levels with their weights and penalty deductions used in the health score computation (Equation~\ref{eq:health-score}).}
+\caption{Health score categories and their point budgets.}
+\label{tab:score-categories}
+\end{table}
+
+The overall health score is the sum of the four category scores:
+
+\begin{equation}
+    H = \sum_{k=1}^{4} S_k, \qquad S_k = \max\!\big(0,\; M_k - P_k\big)
+    \label{eq:health-score}
+\end{equation}
+
+\noindent where $M_k$ is the maximum point budget for category $k$ and $P_k$ is the total penalty deducted from that category. Each category computes its penalty $P_k$ using a different deduction model, as described below.
+
+\subsubsection{Anti-Pattern Category (40 points)}
+\label{subsubsec:cat-antipatterns}
+
+Each detected anti-pattern incurs a severity-weighted penalty. Let $A$ be the set of all detected anti-patterns and $w(a)$ the severity weight of anti-pattern $a$:
+
+\begin{equation}
+    P_{\mathrm{ap}} = \sum_{a \in A} w(a)
+    \label{eq:cat-antipatterns}
+\end{equation}
+
+Table~\ref{tab:severity-weights} lists the per-occurrence penalty for each severity level.
+
+\begin{table}[htbp]
+\centering
+\footnotesize
+\begin{tabular}{|l|c|p{7cm}|}
+\hline
+\textbf{Severity} & \textbf{Penalty $w(a)$} & \textbf{Example Anti-Patterns} \\
+\hline\hline
+Critical & 8 & Cyclic Dependency, Distributed Monolith \\
+\hline
+High & 5 & Shared Database, God Service, Chatty Service \\
+\hline
+Medium & 3 & Nano Service, Hardcoded Endpoints, API Versioning Absence \\
+\hline
+Low & 1 & --- \\
+\hline
+\end{tabular}
+\caption{Severity levels and their per-occurrence penalty in the Anti-Pattern category.}
 \label{tab:severity-weights}
 \end{table}
+
+Anti-patterns are grouped by type in the breakdown, so a user can see, for example, ``Cyclic Dependency ($\times$2): $-$10'' rather than an opaque aggregate.
+
+\subsubsection{Code Quality Category (20 points)}
+\label{subsubsec:cat-codequality}
+
+Code smell density is penalized using a logarithmic scale so that the first smells incur a proportionally larger penalty, with diminishing marginal impact as the count grows:
+
+\begin{equation}
+    P_{\mathrm{cq}} = \min\!\Big(20,\; \big\lfloor \ln(1 + n_{\mathrm{smells}}) \times 3.5 \big\rfloor\Big)
+    \label{eq:cat-codequality}
+\end{equation}
+
+\noindent where $n_{\mathrm{smells}}$ is the total number of code smells detected across all microservices by DesigniteJava.
+
+\subsubsection{Architecture Category (25 points)}
+\label{subsubsec:cat-architecture}
+
+This category penalizes two structural indicators:
+
+\begin{enumerate}
+    \item \textbf{Coupling coefficient} ($C$, see Equation~\ref{eq:coupling-coefficient}): values above $0.1$ incur a penalty of $\min(15,\; \lfloor C \times 15 \rfloor)$ points.
+    \item \textbf{Dependency cycles}: each cycle detected by Tarjan's algorithm (Section~\ref{subsec:detect-cyclic-dependency}) incurs a penalty of 5 points, capped at 10 points total.
+\end{enumerate}
+
+\begin{equation}
+    P_{\mathrm{arch}} = \min(15,\; \lfloor C \times 15 \rfloor)\;\cdot\;\mathbb{1}_{[C > 0.1]} \;+\; \min(10,\; 5\,n_{\mathrm{cycles}})
+    \label{eq:cat-architecture}
+\end{equation}
+
+\subsubsection{Service Sizing Category (15 points)}
+\label{subsubsec:cat-sizing}
+
+This category targets the two service-sizing anti-patterns:
+
+\begin{itemize}
+    \item \textbf{Nano services}: 3 points per occurrence, capped at 8.
+    \item \textbf{God services}: 5 points per occurrence, capped at 10.
+\end{itemize}
+
+\begin{equation}
+    P_{\mathrm{sz}} = \min(8,\; 3\,n_{\mathrm{nano}}) + \min(10,\; 5\,n_{\mathrm{god}})
+    \label{eq:cat-sizing}
+\end{equation}
+
+\subsubsection{Letter Grade}
+\label{subsubsec:grade}
+
+To complement the numeric score, a letter grade provides a quick qualitative assessment. Table~\ref{tab:grade-scale} defines the mapping.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Score Range} & \textbf{Grade} \\
+\hline\hline
+90 -- 100 & A \\
+\hline
+80 -- 89  & B \\
+\hline
+65 -- 79  & C \\
+\hline
+50 -- 64  & D \\
+\hline
+0 -- 49   & F \\
+\hline
+\end{tabular}
+\caption{Letter grade mapping for the composite health score.}
+\label{tab:grade-scale}
+\end{table}
+
+The breakdown response returned by the API includes the overall score, the letter grade, and for each category: its name, description, score, maximum score, and a list of deductions (each with a human-readable reason, the occurrence count, and the number of points lost). This structured format enables the frontend to render the score as a set of collapsible category cards with progress bars, providing developers with immediate insight into which quality dimensions require attention.
 
 \section{Per-Anti-Pattern Detection Methodology}
 \label{sec:per-anti-pattern-detection}

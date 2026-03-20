@@ -85,6 +85,10 @@ public class AnalysisResult extends BaseEntity {
         antiPattern.setAnalysisResult(this);
     }
 
+    /**
+     * Quick legacy calculation — kept as a fallback.
+     * The detailed breakdown is computed by {@code HealthScoreCalculator}.
+     */
     public void calculateHealthScore() {
         int score = 100;
         score -= criticalIssues * 15;

@@ -17,5 +17,7 @@ public record AnalysisResultResponse(
         Double averageServiceSize,
         Integer cycleCount,
         List<AntiPatternResponse> antiPatterns,
-        DependencyGraphResponse dependencyGraph
+        DependencyGraphResponse dependencyGraph,
+        HealthScoreBreakdownResponse healthScoreBreakdown,
+        AnalysisDiffResponse diff
 ) {}

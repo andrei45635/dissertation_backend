@@ -15,5 +15,6 @@ public record AnalysisJobResponse(
         Integer progressPercentage,
         LocalDateTime startedAt,
         LocalDateTime completedAt,
-        String errorMessage
+        String errorMessage,
+        Integer analysisNumber
 ) {}
