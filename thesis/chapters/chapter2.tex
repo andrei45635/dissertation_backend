@@ -35,7 +35,7 @@ As illustrated in Figure~\ref{fig:shared-database}, when services A, B and C all
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[scale=0.45]{figures/images/chapter2/shared_db.drawio.png}
+    \includegraphics[scale=0.10]{figures/images/chapter2/shared_db.drawio.png}
     \caption{Shared Database Anti-Pattern: multiple services access the same database instance, creating tight coupling at the data layer.}
     \label{fig:shared-database}
 \end{figure}
@@ -63,7 +63,7 @@ Figure~\ref{fig:cyclic-dependency} illustrates a cyclic dependency among three s
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[scale=0.45]{figures/images/chapter2/cyclic-dependency.drawio.png}
+    \includegraphics[scale=0.15]{figures/images/chapter2/cyclic-dependency.drawio.png}
     \caption{Example of a cyclic dependency. Services A, B and C forma a strongly connected component where no service can be deployed or tested independently.}
     \label{fig:cyclic-dependency}
 \end{figure}
@@ -116,8 +116,8 @@ Figure~\ref{fig:chatty-services} contrasts a chatty communication pattern with a
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[scale=0.45]{figures/images/chapter2/chatty-services.drawio.png}
-    \caption{Example of a cyclic dependency. Services A, B and C form a strongly connected component where no service can be deployed or tested independently.}
+    \includegraphics[scale=0.08]{figures/images/chapter2/chatty-services.drawio.png}
+    \caption{Example of chatty services versus coarse-grained services. Chatty Service A sends too many requests to Service B, whereas Coarse-Grained Service A sends fewer, more consolidated requests.}
     \label{fig:chatty-services}
 \end{figure}
 
@@ -175,13 +175,13 @@ Nano Service & Medium & LOC and endpoint count thresholds \\
 \hline
 God Service & High & God Class code smell frequency via DesigniteJava \\
 \hline
-Chatty Service & Medium & Call count analysis on dependency edges \\
+Chatty Service & High & Call count analysis on dependency edges \\
 \hline
 Hardcoded Endpoints & Medium & Pattern matching in source and configuration files \\
 \hline
 Distributed Monolith & Critical & Coupling coefficient analysis \\
 \hline
-API Versioning Absence & Low & Endpoint path analysis for version indicators \\
+API Versioning Absence & Medium & Endpoint path analysis for version indicators \\
 \hline
 % Wrong Cuts & High & Cohesion and coupling metrics \\
 % \hline
@@ -288,7 +288,7 @@ Data Management
 \hline
 \end{tabular}
 \end{center}
-    \caption{Mapping of the ten anti-patterns detected by this work to the architectural dimensions defined by Taibi et al.\ \cite{Taibi2020}.}
+    \caption{Mapping of the eight anti-patterns detected by this work to the architectural dimensions defined by Taibi et al.\ \cite{Taibi2020}.}
     \label{tab:placeholder}
     \label{tab:antipattern-dimensions}
 \end{table}
@@ -304,7 +304,7 @@ Sharma and Spinellis, the creators of DesigniteJava, provided a comprehensive su
 
 Pigazzini et al.\ proposed an approach for detecting microservice smells by combining structural analysis with dependency extraction \cite{Pigazzini2020}. Their work focused on identifying smells such as Cyclic Dependencies, Hardcoded Endpoints, and Shared Persistence by analyzing dependency structure extracted from build files and Docker configurations. While their approach addresses inter-service structural smells, it does not incorporate intra-service code smell analysis and does not support the breadth of anti-patterns covered by this dissertation.
 
-Cerny et al.\ provided a contextual analysis of microservice architecture, surveying current research directions and identifying gaps in automated analysis capabilities \cite{Cerny2018}. They highlighted the need for tools that can automatically reconstruct microservice architectures from source code and detect anti-pattenrs without requiring manual configuration. The automated microservice detection mechanism implemented in this work directly addresses this need by scanning for build files and source directories to identify service boundaries. 
+Cerny et al.\ provided a contextual analysis of microservice architecture, surveying current research directions and identifying gaps in automated analysis capabilities \cite{Cerny2018}. They highlighted the need for tools that can automatically reconstruct microservice architectures from source code and detect anti-patterns without requiring manual configuration. The automated microservice detection mechanism implemented in this work directly addresses this need by scanning for build files and source directories to identify service boundaries. 
 
 \subsection{Dynamic and Hybrid Approaches}
 \label{subsec:related-dynamic}
@@ -399,6 +399,6 @@ Finally, the tool is delivered as a web application with a RESTful API, supporti
 \section{Summary}
 \label{sec:summary}
 
-\indent \par This chapter has established the theoretical and technological foundation for this dissertation. The microservices architectural style was introduced along its core principles, inherent challenges and a taxonomy of nine microservice anti-patterns. The tools and technologies ussed in the implementation were surveyed as well.
+\indent \par This chapter has established the theoretical and technological foundation for this dissertation. The microservices architectural style was introduced along its core principles, inherent challenges and a taxonomy of eight microservice anti-patterns. The tools and technologies ussed in the implementation were surveyed as well.
 
 The related work was reviewed across four categories: systematic literature reviews that map the research landscape, empirical studies that identify practitioner-reported anti-patterns, static analysis approaches that formalize detection techniques, and automated tools that implement detection. The review revealed that existing tools tend to operate at a single level of abstraction and cover a limited set of anti-patterns. This dissertation addresses these gaps by combining intra-service and inter-service analysis, supporting nine anti-patterns across four architectural dimensions, providing automated microservice detection, configurable thresholds, evidence-based reporting with code snippets, and a composite health score for tracking architectural quality over time. The next chapter presents the detailed detection methodology for each anti-pattern.

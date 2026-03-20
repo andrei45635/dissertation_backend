@@ -1,7 +1,7 @@
 \chapter{Detection Methodology}
 \label{chap:ch3}
 
-\indent \par This chapter presents the detection methodology employed by the system developed in this dissertation. It begins with an overview of the analysis pipeline and the foundational techniques, i.e. static code analysis, AST-based source code inspecetion and code smell detection, then describes the construction and analysis of the interservice dependency graph and the composite health score computation. The chapter concludes with a detailed description algorithm for each individual anti-pattern. 
+\indent \par This chapter presents the detection methodology employed by the system developed in this dissertation. It begins with an overview of the analysis pipeline and the foundational techniques, i.e. static code analysis, AST-based source code inspection and code smell detection, then describes the construction and analysis of the interservice dependency graph and the composite health score computation. The chapter concludes with a detailed description algorithm for each individual anti-pattern. 
 
 \section{Detection Techniques}
 \label{sec:detection-techniques}
@@ -25,9 +25,9 @@
 
 \indent \par Spoon is an open-source library for analyzing, transforming and generating Java source code \cite{Pawlak2016}. It builds a fine-grained Abstract Syntax Tree (AST) that provides full access to all elements of the Java programming language, including annotations, method invocations and type references.
 
-In this work, Spoon is used for inter-service analysis, specifically in three ways. Firstly, it detects REST controller endpoints by scanning for \texttt{@RestController}, \texttt{@GetMapping}, \texttt{@PostMapping} and other related annotations. Furthermore, it is used to identify inter-service communication by analyzing \texttt{@FeignClient} annotations, \texttt{@RestTemplate} method calls, and \texttt{@WebClient} builder pattenrs. Lastly, it extracts service metadata such as the number of endpoints, controller classes and API versioning informaton.
+In this work, Spoon is used for inter-service analysis, specifically in three ways. Firstly, it detects REST controller endpoints by scanning for \texttt{@RestController}, \texttt{@GetMapping}, \texttt{@PostMapping} and other related annotations. Furthermore, it is used to identify inter-service communication by analyzing \texttt{@FeignClient} annotations, \texttt{@RestTemplate} method calls, and \texttt{@WebClient} builder patterns. Lastly, it extracts service metadata such as the number of endpoints, controller classes and API versioning information.
 
-The AST-based approach is more robust than regular expression-based scanning, as it understands the syntactic structure of the code and can resolve annottation attributes, method call chains and type hierarchies.
+The AST-based approach is more robust than regular expression-based scanning, as it understands the syntactic structure of the code and can resolve annotation attributes, method call chains and type hierarchies.
 
 \subsection{Code Smell Detection with DesigniteJava}
 \label{subsec:designite-analysis}
@@ -81,9 +81,7 @@ A central challenge in dependency graph construction is resolving the \textit{ta
 
 The first step is a configuration pre-scan: before scanning source code, each service's \texttt{application.yml} or \texttt{application.properties} is parsed. The \texttt{spring.application.name} property is registered as an alias for the service directory name, and \texttt{server.port} values are recorded in a port-to-service mapping. Next, the pipeline performs \texttt{@Value} field resolution, in which fields annotated with Spring's \texttt{@Value} (e.g., \texttt{@Value("\$\{order-service.url:http://localhost:8081\}")}) are pre-scanned using Spoon. Property placeholders are resolved against the service's configuration, falling back to default values when the property key is not found. Finally, a cascading target resolution strategy is applied: when a call target is extracted from a \texttt{@FeignClient} annotation, \texttt{RestTemplate} invocation, or \texttt{WebClient} call, it is matched to a microservice using three strategies applied in order --- exact match against service names and registered aliases, port-based matching for \texttt{localhost:PORT}-style targets, and fuzzy substring matching with common suffix stripping (e.g., matching ``order'' to ``order-service'').
 
-Figure~\ref{fig:dependency-graph-example} shows an example dependency graph for a hypothetical microservice system. Each node represents a service, and edges are labeled with the dependency type and call count. The graph reveals a cycle between the Order, Inventory, and Payment services, as well as a potential ESB misuse pattern where the API Gateway mediates most communication.
-
-Figure~\ref{fig:dependency-graph-example} shows an example dependency graph for a hypothetical microservice system. Each node represents a service, and edges are labeled with the dependency type and call count. The graph reveals a cycle between the Order, Inventory and Payment services as well as a potential ESB misues pattern where the API Gateway mediates most communication.
+Figure~\ref{fig:dependency-graph-example} shows an example dependency graph for a hypothetical microservice system. Each node represents a service, and edges are labeled with the dependency type and call count. The graph reveals a cycle between the Order, Inventory and Payment services as well as a potential ESB misuse pattern where the API Gateway mediates most communication.
 
 \begin{figure}
    \centering
@@ -104,7 +102,7 @@ Graph-based anti-pattern detection encompasses several analytical techniques. Cy
 \subsection{Health Score Computation}
 \label{subsec:health-score}
 
-% TO-DO: go into a bit more depth maybe
+% TO-DO: go into a bit more depth maybe and/or revise this score
 
 \indent \par To provide an overall assessment of the system's architectural health, this dissertation computes a composite health score based on the detected anti-patterns and their severity levels. The score starts at 100 and is decremented based on the number and severity of detected issues:
 
@@ -145,9 +143,9 @@ Low & 1 & $-2$ per issue & --- \\
 \subsection{Shared Database Detection}
 \label{subsec:detect-shared-database}
 
-\indent \par The Shared Database detector operates by comparing the datasource connection URLs configured across all detected microservices. The algorithm procedes in two phases. 
+\indent \par The Shared Database detector operates by comparing the datasource connection URLs configured across all detected microservices. The algorithm proceeds in two phases. 
 
-In the first phase, the configuration files of each microservice are parsed to extract the datasource URL. For Spring Boot applications, the detector reads \texttt{application.yml}, \texttt{application.yaml}, or \texttt{application.properties} confiugration files located in the \texttt{/resources} directory of each service. From YAML files, the nested property \texttt{spring.datasource.url} is extract using a recursive map traversal, whereas from properties files, the same key is read directly. Spring propery placeholders with default values (e.g., \texttt{\$\{DB\_HOST:localhost\}}) are resolved to their defaults to enable meaningful comparison.
+In the first phase, the configuration files of each microservice are parsed to extract the datasource URL. For Spring Boot applications, the detector reads \texttt{application.yml}, \texttt{application.yaml}, or \texttt{application.properties} configuration files located in the \texttt{/resources} directory of each service. From YAML files, the nested property \texttt{spring.datasource.url} is extract using a recursive map traversal, whereas from properties files, the same key is read directly. Spring propery placeholders with default values (e.g., \texttt{\$\{DB\_HOST:localhost\}}) are resolved to their defaults to enable meaningful comparison.
 
 In the second phase, microservices are grouped by their resolved datasource URL. Any group containing more than one service indicates a shared database instance. Formally, let $\mathcal{S}$ denote the set of all microservices and $\text{dsUrl}$ denote the resolved datasource URL of service $s$. The detector reports a Shared Database anti-pattern for each equivalence class:
 
@@ -255,7 +253,7 @@ As evidence, the detector attempts to locate the service's main application clas
 
 %TODO - refactor this
 
-\indent \par The God Service detector identifies microservices that handle too many responsibilites \cite{Taibi2018}. Rather than defining responsibility count heuristics directly, this detector uses the output of DesigniteJava's intra-service analysis: specifically, the frequency of \textit{God Class} code smells within a service.
+\indent \par The God Service detector identifies microservices that handle too many responsibilities \cite{Taibi2018}. Rather than defining responsibility count heuristics directly, this detector uses the output of DesigniteJava's intra-service analysis: specifically, the frequency of \textit{God Class} code smells within a service.
 
 The rationale is that a microservice containing multiple God Class instances is likely spanning multiple domains withing a single deployable unit. The detection criterion is:
 
