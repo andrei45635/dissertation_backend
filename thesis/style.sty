@@ -3,7 +3,8 @@
 \usepackage{palatino}                           % font
 \usepackage[onehalfspacing]{setspace}           % 1.5 distance between lines
 \usepackage[utf8]{inputenc}                     % encoding
-\usepackage{graphicx}                           % images
+\usepackage{graphicx}% images
+\usepackage{subfig}
 \usepackage{url}                                % links
 \usepackage[nottoc, notlof, notlot]{tocbibind}  % table of contents style
 \usepackage[unicode]{hyperref}                  % references from the table of contents
@@ -19,8 +20,35 @@
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{float}
+\usepackage{listings}
+\usepackage{minted}
+\usepackage{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, shapes.geometric, positioning}
+
+% IntelliJ Darcula Theme Colors
+\definecolor{darculaBg}{HTML}{2B2B2B}
+\definecolor{darculaKeyword}{HTML}{CC7832}
+\definecolor{darculaString}{HTML}{6A8759}
+\definecolor{darculaComment}{HTML}{808080}
+\definecolor{darculaNumber}{HTML}{6897BB}
+\definecolor{darculaBasic}{HTML}{A9B7C6}
+\definecolor{darculaLineNum}{HTML}{606366}
+
+\lstdefinestyle{intellijDarcula}{
+    language=Java,
+    basicstyle=\ttfamily\small\color{darculaBasic},
+    keywordstyle=\color{darculaKeyword}\bfseries,
+    stringstyle=\color{darculaString},
+    commentstyle=\color{darculaComment}\itshape,
+    numberstyle=\tiny\color{darculaLineNum},
+    numbers=left,
+    breaklines=true,
+    backgroundcolor=\color{darculaBg},
+    showstringspaces=false,
+    xleftmargin=2em,
+    framexleftmargin=1.5em,
+}
 
 % package options
 \geometry{  a4paper,        

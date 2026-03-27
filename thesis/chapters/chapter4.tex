@@ -1,11 +1,507 @@
-\chapter{System Design \& Implementation}
+\chapter{Application Design \& Implementation}
 \label{chap:ch4}
 
-% TODO - here I think this chapter should cover thinks like 
-% 1) system overview => high-level architecture diagram (backend, frontend, db, docker), tech stack summary (more in depth than chapter 2)
+% TODO - !!!!!!!!!!!!!!!!!!!!!! FIX THE STUPID DIAGRAMS AND TABLES !!!!!!!!!!!!!!!!!!!!!! 
+% - here I think this chapter should cover thinks like 
+% 1) system overview => high-level architecture diagram (backend, frontend, db, docker), tech stack summary (more in depth than chapter 2) => maybe move the tech stack from chapter 2 here
 % 2) data model => entity relation diagram, entity descriptions
 % 3) backend implementation 
 % 4) frontend implementation
 % 5) deployment
 
+\indent \par This chapter presents the design and implementation of the MSA Detector, a web application for the automated detection of architectural anti-patterns in Java-based microservice systems. The chapter begins with a high-level system overview and technology stack summary, followed by the data model design. The backend implementation is described, covering the REST API, analysis pipeline orchestration, and security layer. The frontend implementation is then presented, followed by the deployment configuration.
 
+
+\section{System Overview}
+\label{sec:system-overview}
+
+\indent \par The MSA Detector follows a client--server architecture with three main components: a Spring Boot backend that exposes a RESTFul API \cite{Fielding2000}, an Angular single-page application (SPA) that provides the user interface, and a PostgreSQL relational database for persistent storage. All components are containerized using Docker and orchestrated via Docker Compose, as can be seen in figure~\ref{fig:architecture-overview}.
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.1]{figures/images/chapter4/high-level-diagram.drawio.png}
+    \caption{High-level architecture of the MSA Detector system. The Angular frontend communicates with the Spring Boot backend over HTTP/REST. The backend persists data in PostgreSQL and performs analysis on cloned/uploaded source code stored on the filesystem. All components run as Docker containers orchestrated via Docker Compose.}
+    \label{fig:architecture-overview}
+\end{figure}
+
+The system supports two modes of project ingestion: users can either upload a ZIP archive containing a microservices project, or provide a public GitHub/GitLab repository URL to be cloned. Once uploaded, the analysis pipeline runs asynchronously, detecting microservices boundaries, running static analysis, building the inter-service dependency graph, and detecting anti-patterns. Results are persistes and made available through the API, including a composite health score, detected anti-patterns with evidence and a dependency graph visualization.
+
+\subsection{Technology Stack}
+\label{subsec:tech-stack}
+
+Table~\ref{tab:tech-stack} summarizes the technologies used in each layer of the system.
+
+\begin{table}[htbp]
+    \centering
+    \footnotesize
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Layer}                  & \textbf{Technology}                               & \textbf{Purpose}                      \\
+        \hline\hline
+        \multirow{8}{*}{Backend}        & Java 25, Spring Boot 4.0                          & Application framework                 \\
+        \cline{2-3}
+        & Spring Data JPA, Hibernate                        & ORM and data access                   \\
+        \cline{2-3}
+        & Spring Security, JWT (jjwt 0.12.6) \cite{RFC7519} & Authentication and authorization      \\
+        \cline{2-3}
+        & Spoon 11.1.0 \cite{Pawlak2016}                    & AST-based Java source code analysis   \\
+        \cline{2-3}
+        & DesigniteJava \cite{Sharma2018}                   & Code smell detection                  \\
+        \cline{2-3}
+        & JGit 7.1.0                                        & Git repository cloning                \\
+        \cline{2-3}
+        & Flyway                                            & Database schema migrations            \\
+        \cline{2-3}
+        & MapStruct 1.6.3, Lombok 1.18.38                   & DTO mapping and boilerplate reduction \\
+        \hline
+        \multirow{2}{*}{Frontend}       & Angular 21                                        & Single-page application framework     \\
+        \cline{2-3}
+        & TypeScript                                        & Programming language                  \\
+        \hline
+        Database                        & PostgreSQL 16                                     & Relational data storage               \\
+        \hline
+        \multirow{2}{*}{Infrastructure} & Docker, Docker Compose                            & Containerization and orchestration    \\
+        \cline{2-3}
+        & Eclipse Temurin 25 (Alpine)                       & JDK/JRE base images                   \\
+        \hline
+        API Documentation               & SpringDoc OpenAPI 2.7.0                           & Swagger UI and OpenAPI spec           \\
+        \hline
+        Testing                         & JUnit 5, Testcontainers 1.20.4                    & Unit and integration testing          \\
+        \hline
+    \end{tabular}
+    \caption{Technology stack summary for the MSA Detector system.}
+    \label{tab:tech-stack}
+\end{table}
+
+
+\section{Data Model}
+\label{sec:data-model}
+
+\indent \par The persistent data model consists of nine entities managed via JPA and stored in PostgreSQL. All entities extend a common \texttt{BaseEntity} superclass that provides an auto-generated primary key (\texttt{id}), a creation timestamp (\texttt{created\_at}) and a last-modified timestamp (\texttt{updated\_at}) via JPA auditing. The database schema is defined and versioned using Flyway migrations.
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.1]{figures/images/chapter4/er-diagram.png}
+    \caption{High-level architecture of the MSA Detector system. The Angular frontend communicates with the Spring Boot backend over HTTP/REST. The backend persists data in PostgreSQL and performs analysis on cloned/uploaded source code stored on the filesystem. All components run as Docker containers orchestrated via Docker Compose.}
+    \label{fig:er-diagram}
+\end{figure}
+
+\subsection{Entity Descriptions}
+\label{subsec:entity-descriptions}
+
+Table~\ref{tab:entities} provides an overview of each entity and its role in the system. The relationships between entities are described below.
+
+\begin{table}[htbp]
+    \centering
+    \footnotesize
+    \begin{tabular}{|l|p{9cm}|}
+        \hline
+        \textbf{Entity}              & \textbf{Description}                                                                                                                                                                                                                                                                                                                                                                                                          \\
+        \hline\hline
+        \texttt{User}                & Registered user with name, email, hashed password, and optional GitHub token. Owns zero or more projects.                                                                                                                                                                                                                                                                                                                     \\
+        \hline
+        \texttt{Project}             & A microservice project with a name, source type (\texttt{GITHUB}, \texttt{GITLAB}, or \texttt{UPLOAD}), optional source URL and branch, and local filesystem path. Owned by a user. Contains zero or more microservices and analysis jobs.                                                                                                                                                                                    \\
+        \hline
+        \texttt{Microservice}        & A detected microservice within a project. Stores the service name, relative path, lines of code, number of classes, number of endpoints, and datasource configuration.                                                                                                                                                                                                                                                        \\
+        \hline
+        \texttt{Endpoint}            & A REST endpoint detected within a microservice. Stores the URL path, HTTP method, controller class, method name, and API versioning information.                                                                                                                                                                                                                                                                              \\
+        \hline
+        \texttt{ServiceDependency}   & A directed dependency edge between two microservices. Stores the dependency type (e.g., \texttt{FEIGN\_CLIENT}, \texttt{REST\_TEMPLATE}, \texttt{WEB\_CLIENT}), call count, and evidence (file path, line number, code snippet, target URL).                                                                                                                                                                                  \\
+        \hline
+        \texttt{CodeSmell}           & A code smell detected within a microservice by DesigniteJava. Stores the smell type, severity, file path, class name, method name, and line number.                                                                                                                                                                                                                                                                           \\
+        \hline
+        \texttt{AnalysisJob}         & Represents a single analysis execution for a project. Tracks the job status through its lifecycle (\texttt{PENDING} $\to$ \texttt{DETECTING\_SERVICES} $\to$ \texttt{ANALYZING\_SERVICES} $\to$ \texttt{BUILDING\_GRAPH} $\to$ \texttt{DETECTING\_PATTERNS} $\to$ \texttt{COMPLETED} or \texttt{FAILED}), progress percentage, configurable detection flags and thresholds, and the analysis number for re-analysis tracking. \\
+        \hline
+        \texttt{AnalysisResult}      & The output of a completed analysis job. Stores aggregate metrics (health score, services analyzed, total anti-patterns, code smell count, issue counts by severity, total LOC, average service size, dependency count, cycle count, coupling coefficient) and the dependency graph as a JSON string. Has a one-to-one relationship with \texttt{AnalysisJob}.                                                                 \\
+        \hline
+        \texttt{DetectedAntiPattern} & An individual anti-pattern instance found during analysis. Stores the anti-pattern type, severity, human-readable description, affected services (JSON), remediation advice, evidence (JSON), and type-specific fields such as cycle length, shared database URL, call count, and code snippets (JSON).                                                                                                                       \\
+        \hline
+    \end{tabular}
+    \caption{Overview of the data model entities.}
+    \label{tab:entities}
+\end{table}
+
+\subsection{Entity Relationships}
+\label{subsec:entity-relationships}
+
+\indent \par The entity relationships form a hierarchical structure with the \texttt{User} entity as root. A \texttt{User} owns multiple \texttt{Project} entities (one-to-many), with cascade delete removing all projects when a user is deleted. Each \texttt{Project} contains multiple detected \texttt{Microservice} entities and multiple \texttt{AnalysisJob} entities, both with cascade delete and orphan removal. A \texttt{Microservice} entity exposes zero or more \texttt{Endpoint} entities, maintains outgoing \texttt{ServiceDependency} edges to other microservices and contains \texttt{CodeSmell} records. Each \texttt{ServiceDependency} references both a source and a target \texttt{Microservice}, representing a directed edge in the dependency graph. Every completed \texttt{AnalysisJob} produces exactly one \texttt{A\-nal\-y\-sisResults} (one-to-one), which contains zero or more \texttt{DetectedAntiPattern} instances. A \texttt{DetectedAntiPattern} optionally references a primary \texttt{Micro\-service} for service-scoped anti-patterns such as Nano Service or God Service.
+
+All foreign key relationships use \texttt{ON DELETE CASCADE} at the database level, thus ensuring that deleting a project removes all associated microservices, endpoints, dependencies, code smells, analysis jobs, results and detected anti-patterns.
+
+
+\section{Backend Implementation}
+\label{sec:backend-impl}
+
+\indent \par The backend is implemented as a Spring Boot application structured into the standard layers: controllers (REST API), services (business logic), repositories (data access), entities (domain model), DTOs (data transfer objects) and cross-cutting concers (security, configuration, exception handling).
+
+\subsection{REST API Design}
+\label{subsec:rest-api}
+
+\indent \par The backend exposes a RESTful API \cite{Fielding2000} under the \texttt{/api} prefix. The API is organized into three controller groups, summarized in Table~\ref{tab:api-endpoints}.
+
+\begin{table}[htbp]
+    \centering
+    \footnotesize
+    \begin{tabular}{|l|l|p{6cm}|}
+        \hline
+        \textbf{Endpoint}          & \textbf{Method} & \textbf{Description}                             \\
+        \hline\hline
+        \multicolumn{3}{|c|}{\textbf{Authentication} (\texttt{/api/auth})} \\
+        \hline
+        \texttt{/register}         & POST            & Register a new user                              \\
+        \hline
+        \texttt{/login}            & POST            & Authenticate and obtain JWT token                \\
+        \hline
+        \texttt{/me}               & GET             & Get current authenticated user info              \\
+        \hline\hline
+        \multicolumn{3}{|c|}{\textbf{Projects} (\texttt{/api/projects})} \\
+        \hline
+        \texttt{/upload}           & POST            & Upload ZIP and trigger analysis                  \\
+        \hline
+        \texttt{/clone}            & POST            & Clone Git repo and trigger analysis              \\
+        \hline
+        \texttt{/}                 & GET             & List all projects for current user               \\
+        \hline
+        \texttt{/\{id\}}           & GET             & Get project details                              \\
+        \hline
+        \texttt{/\{id\}}           & DELETE          & Delete project and all associated data           \\
+        \hline
+        \texttt{/\{id\}/history}   & GET             & Get full analysis history with diffs             \\
+        \hline
+        \texttt{/\{id\}/reanalyze} & POST            & Re-analyze project (optionally switch source)    \\
+        \hline
+        \texttt{/\{id\}/reupload}  & POST            & Upload new ZIP for existing project              \\
+        \hline\hline
+        \multicolumn{3}{|c|}{\textbf{Jobs} (\texttt{/api/jobs})} \\
+        \hline
+        \texttt{/\{id\}}           & GET             & Get job status and progress                      \\
+        \hline
+        \texttt{/\{id\}/results}   & GET             & Get analysis results with health score breakdown \\
+        \hline
+        \texttt{/\{id\}/diff}      & GET             & Get diff against previous analysis               \\
+        \hline
+        \texttt{/recent}           & GET             & Get 20 most recent jobs for current user         \\
+        \hline
+        \texttt{/\{id\}/cancel}    & POST            & Cancel a running job                             \\
+        \hline
+    \end{tabular}
+    \caption{REST API endpoints exposed by the backend.}
+    \label{tab:api-endpoints}
+\end{table}
+
+All endpoints except \texttt{/api/**}, Swagger UI, and the actuator health endpoint require JWT authentication. Request and response payloads use Java \texttt{record} DTOs serialized to JSON via Jackson, with null fields excluded from responses.
+
+\subsection{Authentication and Security}
+\label{subsec:auth-security}
+
+\indent \par The system uses stateless JWT based authentication \cite{RFC7519}. The security layer is built on Spring Security and consists of five components. The \texttt{SecurityConfig} class configures stateless session management, disables CSRF protection (the token-based API does not rely on cookies), and defines the authorization rules: public endpoints such as \texttt{/api/auth/**}, Swagger UI, and the actuator health check are exempted from authentication, while all other requests require a valid token. The \texttt{JwtTokenProvider} component generates and validates tokens using the HMAC-SHA algorithm \cite{RFC4364} - each token encodes the user ID and email as claims and carries a configurable expiration (default: 24 hours). Listing~\ref{lst:jwt-generate} illustrates the token generation logic.
+
+% \begin{figure}[htbp]
+% \begin{lstlisting}[style=intellijDarcula]
+% public String generateToken(Long userId, String email) {
+%     Date now = new Date();
+%     Date expiry = new Date(now.getTime() + expirationMs);
+%     return Jwts.builder()
+%             .subject(userId.toString())
+%             .claim("email", email)
+%             .issuedAt(now)
+%             .expiration(expiry)
+%             .signWith(key)
+%             .compact();
+% }
+% \end{lstlisting}
+
+\begin{figure}[htbp]
+    \begin{minted}[
+        bgcolor=darculaBg,
+        style=monokai,
+        fontsize=\small,
+        linenos=true,
+        breaklines=true,
+    ]{java}
+public String generateToken(Long userId, String email) {
+    Date now = new Date();
+    Date expiry = new Date(now.getTime() + expirationMs);
+    return Jwts.builder()
+            .subject(userId.toString())
+            .claim("email", email)
+            .issuedAt(now)
+            .expiration(expiry)
+            .signWith(key)
+            .compact();
+}
+    \end{minted}
+    \caption{JWT token generation in the \texttt{JwtTokenProvider} class. The token encodes the user ID as the subject, the email as a custom claim, and is signed with an HMAC-SHA key.}
+    \label{lst:jwt-generate}
+\end{figure}
+
+On every incoming request, the \texttt{JwtAuthenticationFilter}, a \texttt{Once\-Per\-Re\-questFil\-ter}, extracts the JWT from the \texttt{Authorization: Bearer} header, delegates to the provider for validation, loads the corresponding user details via the \texttt{Cus\-tomU\-serDe\-tailsSer\-vice} and populates the Spring \texttt{ SecurityContext}. If no valid token is present, the \texttt{JwtAuthenticationEntryPoint} returns a \texttt{401 Un\-au\-thor\-ized} response. Passwords are hashed using BCrypt, and the authenticated user's identity is injected into controller methods via the \texttt{@AuthenticationPrincipal} annotation, which provides a \texttt{UserPrincipal} object containing the user's ID, name, and email.
+
+\subsection{Project Ingestion}
+\label{subsec:project-ingestion}
+
+\indent \par The web application supports two modes of project ingestion, both handled by the \texttt{ProjectService}.
+
+\textbf{ZIP Upload}: Users upload a ZIP archive via a multipart form data request. The file is validated (must be a ZIP, non-empty, under 500 MB), extracted to a project specific directory under the configured workspace path and normalized to handle archives that contain a single root directory. The file structure is protected against path traversal attacks (zip slip \footnote{\href{https://maven.apache.org/security-plexus-archiver.html}{}}) by verifying that all extracted paths remain within the target directory.
+
+\textbf{Git Clone:} Users provide a public GitHub or GitLab HTTPS URL and an optional branch name. The URL is validated against a whitelist pattern. The \texttt{Git\-Clone\-Ser\-vice} uses JGit to perform a shallow clone (\texttt{depth=1}) of the repository, which downloads only the latest commit to minimize bandwith and disk usage. A configurable timeout (default: 300 seconds) prevents indefinite blocking.
+
+Both methods create a \texttt{Project} entity and an \texttt{AnalysisJob} entity, then trigger the asynchronous analysis. To ensure data consistency, the asynchronous worker is not started immediately, instead, it is registered through Spring's \texttt{Tran\-sac\-tionSyn\-chron\-i\-zation.afterCommit()} callback, which guarantees that the job entity is fully committed to the database before the analysis thread begins reading it. For re-analysis, the application supports re-cloning a Git repository (to pick up new commits), re-uploading a new ZIP file, or switching the project's source type entirely (e.g. from upload to Git repository).
+
+\subsection{Analysis Pipeline Orchestration}
+\label{subsec: analysis-pipeline}
+
+\indent \par The analysis pipeline is orchestrated by the \texttt{AnalysisWorker} service, which executes asynchronously via Spring's \texttt{@Async} mechanism backed by a configurable thread pool (core size 2, maximum 5). The pipeline proceeds through five phases, each updating the job's status and progress for real-time tracking by the frontend. Listing~\ref{lst:analysis-worker} shows the top-level orchestration method.
+
+\begin{figure}[htbp]
+    \begin{minted}[
+        bgcolor=darculaBg,
+        style=monokai,
+        fontsize=\small,
+        linenos=true,
+        breaklines=true,
+    ]{java}
+@Async
+public void processJob(Long jobId) {
+    AnalysisJob job = jobRepository.findByIdWithProject(jobId)
+                                   .orElse(null);
+    if (job == null) return;
+    try {
+        progressUpdater.startJob(jobId);
+        Project project = job.getProject();
+        Path projectPath = Path.of(project.getLocalPath());
+
+        // Phase 1: Detect microservices
+        List<Microservice> microservices =
+            detectMicroservices(project, projectPath);
+
+        // Phase 2: Analyze each service with DesigniteJava
+        for (Microservice ms : microservices) {
+            if (job.isRunDesignite())
+                designiteService.analyzeService(ms, ...);
+        }
+
+        // Phase 3: Build inter-service dependency graph
+        antiPatternDetector.buildDependencyGraph(project);
+
+        // Phase 4: Detect anti-patterns
+        AnalysisResult result =
+            antiPatternDetector.detectAntiPatterns(project, job);
+
+        // Phase 5: Persist result and mark job complete
+        progressUpdater.completeJob(jobId, result);
+    } catch (Exception e) {
+        progressUpdater.failJob(jobId, e.getMessage());
+    }
+}
+    \end{minted}
+    \caption{Simplified \texttt{AnalysisWorker.processJob()} method showing the five-phase analysis pipeline. Each phase updates job progress for frontend polling.}
+    \label{lst:analysis-worker}
+\end{figure}
+
+
+In the first phase, \textbf{Microservice Detection} (\texttt{DETECTING\_MICROSERVICES}), the \texttt{MicroserviceDetector} scans the project directory for build files (\texttt{pom.xml}), \texttt{build.gradle}, \texttt{build.gradle.kts}) to identify individual microservice modules. It filters out non-service directories (e.g. examples, tests, documentation, benchmarks, build support modules, and templates) using an exclusion set of over 40 keywords matched against directory name components. For multi-module Maven or Gradle projects, it detects submodules by checking for \texttt{<modules>} declarations in \texttt{pom.xml} or \texttt{include} statements in \texttt{settings.gradle}. For single-module projects where no submodules are detected, the root directory is treated as the only service. For each detected microservice, a \texttt{Microservice} entity is created with the service name, relative path, and lines of code count computed by recursively walking all \texttt{.java} files.
+
+The second phase, \textbf{Intra-Service Analysis} (\texttt{ANALYZING\_SERVICES}), invokes DesginiteJava as a subprocess for each microservice (when enabled). The service passes the microservice's source directory to DesigniteJava, which produces CSV output files (\texttt{DesignSmells.csv}, \texttt{ImplementationSmells.csv}, \texttt{Ar\-chi\-tec\-ture\-Smells.csv}). These files are parsed line by line and the detected smells are stored as \texttt{CodeSmell} entities with severity levels mapped from the smell type. The number of classes is extracted from the \texttt{TypeMetrics.csv} output. A configurable timeout (default: 1800 seconds) prevents runaway hanging subprocesses. Progress is reported per-service, allowing the frontend to display which service is currrently being analyzed and what fraction is complete.
+
+During the third phase, \textbf{Dependency Graph Construction} (\texttt{BUILDING\_GRAPH}), the \texttt{DependencyGraphBuilder} scans each microservice's source code using the Spoon static analysis library \cite{Pawlak2016} to extract REST endpoints, parse datasource configuration from \texttt{application.yml} and \texttt{application.properties} and detect inter-service calls via \texttt{@FeignClient}, \texttt{RestTemplate}, and \texttt{WebClient}. The target resolution strategy, described in detail in Chapter~\ref{chap:ch3}, Section~\ref{subsec:graph-analysis}, uses the exact name matching, port-based matching and fuzzy substring matching to resolve call targets to actual microservices. The resulting \texttt{Endpoint} and \texttt{Ser\-viceDe\-pen\-den\-cy} entities are persisted to the databse.
+
+The fourth phase, \textbf{Anti-Pattern Detection} (\texttt{DETECTING\_PATTERNS}), delegates to the \texttt{AntiPatternDetectorService}, which orchestrates all registered detectors (see Section~\ref{subsec:detector-architecture}). Each detector is invoked in sequence, receiving the project and the list of microservices, then returning a list of \texttt{DetectedAntiPattern} instances. Failed detectors are logged and skipped, ensuring that a failure in one does not abort the entire analysis.
+
+Finally, in the \textbf{Result Assembly} phase, summary statistics are computed (e.g. total lines of code, average service size, coupling coefficient (see Chapter ~\ref{chap:ch3}, Equation~\ref{eq:coupling-coefficient}), issue counts by severity) and the health score is calculated following the methodology described in Chapter~\ref{chap:ch3}, Section~\ref{subsec:health-score}. The dependency graph is serialized to a JSON structure containg nodes (services with metadata) and edges (dependencies with type and weight). The \texttt{AnalysisResult} entity is persisted, and the job status is set to \texttt{COMPLETED}.
+
+If any phase fails, the exception is caught, the job status is set \texttt{FAILED} with the error messsage and the failure is logged. Users may also cancel a running job via the API, which sets the status to \texttt{CANCELLED}. The \texttt{JobProgressUpdated} service provides atomic progress updates by executing each update in an independent transaction (\texttt{Propagation.REQUIRES\_NEW}), thus ensuring that progress changes are immediately visible to polling clients regardless of the outer analysis transaction.
+
+\subsection{Anti-Pattern Detector Architecture}
+\label{subsec:detector-architecture}
+
+\indent \par The anti-pattern detection subsystem follows the Strategy design patterns \cite{Gamma1994}. All detectors implement the \texttt{AntiPatternDetector} interface, which defines a single method as shown in Listing~\ref{lst:detector-interface}.
+
+\begin{figure}[htbp]
+    \begin{minted}[
+        bgcolor=darculaBg,
+        style=monokai,
+        fontsize=\small,
+        linenos=true,
+        breaklines=true,
+    ]{java}
+public interface AntiPatternDetector {
+    List<DetectedAntiPattern> detect(
+        Project project,
+        List<Microservice> microservices
+    );
+}
+    \end{minted}
+    \caption{The \texttt{AntiPatternDetector} interface. Spring auto-collects all implementations via \texttt{List<AntiPatternDetector>} dependency injection.}
+    \label{lst:detector-interface}
+\end{figure}
+
+A \texttt{BaseDetector} abstract class provides shared utility methods for JSON serialization, string truncation and source code snippet extraction. The snippet extraction method reads a configurable number of context lines above and below a target line number from the source file, producing a map with the file path, highlighted line, and surrounding code. This evidence is stored as JSON in the \texttt{De\-tec\-tedAn\-tiPa\-ttern} entity and rendered by the frontend to give developers immediate insight into the detected issue.
+
+Table~\ref{tab:detectors} lists all eight implemented detectors. The detection algorithms for each anti-pattern were described in Chapter~\ref{chap:ch3}. New detectors can be added by implementing the interface and annotating the class with \texttt{@Component}; Spring's dependency injection automatically discovers and registers them with the orchestrator, requiring no changes to the \texttt{AntiPatternDetectorService}.
+
+\begin{table}[htbp]
+    \centering
+    \footnotesize
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Detector Class}              & \textbf{Anti-Pattern}  & \textbf{Severity} \\
+        \hline\hline
+        \texttt{SharedDatabaseDetector}      & Shared Database        & HIGH              \\
+        \hline
+        \texttt{CyclicDependencyDetector}    & Cyclic Dependency      & CRITICAL          \\
+        \hline
+        \texttt{NanoServiceDetector}         & Nano Service           & MEDIUM            \\
+        \hline
+        \texttt{GodServiceDetector}          & God Service            & HIGH              \\
+        \hline
+        \texttt{ChattyServiceDetector}       & Chatty Service         & HIGH              \\
+        \hline
+        \texttt{HardcodedEndpointDetector}   & Hardcoded Endpoints    & MEDIUM            \\
+        \hline
+        \texttt{DistributedMonolithDetector} & Distributed Monolith   & CRITICAL          \\
+        \hline
+        \texttt{ApiVersioningDetector}       & API Versioning Absence & MEDIUM            \\
+        \hline
+% \texttt{WrongCutsDetector} & Wrong Cuts & HIGH \\
+% \hline
+% \texttt{EsbMisuseDetector} & ESB Misuse & HIGH \\
+% \hline
+    \end{tabular}
+    \caption{Implemented anti-pattern detectors with their target patterns and default severity levels. The detection algorithms for each anti-pattern were described in Chapter~\ref{chap:ch3}.}
+    \label{tab:detectors}
+\end{table}
+
+\subsection{Analysis Diff (Re-Analysis Comparison)}
+\label{subsec:analysis-diff}
+
+\indent \par When a project is re-analyzed, the backend computes a diff between the current and previous analysis results, inspired by SonarQube's "Clean as You Code" concept \cite{SonQ}. The \texttt{AnalysisDiffService} compares two \texttt{AnalysisResult} instances and produces an \texttt{AnalysisDiffResponse} DTO.
+
+The diff includes the health score delta, previous versus current score and letter grade, as well as per-metric deltas for all aggregate metrics: total anti-patterns, code smells, issues by severity, total lines of code, services analyzed, cycle count, dependency count and coupling coefficient. Anti-pattern changes are categorized in three groups: \textit{resolved} anti-patterns that were present in the previous analysis but absent in the current one, \textit{new} anti-patterns detected for the first time, and \textit{unchanged} anti-patterns that were still found in the later runs. The diff also computes per-category score deltas for each of the four health score categories (Anti-Patterns, Code Quality, Architecture, Service Sizing). Finally, a human-readable summary string is generated (e.g., ``Health improved from 52~(D)~$\to$~78~(C). 2~anti-patterns resolved, 1~new.''), providing a short assessment of the changes.
+
+The diff is automatically embedded in the analysis results response and is also available through a dedicated \texttt{GET /api/jobs/\{id\}/diff} endpoint. The project history endpoint returns all completed analyses ordered from the newest first, each paired with its diff against the predecessor, thus providing a full timeline view of architectural evolution.
+
+\subsection{Exception Handling}
+\label{subsec:exception-handling}
+
+\indent \par A global exception handler (\texttt{GlobalExceptionHandler}) annotated with Spring's \texttt{@RestControllerAdvice} provides a centralized error handling across all controllers. The handler translated domain exceptions into structured JSON error responses with a consistent format containing an error code, a human-readable message, and a timestamp. \texttt{ResourceNotFoundException} maps to \texttt{404 Not Found}; \texttt{InvalidFileException} and \texttt{IllegalArgumentException} map to \texttt{400 Bad Request}; \texttt{IllegalStateException} maps to \texttt{409 Conflict} for operations on resources in an invalid state (e.g., cancelling an already-completed job); \texttt{Bad\-Cre\-den\-tialsEx\-cep\-tion} maps to \texttt{401 Unauthorized}; and \texttt{Me\-thodAr\-gu\-mentNotVa\-lidEx\-ception} maps to \texttt{400 Bad Request} with per-field validation messages. A catch-all handler logs unexpected exceptions at error level and returns a generic \texttt{500 Internal Server Error} to avoid leaking stack traces.
+
+
+\section{Frontend Implementation}
+\label{sec:frontend-impl}
+
+\indent \par The frontend is implemented as an Angular single-page application (SPA) written in TypeScript. It communicates with the backend exclusively through the REST API described in Section~\ref{subsec:rest-api}. This section describes the application structure, key pages, reusable components and the authentication integration.
+
+\subsection{Application Structure and Routing}
+\label{subsec:frontend-structure}
+
+\indent \par The frontend is built with Angular 19 and uses the framework's standalone component architecture - the application contains no \texttt{NgModule} declarations. Every component, page, interceptor and guard is defined as a standalone unit that declares its own imports, simplifying the dependency graph and enabling fine-grained tree-shaking at build time.
+
+The application is bootstrapped in \texttt{main.ts} using Angular's \texttt{bootstrapA\-ppli\-ca\-tion} function, which receives the root \texttt{AppComponent} and a providers array. The providers array registers the router (via \texttt{provideRouter}) and the HTTP client (via \texttt{pro\-vid\-eHttp\-Client} with \texttt{withInterceptors}), injecting both the authentication and error interceptors into the HTTP pipeline at bootstrap time.
+
+The source tree is organized into five directories under \texttt{src/app/}. The \texttt{pages/} directory contains five page-level components, each corresponding to a route. The \texttt{components/} directory contains seven reusable presentational components that are composed into pages via Angular's input binding mechanism. The \texttt{services/} directory contains two singleton services: \texttt{ApiService}, which encapsulates all HTTP calls to the backend REST API, and \texttt{AuthService}, which manages JWT-based authentication state. The \texttt{interceptors/} directory contains two functional HTTP interceptors, and the \texttt{guards/} directory contains a single functional route guard. Finally, the \texttt{models/} directory provides a barrel file exporting all TypeScript interfaces and type aliases used throughout the application.
+
+The root \texttt{AppComponent} renders a persistent navigation header and a \texttt{<rou\-ter-out\-let>} for the active page. The header is context-sensitive: when the user is authenticated, it displays navigation linkes to the Upload and History pages, the current user's name (rendered via the \texttt{currentUser\$} observable with Angular's \texttt{async} pipe) and a Sign Out button. When the user is not authenticated, it shows Sign In and Sign Up links instead.
+
+Table~\ref{tab:frontend-routes} lists the route configuration. The empty path redirects to \texttt{/upload}, so authenticated users land on the upload page by default. Three of the five routes are protected by the \texttt{authGuard}, which redirects unauthenticated users to the login page.
+
+\begin{table}[htbp]
+    \centering
+    \footnotesize
+    \begin{tabular}{|l|l|c|}
+        \hline
+        \textbf{Path}            & \textbf{Component}             & \textbf{Auth Required} \\
+        \hline\hline
+        \texttt{/login}          & \texttt{LoginPageComponent}    & No                     \\
+        \hline
+        \texttt{/register}       & \texttt{RegisterPageComponent} & No                     \\
+        \hline
+        \texttt{/upload}         & \texttt{UploadPageComponent}   & Yes                    \\
+        \hline
+        \texttt{/results/:jobId} & \texttt{ResultsPageComponent}  & Yes                    \\
+        \hline
+        \texttt{/history}        & \texttt{HistoryPageComponent}  & Yes                    \\
+        \hline
+    \end{tabular}
+    \caption{Frontend routing configuration. Routes marked ``Auth Required'' are protected by the \texttt{authGuard}.}
+    \label{tab:frontend-routes}
+\end{table}
+
+\subsection{Authentication Integration}
+\label{subsec:frontend-auth}
+
+\indent \par The frontend authentication layer consists of four cooperating pieces: a service that manages token storage and user state, two HTTP interceptors that transparently handle token attachment and session expiration, and a route guard that protects authenticated pages.
+
+The \texttt{AuthService} is a singleton service provided at the root level. It stores the JWT token and the serialized user object in the browser's \texttt{localStorage} under the keys \texttt{auth\_token} and \texttt{auth\_user}, respectively. On construction, the service attempts to load a previously stored used from \texttt{localStorage} and initializes \texttt{BehaviorSubject<UserResponse | null>}, which is exposed as the \texttt{cur\-rentUser\$} observable. This observable is consumed by the root \texttt{AppComponent} to reactively render the navigation bar. The service provides \texttt{login()} and \texttt{register()} methods that POST credentials to the backend's \texttt{/api/auth/login} and \texttt{/api/auth/register} endpoints, respectively; both methods pipe the response through a \texttt{tap} operator that persists the returned token and user object. The \texttt{logout()} method clears both \texttt{localStorage} entries and pushes \texttt{null} into the subject, which immediately updates all subscribed components. The \texttt{isAuthenticated()} method performs a simple null check on the stored token and is used by both the route guard and the navigation bar.
+
+The \texttt{authInterceptor} is implemented as a functional \texttt{HttpInterceptorFn}. For every outgoing HTTP request, it injects the \texttt{AuthService} via Angular's \texttt{inject()} function and retrieves the current token. Requests to the \texttt{/auth/login} and \texttt{/auth/register} endpoints are passed through unmodified, since those endpoints are public. For all other requests, if a token is present, the interceptor clones the request with an \texttt{Authorization: Bearer <token>} header attached.
+
+The \texttt{errorInterceptor} is also a functional \texttt{HttpInterceptorFn}. It wraps the downstream handler in an RxJS \texttt{catchError} operator. When a response with 401 status is received (and the request URI does not contain \texttt{/auth/}), the interceptor calls \texttt{authService.logout()} to clear the stale sessions and redirects the user to \texttt{/login}. All other errors are re-thrown so that individual components can handle them as needed.
+
+The \texttt{authGuard} is implemented as a functional \texttt{CanActivateFn}. It checks \texttt{authService.isAuthenticated()}: if the check passes, the guard returns \texttt{true} and the navigation proceeds. Otherwise, it redirects to \texttt{/login} and returns \texttt{false}. The guard is applied to the \texttt{/upload}, \texttt{/results/:jobId}, and \texttt{/history} routes.
+
+\subsection{Pages}
+\label{subsec:frontend-pages}
+
+\indent \par The application contains five page components, each responsible for a distinct user workflow.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[scale=0.25]{figures/images/chapter4/login_page.png}
+    \caption{Login page of the MSA Detector frontend.}
+    \label{fig:login-page}
+\end{figure}
+
+\textbf{Login and Register Pages:} The \texttt{LoginPageComponent} presents a form with email and password fields, bound via Angular's \texttt{FormsModule} two-way binding (\texttt{ngModel}). A computed \texttt{canSubmit} getter disables the submit button until both fields are populated and no request is in flight. On submission, the component calls \texttt{AuthService.login()} and navigates to \texttt{/upload} on success. Conversely, on failure, it extracts the error message from the backend response and display it inline. The \texttt{RegisterPageComponent} follows the same pattern but adds a name field and enforces minimum password length of six characters. Both pages include a navigation link to switch between login and registration.
+
+\begin{figure}[htbp]
+    \centering
+    \subfloat[\centering ZIP upload 1]{{\includegraphics[width=15cm]{figures/images/chapter4/zip_page.png} }}%
+    \qquad
+    \subfloat[\centering Git clone 2]{{\includegraphics[width=15cm]{figures/images/chapter4/clone_page.png} }}%
+    \caption{Upload page with ZIP upload (left tab) and Git clone (right tab) modes.}
+    \label{fig:upload-page}
+\end{figure}
+
+\textbf{Upload Page:} The \texttt{UploadPageComponent} supports two project ingestion modes, selectable via a tab interface. The active mode is tracked by the \texttt{activeMode} property, which is either \texttt{'upload'} or \texttt{'clone'}.
+
+In ZIP upload mode, the page embeds the reusable \texttt{FileUploadComponent} (described in Section~\ref{subsec:frontend-components}) for drag-and-drop file selection. When a file is selected, the project name field is automatically populated from the filename by stripping the \texttt{.zip} extension. On submission, the component calls \texttt{ApiService.uploadProject()}, which sends a multipart form data request. Upload progress is tracked in real time by observing \texttt{HttpEvent.UploadProgress} events from Angular's \texttt{HttpClient}, updating a progress percentage that is displayed to the user.
+
+In Git clone mode, the page presents a repository URL input and an optional branch field. The URL is validated client-side using a regular expression that accepts HTTP URLs for \texttt{github.com} and \texttt{gitlab.com}. When a URL is entered, the project name is extracted from the last path segment. On submission, the component calls \texttt{ApiService.cloneProject()} with the URL, project name, and optional branch.
+
+Both submission paths follow the same post-submission flow. Once the backend responds with a job ID, the page transitions to an analysis-in-progress state and embeds \texttt{ProgressTrackerComponent}. A polling loop, implemented with \texttt{setInterval} at a 2 second interval, repeatedly calls \texttt{ApiService.getJobStatus()} to fetch the current job status and progress. When the job status changes to \texttt{COMPLETED}, the polling is stopped and the router navigates to the results page. If the status is \texttt{FAILED} or \texttt{CANCELLED}, the polling stops and the error message is displayed. The polling interval is cleared in the component's \texttt{ngOnDestroy} lifecycle hook to prevent memory leaks on navigating away.
+
+ \begin{figure}[htbp]
+     \centering
+     \includegraphics[scale=0.35]{figures/images/chapter4/analysis_page.png}
+     \caption{Results page displaying the health score gauge, summary metrics, issues by severity, health score breakdown, detected anti-patterns, and dependency graph.}
+     \label{fig:results-page}
+ \end{figure}
+
+\textbf{Results Page:} The \texttt{ResultsPageComponent} is the primary output of the application. It reads the \texttt{jobId} parameter from the route, calls \texttt{ApiService.getJobResults()} to load the \texttt{AnalysisResult}, and then chains two additional requests to retrieve the job metadata and the parent project.
+
+The page layout is organized into several sections. At the top, a header displays the project name, a \texttt{Re-Analyze} dropdown button, and an \texttt{Export JSON} button. The dropdown allows users to select one of two options: upload a new ZIP archive (which opens a modal dialog embedding the \texttt{FileUploadComponent}) or clone from a different GitHub or GitLab URL (which opens a modal dialog with URL and branch fields, pre-filled from the project's current source configuration). When any re-analysis option is selected, the page transitions to a re-analysis-in-progress state, diplaying the \texttt{ProgressTrackerComponent} and beginning polling the new job. On completion, the page reloades the results in place. The export button serializes the entire \texttt{AnalysisResult} object to a JSON blob and triggers a browser download with the filename \texttt{analysis-results0\{jobId\}.json}.
+
+If the result contains a diff (i.e. the analysis is a re-analysis with a predecessor job), the \texttt{DiffBannerComponent} is rendered at the top of the page, showing how metrics have changed since the previous analysis. For first-time analyses, an informational note is rendered instead, explaining that re-analysis can be done later to track changes over time.
+
+Below the diff banner, a grid of summary cards is displayed. The first card containsthe \texttt{HealthScoreComponent}, which renders the composite health score as a circular gauge with a letter grade badge. The second card shows four key metrics: services analyzed, total anti-patterns, total code smells and lines of code. The third card breaks down issue counts by severity (critical, high, medium, low), each being displayed with a color-coded badge.
+
+Below the summary grid, the \texttt{HealthScoreBreakdownComponent} renders the per-category score breakdown as collapsible cards. Finally, a two-column details grid displays the \texttt{AntiPatternListComponent}, which is a list of detected anti-patterns that can be expanded to reveal descriptions, affected services, code evidence and remediation advice, alongside the \texttt{DependencyGraphComponent}, which is an interactive visualization of the service dependency graph.
+
+ \begin{figure}[htbp]
+     \centering
+     \includegraphics[scale=0.4]{figures/images/chapter4/history_page.png}
+     \caption{History page showing the projects list with an expanded project's analysis timeline and diff information.}
+     \label{fig:history-page}
+ \end{figure}
+
+\textbf{History Page:} The \texttt{HistoryPageComponent} provides an overview of all the user's projects and recent analysis jobs, organized into two tabs: \texttt{Projects} and \texttt{Jobs}.
+
+The Projects tab loads the user's projects via \texttt{ApiService.getProjects()} and renders them as a list. Each project entry shows its name, source type (i.e. Git or ZIP), creation date and number of analyses. Clicking a project expands it to reveal the full analysis history, loaded via \texttt{ApiService.getProjectHistory()}. Each historical analysis entry shows its health score, anti-pattern count and, when available, the diff against the previous analysis (e.g. ``+1 new anti-pattern, 2 resolved''). Clicking an analysis entry navigates to the results page for that job. The health score delta is displayed with color coding: green for improvement, red for regression. Each project has a dropdown menu offering two re-analysis options (new ZIP upload, Git clone), following the same pattern as the results page. Projects can also be deleted, with a confirmation dialog displayed via the browser's native \texttt{confirm()} function. Deletion calls \texttt{ApiService.deleteProject()} and removes the project from the local list on success.
+
+The Jobs tab displays the 20 most recent analysis jobs, loaded via \texttt{ApiService.getRecentJobs()}. Each entry shows the job ID, status (formatted by replacing underscores with spaces), analysis number, and timestamps.
+
+\subsection{Reusable Components}
+\label{subsec:frontend-components}
+
+\indent \par

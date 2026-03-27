@@ -1,0 +1,6 @@
+public interface AntiPatternDetector {
+    List<DetectedAntiPattern> detect(
+        Project project,
+        List<Microservice> microservices
+    );
+}

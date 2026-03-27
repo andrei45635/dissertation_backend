@@ -40,7 +40,7 @@ As illustrated in Figure~\ref{fig:shared-database}, when services A, B and C all
     \label{fig:shared-database}
 \end{figure}
 
-Detection of this anti-pattern can be performed through static analysis of service configuration files. Particularly, in Java Spring Boot applications, the \texttt{application.yml} or \texttt{application.properties} files contain datasource connection URLs (e.g. \texttt{spring.datasource.url}). By comparing these URLs across all detected microservices within a project, instances of shared databases can be identified automatically.
+Detection of this anti-pattern can be performed through static analysis of service configuration files. Particularly, in Java Spring Boot applications, the \texttt{application.yml} or \texttt{application.properties} files contain datasource connection URLs (e.g. \texttt{spring\-.datasource.url}). By comparing these URLs across all detected microservices within a project, instances of shared databases can be identified automatically.
 
 \subsection{Cyclic Dependency}
 \label{subsec:cyclic-dependency}
