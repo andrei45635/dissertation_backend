@@ -189,7 +189,6 @@ public class ProjectService {
         Project project = projectRepository.findByIdAndOwner(projectId, owner)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found: " + projectId));
 
-        // If a new Git URL was provided, switch the project source
         if (repoUrl != null && !repoUrl.isBlank()) {
             gitCloneService.validateRepoUrl(repoUrl);
 
@@ -199,7 +198,6 @@ public class ProjectService {
 
             cleanLocalPath(project);
 
-            // Clone the new repo
             Path projectDir = gitCloneService.cloneRepository(repoUrl, project.getId(), effectiveBranch);
             project.setSourceType(newSourceType);
             project.setSourceUrl(repoUrl);
@@ -207,15 +205,12 @@ public class ProjectService {
             project.setLocalPath(projectDir.toString());
 
         } else if (project.getSourceUrl() != null && !project.getSourceUrl().isBlank()) {
-            // Git project — re-clone to pick up latest commits
             cleanLocalPath(project);
 
             Path projectDir = gitCloneService.cloneRepository(
                     project.getSourceUrl(), project.getId(), project.getBranch());
             project.setLocalPath(projectDir.toString());
         }
-        // else: Upload project with no repoUrl override — reuse existing files
-
         return createReanalysisJob(project);
     }
 
@@ -246,7 +241,6 @@ public class ProjectService {
 
 
     private UploadResponse createReanalysisJob(Project project) {
-        // Clear old microservices (cascades to endpoints, dependencies, code smells)
         project.getMicroservices().clear();
         projectRepository.saveAndFlush(project);
 

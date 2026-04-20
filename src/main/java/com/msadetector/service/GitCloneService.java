@@ -76,10 +76,9 @@ public class GitCloneService {
             CloneCommand cloneCommand = Git.cloneRepository()
                     .setURI(normalizedUrl)
                     .setDirectory(targetDir.toFile())
-                    .setDepth(1)                    // shallow clone — only latest commit
+                    .setDepth(1)
                     .setTimeout(cloneTimeoutSeconds);
 
-            // Only set branch if explicitly provided; otherwise clone the remote HEAD (default branch)
             if (branch != null && !branch.isBlank()) {
                 log.info("Cloning {} (branch: {}) into {}", normalizedUrl, branch, targetDir);
                 cloneCommand.setBranch(branch);
@@ -134,7 +133,6 @@ public class GitCloneService {
      */
     public String extractHost(String repoUrl) {
         if (repoUrl == null) return "unknown";
-        // Extract host from https://github.com/... or https://gitlab.com/...
         return repoUrl.replaceFirst("https://", "").split("/")[0];
     }
 

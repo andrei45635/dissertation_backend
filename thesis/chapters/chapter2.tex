@@ -15,7 +15,7 @@ Figure~\ref{fig:monolith-vs-microservices} demonstrates the fundamental structur
 \begin{figure}[htbp]
     \centering
     \includegraphics[scale=0.45]{figures/images/chapter2/monolith_vs_microservices.drawio.png}
-    \caption{Comparison of monolithic architecture (left) and microservices architecture (right). In the monolithic approach, all modules share a singled process and database. In the microservices approach, each service is independently deployable with its own database.}
+    \caption{Comparison of monolithic architecture (left) and microservices architecture (right). In the monolithic approach, all modules share a singled process and database. In the microservices approach, each service is independently deployable with its own database.\textcolor{red}{daca figura e luata de undeva atunci aici in caption pui referinta. Daca iti apartine ca si concept si executie, ignora acest comentariu}}
     \label{fig:monolith-vs-microservices}
 \end{figure}
 
@@ -193,46 +193,48 @@ API Versioning Absence & Medium & Endpoint path analysis for version indicators 
 \label{tab:anti-patterns-summary}
 \end{table}
 
-\section{Tools and Technologies}
-\label{sec:tools-and-technologies}
+% \section{Tools and Technologies}
+% \label{sec:tools-and-technologies}
 
-\indent \par This section provides an overview of the tools and technologies used to support the development of the anti-pattern detection system presented in this dissertation.
+% \textcolor{red}{sectiunea asta nu se potriveste aici. Rupe firul logic al prezentarii. In plus, nu cred ca e cazul sa prezentam intr-o lucrare de dizertatie, SpringBoot etc. Singurul tool care ar trebui descris e DesigniteJava si as pune ca si subsectiune in Cap.4 la Technology stack }
 
-\subsection{Spring Boot}
-\label{subsec:spring-boot}
+% \indent \par This section provides an overview of the tools and technologies used to support the development of the anti-pattern detection system presented in this dissertation.
 
-\indent \par Spring Boot is a widely adopted framework for developing enterprise-grade Java applications requiring minimal setup overhead \footnote{\href{https://spring.io/projects/spring-boot}{Spring Boot}}. It offers auto-configuration, integrated serve support, and a comprehensive suite of supporting tools and libraries for building web applications, RESTful APIs, and data access layers. In this work, Spring Boot 4.0 serves as the application framework, providing:
-\begin{itemize}
-    \item \textbf{Spring Web:} RESTful API endpoints for project upload - either through a zip file or GitHub \/ GitLab source code URL, analysis job management and result retrieval.
-    \item \textbf{Spring Data JPA:} Object-relational mapping and repository abstractions for PostgreSQL persistence.
-    \item \textbf{Spring Security:} JWT-based authentication and authorization.
-    \item \textbf{Spring Async:} Asynchronous task execution for long-running analysis jobs.
-\end{itemize}
+% \subsection{Spring Boot}
+% \label{subsec:spring-boot}
 
-\subsection{PostgreSQL}
-\label{subsec:postgresql}
+% \indent \par Spring Boot is a widely adopted framework for developing enterprise-grade Java applications requiring minimal setup overhead \footnote{\href{https://spring.io/projects/spring-boot}{Spring Boot}}. It offers auto-configuration, integrated serve support, and a comprehensive suite of supporting tools and libraries for building web applications, RESTful APIs, and data access layers. In this work, Spring Boot 4.0 serves as the application framework, providing:
+% \begin{itemize}
+%     \item \textbf{Spring Web:} RESTful API endpoints for project upload - either through a zip file or GitHub \/ GitLab source code URL, analysis job management and result retrieval.
+%     \item \textbf{Spring Data JPA:} Object-relational mapping and repository abstractions for PostgreSQL persistence.
+%     \item \textbf{Spring Security:} JWT-based authentication and authorization.
+%     \item \textbf{Spring Async:} Asynchronous task execution for long-running analysis jobs.
+% \end{itemize}
 
-\indent \par PostgreSQL is an open-source relational database management system widely recognised for its reliability, comprehensive functionality and architectural extensibility \footnote{\href{https://www.postgresql.org/}{PostgreSQL}}. It is used in this disseration to persist metadata, microservice information, code smell reports, code snippets, detected anti-patterns, and analysis results. The database schema supports queries for aggregation and reporting, such as counting anti-patterns by severity or computing per-service code smell frequencies.
+% \subsection{PostgreSQL}
+% \label{subsec:postgresql}
 
-\subsection{Spoon}
-\label{subsec:spoon}
+% \indent \par PostgreSQL is an open-source relational database management system widely recognised for its reliability, comprehensive functionality and architectural extensibility \footnote{\href{https://www.postgresql.org/}{PostgreSQL}}. It is used in this disseration to persist metadata, microservice information, code smell reports, code snippets, detected anti-patterns, and analysis results. The database schema supports queries for aggregation and reporting, such as counting anti-patterns by severity or computing per-service code smell frequencies.
 
-\indent \par Spoon is used for Java source code analysis, as it provides a complete metamodel of the Java language and supports visitor-based and query-traversal of the Abstract Syntax Tree \cite{Pawlak2016}.
+% \subsection{Spoon}
+% \label{subsec:spoon}
 
-\subsection{JGit}
-\label{subsec:jgit}
+% \indent \par Spoon is used for Java source code analysis, as it provides a complete metamodel of the Java language and supports visitor-based and query-traversal of the Abstract Syntax Tree \cite{Pawlak2016}.
 
-\indent \par JGit is a pure Java implementation of the Git version control system \footnote{\href{https://www.eclipse.org/jgit/}{JGit}}. It is used in this work to clone Git repositories submitted for analysis, enabling users to provide a repository URL rather than uploading source archives manually.
+% \subsection{JGit}
+% \label{subsec:jgit}
 
-\subsection{DesigniteJava}
-\label{subsec:designite-java}
+% \indent \par JGit is a pure Java implementation of the Git version control system \footnote{\href{https://www.eclipse.org/jgit/}{JGit}}. It is used in this work to clone Git repositories submitted for analysis, enabling users to provide a repository URL rather than uploading source archives manually.
 
-\indent \par DesigniteJava is a command-line tool that performs design smell detection on Java projects \cite{Sharma2018}. It accepts a source directory as input and produces CSV files containing detected smells. In this dissertation, it is invoked as a Java subprocess with configurable timeout settings.
+% \subsection{DesigniteJava}
+% \label{subsec:designite-java}
 
-\subsection{Docker}
-\label{subsec:docker}
+% \indent \par DesigniteJava is a command-line tool that performs design smell detection on Java projects \cite{Sharma2018}. It accepts a source directory as input and produces CSV files containing detected smells. In this dissertation, it is invoked as a Java subprocess with configurable timeout settings.
 
-\indent \par Docker is used for containerized deployment of the application and its dependencies. Both the Backend and the Frontend projects in this dissertation define a \texttt{docker-compose.yml} file, which outlines the multi-container setup including the Spring Boot application and PostgreSQL database.
+% \subsection{Docker}
+% \label{subsec:docker}
+
+% \indent \par Docker is used for containerized deployment of the application and its dependencies. Both the Backend and the Frontend projects in this dissertation define a \texttt{docker-compose.yml} file, which outlines the multi-container setup including the Spring Boot application and PostgreSQL database.
 
 \section{Related Work}
 \label{sec:related-work}

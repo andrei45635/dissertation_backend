@@ -30,15 +30,8 @@ import java.util.regex.Pattern;
 
 
 /**
- * Builds the dependency graph for a microservices project by scanning
- * source code using Spoon and parsing configuration files.
- * <p>
- * Responsibilities:
- * - Parse application.yml / application.properties for datasource URLs
- * - Detect REST endpoints via Spring MVC annotations
- * - Detect inter-service calls via @FeignClient, RestTemplate, WebClient
- * - Resolve @Value-injected URL fields and localhost:port references
- * - Populate Endpoint and ServiceDependency entities
+ * Builds the dependency graph for a microservices project by scanning source
+ * code with Spoon and parsing configuration files.
  */
 @Service
 public class DependencyGraphBuilder {
@@ -71,8 +64,6 @@ public class DependencyGraphBuilder {
         List<Microservice> microservices = microserviceRepository.findByProject(project);
         Path projectRoot = Path.of(project.getLocalPath());
 
-        // Phase 1: Parse configuration files and detect endpoints
-        // Also collect server ports and spring.application.name for matching
         Map<String, String> portToServiceName = new HashMap<>();
         Map<String, Microservice> serviceByName = new HashMap<>();
 
@@ -81,15 +72,12 @@ public class DependencyGraphBuilder {
             parseDatasourceConfig(ms, servicePath);
             parseEndpoints(ms, servicePath);
 
-            // Read spring.application.name and server.port for matching
             Map<String, String> configProps = readConfigProperties(servicePath);
             String appName = configProps.get("spring.application.name");
             String serverPort = configProps.get("server.port");
 
-            // Register the directory name
             serviceByName.put(ms.getName().toLowerCase(), ms);
 
-            // Register spring.application.name as an alias
             if (appName != null && !appName.isBlank()) {
                 String resolved = resolveDefaultPlaceholders(appName).toLowerCase().trim();
                 if (!resolved.isBlank()) {
@@ -98,7 +86,6 @@ public class DependencyGraphBuilder {
                 }
             }
 
-            // Register port mapping for localhost:PORT resolution
             if (serverPort != null && !serverPort.isBlank()) {
                 String resolvedPort = resolveDefaultPlaceholders(serverPort).trim();
                 if (!resolvedPort.isBlank() && resolvedPort.matches("\\d+")) {
@@ -110,16 +97,11 @@ public class DependencyGraphBuilder {
 
         log.info("Service name lookup has {} entries: {}", serviceByName.size(), serviceByName.keySet());
 
-        // Phase 2: Detect inter-service calls and build dependencies
         for (Microservice ms : microservices) {
             Path servicePath = projectRoot.resolve(ms.getRelativePath());
             detectInterServiceCalls(ms, servicePath, serviceByName, portToServiceName);
         }
     }
-
-    // ========================================================================================
-    // CONFIGURATION PARSING
-    // ========================================================================================
 
     /**
      * Reads common configuration properties from a service's application.yml or
@@ -227,10 +209,6 @@ public class DependencyGraphBuilder {
         }
     }
 
-    // ========================================================================================
-    // ENDPOINT DETECTION (Spoon)
-    // ========================================================================================
-
     private void parseEndpoints(Microservice ms, Path servicePath) {
         Path srcDir = servicePath.resolve(SRC_MAIN_JAVA);
         if (!Files.exists(srcDir)) {
@@ -283,23 +261,17 @@ public class DependencyGraphBuilder {
         }
     }
 
-    // ========================================================================================
-    // INTER-SERVICE CALL DETECTION (Spoon)
-    // ========================================================================================
-
     private void detectInterServiceCalls(Microservice sourceService, Path servicePath,
                                           Map<String, Microservice> serviceByName,
                                           Map<String, String> portToServiceName) {
         Path srcDir = servicePath.resolve(SRC_MAIN_JAVA);
         if (!Files.exists(srcDir)) return;
 
-        // Read this service's config for resolving @Value properties
         Map<String, String> serviceConfig = readConfigProperties(servicePath);
 
         try {
             CtModel model = buildSpoonModel(srcDir);
 
-            // Pre-scan: collect @Value field mappings for URL resolution
             Map<String, String> valueFieldUrls = extractValueAnnotatedFields(model, serviceConfig);
 
             Map<String, List<CallEvidence>> callMap = new HashMap<>();
@@ -314,7 +286,6 @@ public class DependencyGraphBuilder {
                 }
             }
 
-            // Resolve call targets to actual microservices
             for (Map.Entry<String, List<CallEvidence>> entry : callMap.entrySet()) {
                 String rawTarget = entry.getKey().toLowerCase();
                 Microservice targetService = resolveTargetService(rawTarget, serviceByName, portToServiceName);
@@ -359,12 +330,9 @@ public class DependencyGraphBuilder {
     private Microservice resolveTargetService(String rawTarget,
                                                Map<String, Microservice> serviceByName,
                                                Map<String, String> portToServiceName) {
-        // Strategy 1: Exact match
         Microservice exact = serviceByName.get(rawTarget);
         if (exact != null) return exact;
 
-        // Strategy 2: Port-based matching (for "localhost:8081" style targets)
-        // The rawTarget at this point might be "localhost:8081" if we kept port info
         String port = extractPortFromTarget(rawTarget);
         if (port != null) {
             String serviceName = portToServiceName.get(port);
@@ -377,14 +345,12 @@ public class DependencyGraphBuilder {
             }
         }
 
-        // Strategy 3: Fuzzy matching — rawTarget contains a known service name, or vice versa
         for (Map.Entry<String, Microservice> entry : serviceByName.entrySet()) {
             String knownName = entry.getKey();
             if (rawTarget.contains(knownName) || knownName.contains(rawTarget)) {
                 log.debug("Fuzzy matched '{}' to known service '{}'", rawTarget, knownName);
                 return entry.getValue();
             }
-            // Also try without common suffixes/prefixes: e.g. "order" matches "order-service"
             String stripped = knownName.replaceAll("-(service|svc|ms|api|server|app)$", "");
             if (!stripped.equals(knownName) && (rawTarget.contains(stripped) || stripped.contains(rawTarget))) {
                 log.debug("Fuzzy matched '{}' to known service '{}' (stripped: '{}')", rawTarget, knownName, stripped);
@@ -400,11 +366,9 @@ public class DependencyGraphBuilder {
      * or just "8081".
      */
     private String extractPortFromTarget(String rawTarget) {
-        // Pattern: something:PORT or just a port number
         int colonIdx = rawTarget.lastIndexOf(':');
         if (colonIdx >= 0 && colonIdx < rawTarget.length() - 1) {
             String portPart = rawTarget.substring(colonIdx + 1);
-            // Remove any path after port
             int slashIdx = portPart.indexOf('/');
             if (slashIdx > 0) portPart = portPart.substring(0, slashIdx);
             if (portPart.matches("\\d{4,5}")) return portPart;
@@ -434,8 +398,7 @@ public class DependencyGraphBuilder {
                                 log.debug("@Value field '{}' resolved to '{}'", field.getSimpleName(), resolvedUrl);
                             }
                         }
-                    } catch (Exception e) {
-                        // Spoon may fail to resolve annotation type in no-classpath mode — skip it
+                    } catch (Exception ignored) {
                     }
                 }
             }
@@ -454,17 +417,14 @@ public class DependencyGraphBuilder {
             String propKey = matcher.group(1);
             String defaultValue = matcher.group(2);
 
-            // Try to look up the property in config
             String configValue = config.get(propKey);
             if (configValue != null && !configValue.isBlank()) {
                 return resolveDefaultPlaceholders(configValue);
             }
-            // Fall back to the default value
             if (defaultValue != null && !defaultValue.isBlank()) {
                 return defaultValue;
             }
         }
-        // If no placeholder, return the expression itself if it looks like a URL
         if (expression.startsWith("http://") || expression.startsWith("https://")) {
             return expression;
         }
@@ -479,25 +439,39 @@ public class DependencyGraphBuilder {
                 if ("FeignClient".equals(annotationName)) {
                     String targetName = extractFeignClientTarget(annotation);
                     if (targetName != null) {
-                        // Resolve placeholders in Feign target (e.g. ${user-service.name})
                         String resolved = resolveSpringPlaceholder(targetName, serviceConfig);
                         if (resolved != null) targetName = resolved;
 
                         String normalizedTarget = normalizeServiceName(targetName);
-                        callMap.computeIfAbsent(normalizedTarget, _ -> new ArrayList<>())
-                                .add(new CallEvidence(
-                                        DependencyType.FEIGN_CLIENT,
-                                        positionFile(type), positionLine(type),
-                                        "@FeignClient targeting " + targetName,
-                                        targetName
-                                ));
-                        log.debug("Found @FeignClient in {} targeting '{}' (normalized: '{}')",
-                                type.getQualifiedName(), targetName, normalizedTarget);
+
+                        Set<CtMethod<?>> methods = type.getMethods();
+                        if (methods.isEmpty()) {
+                            callMap.computeIfAbsent(normalizedTarget, _ -> new ArrayList<>())
+                                    .add(new CallEvidence(
+                                            DependencyType.FEIGN_CLIENT,
+                                            positionFile(type), positionLine(type),
+                                            "@FeignClient targeting " + targetName,
+                                            targetName
+                                    ));
+                        } else {
+                            for (CtMethod<?> method : methods) {
+                                if (method.isDefaultMethod() || method.hasModifier(spoon.reflect.declaration.ModifierKind.STATIC)) continue;
+
+                                callMap.computeIfAbsent(normalizedTarget, _ -> new ArrayList<>())
+                                        .add(new CallEvidence(
+                                                DependencyType.FEIGN_CLIENT,
+                                                positionFile(method), positionLine(method),
+                                                "@FeignClient method " + type.getSimpleName() + "." + method.getSimpleName() + "()",
+                                                targetName
+                                        ));
+                            }
+                        }
+
+                        log.debug("Found @FeignClient in {} targeting '{}' (normalized: '{}', {} methods)",
+                                type.getQualifiedName(), targetName, normalizedTarget, methods.size());
                     }
                 }
-            } catch (Exception e) {
-                // Spoon may fail to resolve annotation type in no-classpath mode — skip it
-            }
+            } catch (Exception ignored) {}
         }
     }
 
@@ -522,7 +496,6 @@ public class DependencyGraphBuilder {
 
             if (invocation.getArguments().isEmpty()) continue;
 
-            // Try to extract the URL — first as a literal, then via @Value field resolution
             String urlValue = extractUrlFromExpression(invocation.getArguments().getFirst(), valueFieldUrls);
 
             if (urlValue != null) {
@@ -587,10 +560,6 @@ public class DependencyGraphBuilder {
         }
     }
 
-    // ========================================================================================
-    // URL EXTRACTION HELPERS
-    // ========================================================================================
-
     /**
      * Attempts to extract a URL string from a Spoon expression. Tries multiple strategies:
      * 1. Direct string literal extraction
@@ -598,11 +567,9 @@ public class DependencyGraphBuilder {
      * 3. If it's a concatenation with a field, resolve the field part
      */
     private String extractUrlFromExpression(CtExpression<?> expr, Map<String, String> valueFieldUrls) {
-        // Strategy 1: Direct literal value
         String direct = extractStringValue(expr);
         if (direct != null) return direct;
 
-        // Strategy 2: Field access — check @Value-resolved URLs
         if (expr instanceof CtFieldRead<?> fieldRead) {
             String fieldName = fieldRead.getVariable().getSimpleName();
             String resolved = valueFieldUrls.get(fieldName);
@@ -612,7 +579,6 @@ public class DependencyGraphBuilder {
             }
         }
 
-        // Strategy 3: Binary operator (concatenation) — try to resolve left side as field
         if (expr instanceof CtBinaryOperator<?> binOp) {
             String left = extractUrlFromExpression(binOp.getLeftHandOperand(), valueFieldUrls);
             String right = extractStringValue(binOp.getRightHandOperand());
@@ -620,7 +586,6 @@ public class DependencyGraphBuilder {
             if (left != null) return left; // partial URL is still useful for service name extraction
         }
 
-        // Strategy 4: Variable read — check if variable name suggests a URL field
         if (expr instanceof CtVariableRead<?> varRead) {
             String varName = varRead.getVariable().getSimpleName();
             String resolved = valueFieldUrls.get(varName);
@@ -629,10 +594,6 @@ public class DependencyGraphBuilder {
 
         return null;
     }
-
-    // ========================================================================================
-    // SPOON HELPERS
-    // ========================================================================================
 
     private CtModel buildSpoonModel(Path srcDir) {
         Launcher launcher = new Launcher();
@@ -651,8 +612,7 @@ public class DependencyGraphBuilder {
             try {
                 String name = annotation.getAnnotationType().getSimpleName();
                 if ("RestController".equals(name) || "Controller".equals(name)) return true;
-            } catch (Exception e) {
-                // Spoon may fail to resolve annotation type in no-classpath mode — skip it
+            } catch (Exception ignored) {
             }
         }
         return false;
@@ -664,8 +624,7 @@ public class DependencyGraphBuilder {
                 if ("RequestMapping".equals(annotation.getAnnotationType().getSimpleName())) {
                     return extractPathFromAnnotation(annotation);
                 }
-            } catch (Exception e) {
-                // Spoon may fail to resolve annotation type in no-classpath mode — skip it
+            } catch (Exception ignored) {
             }
         }
         return "";
@@ -695,8 +654,7 @@ public class DependencyGraphBuilder {
                     String methodPath = extractPathFromAnnotation(annotation);
                     return new EndpointInfo(normalizePath(classLevelPath + methodPath), httpMethod);
                 }
-            } catch (Exception e) {
-                // Spoon may fail to resolve annotation type in no-classpath mode — skip it
+            } catch (Exception ignored) {
             }
         }
         return null;
@@ -778,10 +736,6 @@ public class DependencyGraphBuilder {
         return false;
     }
 
-    // ========================================================================================
-    // URL / SERVICE NAME HELPERS
-    // ========================================================================================
-
     /**
      * Extracts a target service identifier from a URL. Now handles localhost:PORT by
      * preserving the port information for later resolution.
@@ -800,12 +754,11 @@ public class DependencyGraphBuilder {
             return null;
         }
 
-        // For localhost and IP addresses, return "localhost:PORT" so port-based matching can work
         if (host.equals("localhost") || host.matches("\\d+\\.\\d+\\.\\d+\\.\\d+")) {
             if (port != null && port.matches("\\d+")) {
                 return "localhost:" + port;
             }
-            return null; // localhost without port — can't resolve
+            return null;
         }
 
         return normalizeServiceName(host);
@@ -831,10 +784,6 @@ public class DependencyGraphBuilder {
         Matcher matcher = Pattern.compile("/v(\\d+)").matcher(path);
         return matcher.find() ? "v" + matcher.group(1) : null;
     }
-
-    // ========================================================================================
-    // CONFIG HELPERS
-    // ========================================================================================
 
     @SuppressWarnings("unchecked")
     private String extractNestedValue(Map<String, Object> map, String dotPath) {
@@ -867,10 +816,6 @@ public class DependencyGraphBuilder {
                 .replaceAll("\\$\\{[^}]+}", "");
     }
 
-    // ========================================================================================
-    // POSITION HELPERS
-    // ========================================================================================
-
     private String positionFile(CtElement element) {
         return element.getPosition().isValidPosition() ? element.getPosition().getFile().getPath() : "unknown";
     }
@@ -884,9 +829,6 @@ public class DependencyGraphBuilder {
         return str.length() > maxLength ? str.substring(0, maxLength) + "..." : str;
     }
 
-    // ========================================================================================
-    // INTERNAL TYPES
-    // ========================================================================================
 
     private record CallEvidence(DependencyType dependencyType, String file, int line, String code, String url) {}
 }

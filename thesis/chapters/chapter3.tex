@@ -27,6 +27,8 @@
 
 In this work, Spoon is used for inter-service analysis, specifically in three ways. Firstly, it detects REST controller endpoints by scanning for \texttt{@RestController}, \texttt{@GetMapping}, \texttt{@PostMapping} and other related annotations. Furthermore, it is used to identify inter-service communication by analyzing \texttt{@FeignClient} annotations, \texttt{@RestTemplate} method calls, and \texttt{@WebClient} builder patterns. Lastly, it extracts service metadata such as the number of endpoints, controller classes and API versioning information.
 
+Beyond inter-service analysis, Spoon is also used for intra-service structural analysis. The God Service detector (Section~\ref{subsec:detect-god-service}) computes per-class metrics such as field count, public method count, import domain count, constructor parameter count and Tight Class Cohesion (TCC) directly from the AST. Similarly, the Chatty Service detector (Section~\ref{subsec:detect-chatty-service}) scans for interfaces and classes that exhibit chatty HTTP~client patterns by inspecting method annotations and verifying invocation target types.
+
 The AST-based approach is more robust than regular expression-based scanning, as it understands the syntactic structure of the code and can resolve annotation attributes, method call chains and type hierarchies.
 
 \subsection{Code Smell Detection with DesigniteJava}
@@ -79,7 +81,7 @@ In this dissertation, DesigniteJava is integrated as an external tool invoked as
 
 A central challenge in dependency graph construction is resolving the \textit{target} of an inter-service call to an actual microservice in the project. In real-world codebases, services are referenced by a variety of identifiers: directory names, \texttt{spring\-.application.name} values, \texttt{localhost:PORT} URLs, or Spring property placeholders injected via \texttt{@Value} annotations. To address this, the dependency graph builder employs a multi-strategy resolution pipeline.
 
-The first step is a configuration pre-scan: before scanning source code, each service's \texttt{application.yml} or \texttt{application.properties} is parsed. The \texttt{spring\-.application.name} property is registered as an alias for the service directory name, and \texttt{server.port} values are recorded in a port-to-service mapping. Next, the pipeline performs \texttt{@Value} field resolution, in which fields annotated with Spring's \texttt{@Value} (e.g., \texttt{@Value("\$\{order\--service.url:http://localhost:8081\}")}) are pre-scanned using Spoon. Property placeholders are resolved against the service's configuration, falling back to default values when the property key is not found. Finally, a cascading target resolution strategy is applied: when a call target is extracted from a \texttt{@FeignClient} annotation, \texttt{RestTemplate} invocation, or \texttt{WebClient} call, it is matched to a microservice using three strategies applied in order --- exact match against service names and registered aliases, port-based matching for \texttt{localhost:PORT}-style targets, and fuzzy substring matching with common suffix stripping (e.g., matching ``order'' to ``order-service'').
+The first step is a configuration pre-scan: before scanning source code, each service's \texttt{application.yml} or \texttt{application.properties} is parsed. The \texttt{spring\-.application.name} property is registered as an alias for the service directory name, and \texttt{server.port} values are recorded in a port-to-service mapping. Next, the pipeline performs \texttt{@Value} field resolution, in which fields annotated with Spring's \texttt{@Value} (e.g., \texttt{@Value("\$\{order\--service.url:http://localhost:8081\}")}) are pre-scanned using Spoon. Property placeholders are resolved against the service's configuration, falling back to default values when the property key is not found. Finally, a cascading target resolution strategy is applied: when a call target is extracted from a \texttt{@FeignClient} annotation, \texttt{RestTemplate} invocation, or \texttt{WebClient} call, it is matched to a microservice using three strategies applied in order --- exact match against service names and registered aliases, port-based matching for \texttt{localhost:PORT}-style targets, and fuzzy substring matching with common suffix stripping (e.g., matching ``order'' to ``order-service''). For \texttt{@FeignClient} interfaces, each non-default, non-static method is registered as a separate call evidence entry, since each method corresponds to an individual HTTP request at runtime. This produces accurate per-method call counts that feed into chatty service detection.
 
 Figure~\ref{fig:dependency-graph-example} shows an example dependency graph for a hypothetical microservice system. Each node represents a service, and edges are labeled with the dependency type and call count. The graph reveals a cycle between the Order, Inventory and Payment services as well as a potential ESB misuse pattern where the API Gateway mediates most communication.
 
@@ -251,38 +253,81 @@ As evidence, the detector attempts to locate the service's main application clas
 \subsection{God Service Detection}
 \label{subsec:detect-god-service}
 
-%TODO - refactor this
+\indent \par The God Service detector identifies microservices that handle too many responsibilities \cite{Taibi2018}. Detection uses two complementary signals; a service is flagged when either signal identifies at least one God Class.
 
-\indent \par The God Service detector identifies microservices that handle too many responsibilities \cite{Taibi2018}. Rather than defining responsibility count heuristics directly, this detector uses the output of DesigniteJava's intra-service analysis: specifically, the frequency of \textit{God Class} code smells within a service.
-
-The rationale is that a microservice containing multiple God Class instances is likely spanning multiple domains withing a single deployable unit. The detection criterion is:
+\textbf{Signal~1: DesigniteJava.} The detector queries the code smell repository for ``God Class'' smells reported by DesigniteJava. A single God Class occurrence is sufficient to flag the service:
 
 \begin{equation}
-    \bigl|\{c \in \mathit{classes}(s) : \mathit{isGodClass}(c)\}\bigr| \geq \theta_{\mathit{god}}
+    \bigl|\{c \in \mathit{classes}(s) : \mathit{isGodClass}_{\mathit{DJ}}(c)\}\bigr| \geq \theta_{\mathit{god}}
     \label{eq:god-service-detection}
 \end{equation}
 
-\noindent where $\theta_{\mathit{god}}$ is the minimum number of God Class smells required to flag the service (default: 3, configurable via \texttt{app.thresholds.god-service-min-domains}).
+\noindent where $\theta_{\mathit{god}}$ defaults to~1 (configurable via \texttt{app.thresholds.god-service-min-god-classes}).
 
-The detector queries the code smell repository for all smells associated with the microservice, filters for those with smell type ``God Class``, and counts the results. When the thresholds is exceeded, code snippets are extracted from the source files of each God Class occurrences, centered on the class declaration or the line number reported by DesigniteJava.
+\textbf{Signal~2: Spoon multi-metric analysis (fallback).} When DesigniteJava reports no God Classes (e.g.\ because it was disabled or the project structure prevented its execution), the detector falls back to a Spoon-based structural analysis. Each non-abstract class is evaluated against six metrics, summarised in Table~\ref{tab:god-class-metrics}. A class is flagged as a God Class when $\geq 3$ of the six metrics simultaneously exceed their thresholds:
 
-This detection approach highlights the multi-level analysis contribution of this work: a code-level smell (God Class, detected by DesigniteJava) is used as a signal for an architectural-level anti-pattern (God Service).
+\begin{equation}
+    \bigl|\{m \in M : \mathit{exceeds}(m, c)\}\bigr| \geq 3
+    \label{eq:god-class-multi-metric}
+\end{equation}
+
+\begin{table}[htbp]
+\centering
+\footnotesize
+\begin{tabular}{|l|c|p{6cm}|}
+\hline
+\textbf{Metric} & \textbf{Threshold} & \textbf{Rationale} \\
+\hline\hline
+Field count            & $\geq 25$  & Excessive state scope \\
+\hline
+Public method count    & $\geq 30$  & Too many responsibilities exposed \\
+\hline
+Lines of code          & $\geq 1000$& Overly large class \\
+\hline
+Import domain count    & $\geq 20$  & References many unrelated packages \\
+\hline
+Constructor parameters & $\geq 12$  & Excessive dependency injection \\
+\hline
+TCC                    & $< 0.5$    & Low cohesion among methods \\
+\hline
+\end{tabular}
+\caption{Structural metrics used for Spoon-based God Class detection. Import domains are the distinct top-two-level package prefixes (e.g.\ \texttt{java.util}, \texttt{com.example}) referenced by the class, excluding \texttt{java.lang}.}
+\label{tab:god-class-metrics}
+\end{table}
+
+The Tight Class Cohesion (TCC) metric measures the fraction of method pairs that share at least one instance field access \cite{Bieman1995}:
+
+\begin{equation}
+    \mathit{TCC}(c) = \frac{|\{(m_i, m_j) : \mathit{fields}(m_i) \cap \mathit{fields}(m_j) \neq \emptyset\}|}{{\binom{|M|}{2}}}
+    \label{eq:tcc}
+\end{equation}
+
+\noindent where $M$ is the set of public methods, $\mathit{fields}(m)$ denotes the set of instance fields read or written by method~$m$, and $\binom{|M|}{2}$ is the maximum number of method pairs. A low TCC value indicates that the class's methods operate on disjoint subsets of its state, suggesting multiple unrelated concerns. TCC is undefined (and excluded from the check) for classes with fewer than two public methods.
+
+This two-signal approach combines the precision of DesigniteJava's trained heuristics with a structural fallback that catches God Classes even when DesigniteJava is unavailable, and highlights the multi-level analysis contribution of this work: code-level metrics are used as signals for an architectural-level anti-pattern.
 
 \subsection{Chatty Service Detection}
 \label{subsec:detect-chatty-service}
 
-\indent \par The Chatty Service detector identifies pairs of services that communicate excessively through fine-grained remote calls \cite{Taibi2018, Richardson2018}. Detection operates on the dependency graph edges, specifically on the \texttt{callCount} attribute annotated on each edge during the inter-service analysis phase.
+\indent \par The Chatty Service detector identifies services that communicate excessively through fine-grained remote calls \cite{Taibi2018, Richardson2018}. Detection uses two complementary approaches.
 
-During the dependency graph construction (see Section~\ref{subsec:graph-analysis}), each time an inter-service call is detected via \texttt{@FeignClient}, \texttt{RestTemplate}, or \texttt{WebClient}, the call count for the corresponding edge is incremented. The Chatty Service detector then queries for all dependency edges where the call count exceeds a configurable threshold:
+\textbf{Approach~1: Dependency-based.} The detector queries the persisted dependency graph for edges whose call count exceeds a configurable threshold:
 
 \begin{equation}
     \mathit{callCount}(s_1, s_2) \geq \theta_{\mathit{chatty}}
     \label{eq:chatty-service-detection}
 \end{equation}
 
-\noindent where $\theta_{\mathit{chatty}}$ is the minimum call count threshold (default: 5, configurable via \texttt{app\-.thresholds\-.chatty\--service-min-calls}).
+\noindent where $\theta_{\mathit{chatty}}$ defaults to~10 (configurable via \texttt{app.thresholds.chatty-service-min-calls}). During dependency graph construction, each non-default method in a \texttt{@FeignClient} interface is counted as a separate call (rather than one call per annotation), so a Feign interface with 50~methods produces a call count of~50 on the corresponding edge.
 
-For each chatty edge, the detector reports both the source and target services as affected, and extracts code snippets from the evidence file and line number recorded during dependency graph construction. The evidence shows the \texttt{@FeignClient} interface or the \texttt{RestTemplate} invocation responsible for the excessive communication.
+\textbf{Approach~2: Source-based.} Some chatty patterns are invisible to the dependency graph --- for instance, HTTP clients built with raw \texttt{HttpURLConnection} or interfaces that lack a \texttt{@FeignClient} annotation. To catch these, the detector scans each microservice's source code with Spoon for types that exhibit chatty HTTP~client characteristics:
+
+\begin{itemize}
+    \item \textbf{Interfaces} annotated with \texttt{@FeignClient} are flagged when they declare $\geq \theta_{\mathit{chatty}}$ non-default methods. Non-Feign interfaces are flagged only when their name contains an HTTP-client keyword (\texttt{client}, \texttt{api}, \texttt{http}, \texttt{proxy}, \texttt{remote}, etc.), they are not annotated as server-side controllers, and $\geq \theta_{\mathit{chatty}}$ of their methods carry HTTP-mapping annotations (\texttt{@GetMapping}, \texttt{@PostMapping}, etc.).
+    \item \textbf{Classes} are flagged when they contain $\geq \theta_{\mathit{chatty}}$ invocations whose target method belongs to a known HTTP~client type (\texttt{RestTemplate}, \texttt{WebClient}, \texttt{HttpURLConnection}, \texttt{OkHttpClient}, etc.). Server-side controller classes are excluded.
+\end{itemize}
+
+The source-based approach applies three false-positive prevention mechanisms: controller annotation exclusion, HTTP-client name-keyword filtering (for non-Feign interfaces), and declaring-type verification (for class invocations). This ensures that regular domain interfaces or utility classes with many methods are not incorrectly flagged.
 
 \subsection{Hardcoded Endpoint Detection}
 \label{subsec:detect-hardcoded-endpoint}
@@ -414,7 +459,7 @@ As evidence, the detector locates the controller classes that declare unversione
 % Additionally, the detector computes a volume-based mediator ratio:
 
 % \begin{equation}
-%     \mathit{medRatio}(s) = \frac{\mathit{inDeps}(s) + \mathit{outDeps}(s)}{2 \times |\mathit{totalDeps}|}
+%     \mathit{medRatio}(s) = \frac{\mathit{inDeps}(s) + \mathit{outDeps}(s)}{|\mathit{totalDeps}|}
 %     \label{eq:esb-mediator-ratio}
 % \end{equation}
 
@@ -428,7 +473,7 @@ As evidence, the detector locates the controller classes that declare unversione
 %     \label{eq:esb-decision}
 % \end{equation}
 
-% \noindent where $\theta_m$ is the mediator threshold (default: 0.5, configurable via \texttt{app.thresholds.esb-mediator-threshold}). The first condition identifies services that both receive calls from and make calls to a high proportion of other services. The second condition captures cases where a single service concentrates a disproportionate share of all dependency traffic by volume.
+% \noindent where $\theta_m$ is the mediator threshold (default: 0.4, configurable via \texttt{app.thresholds.esb-mediator-threshold}). The first condition identifies services that both receive calls from and make calls to a high proportion of other services. The second condition captures cases where a single service concentrates a disproportionate share of all dependency traffic by volume. Services whose names contain gateway-related keywords (e.g.\ \texttt{gateway}, \texttt{api-gateway}, \texttt{zuul}, \texttt{proxy}) are excluded, as they are architecturally designed to be central.
 
 % As with the Distributed Monolith detector, this detection is only performed when the system contains at least three microservices. The report includes the mediator service, all services it connects to, and code snippets from the relevant dependency evidence.
 
@@ -437,7 +482,7 @@ As evidence, the detector locates the controller classes that declare unversione
 
 \indent\par This chapter presented the detection methodology employed by this work. The analysis pipeline was described, starting from source code ingestion and microservice boundary detection, through intra-service code smell analysis (via DesigniteJava) and inter-service dependency extraction (via Spoon-based AST analysis), to dependency graph construction and anti-pattern detection.
 
-The detailed detection algorithm for each of the eight targeted anti-patterns was presented. Shared Database detection compares datasource URLs across services (Section~\ref{subsec:detect-shared-database}). Cyclic Dependency detection applies Tarjan's SCC algorithm on the dependency graph (Section~\ref{subsec:detect-cyclic-dependency}). Nano Service detection uses LOC and endpoint count thresholds (Section~\ref{subsec:detect-nano-service}). God Service detection leverages God Class code smell frequency via DesigniteJava (Section~\ref{subsec:detect-god-service}). Chatty Service detection analyzes dependency edge call counts (Section~\ref{subsec:detect-chatty-service}). Hardcoded Endpoint detection performs URL pattern matching in source files (Section~\ref{subsec:detect-hardcoded-endpoint}). Distributed Monolith detection employs composite coupling metric analysis (Section~\ref{subsec:detect-distributed-monolith}). API Versioning Absence detection matches endpoint path versioning patterns (Section~\ref{subsec:detect-versioning-absence}). 
+The detailed detection algorithm for each of the ten targeted anti-patterns was presented. Shared Database detection compares datasource URLs across services (Section~\ref{subsec:detect-shared-database}). Cyclic Dependency detection applies Tarjan's SCC algorithm on the dependency graph (Section~\ref{subsec:detect-cyclic-dependency}). Nano Service detection uses LOC and endpoint count thresholds (Section~\ref{subsec:detect-nano-service}). God Service detection combines DesigniteJava God Class smells with a Spoon-based multi-metric structural fallback (Section~\ref{subsec:detect-god-service}). Chatty Service detection analyzes both dependency edge call counts and source-based HTTP~client patterns (Section~\ref{subsec:detect-chatty-service}). Hardcoded Endpoint detection performs URL pattern matching in source files (Section~\ref{subsec:detect-hardcoded-endpoint}). Distributed Monolith detection employs composite coupling metric analysis (Section~\ref{subsec:detect-distributed-monolith}). API Versioning Absence detection matches endpoint path versioning patterns (Section~\ref{subsec:detect-versioning-absence}).
 % Wrong Cuts detection combines Feature Envy frequency with bidirectional dependency detection (Section~\ref{subsec:detect-wrong-cuts}). Finally, ESB Misuse detection uses centrality and mediator ratio analysis (Section~\ref{subsec:detect-esb-misuse}).
 
 All detection thresholds are externalized as configuration parameters, allowing calibration to project-specific norms. Each detector produces evidence-based reports with source code snippets, enabling developers to quickly understand and remediate detected issues. The next chapter describes the implementation of these detection algorithms within the web application.

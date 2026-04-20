@@ -53,7 +53,6 @@ public class WrongCutsDetector extends BaseDetector {
         List<DetectedAntiPattern> patterns = new ArrayList<>();
         Path projectRoot = Path.of(project.getLocalPath());
 
-        // --- Indicator 1: Feature Envy smells per service ---
         for (Microservice ms : microservices) {
             List<CodeSmell> featureEnvySmells = codeSmellRepository.findByMicroservice(ms).stream()
                     .filter(smell -> "Feature Envy".equalsIgnoreCase(smell.getSmellType()))
@@ -68,7 +67,6 @@ public class WrongCutsDetector extends BaseDetector {
                         ))
                         .toList();
 
-                // Read code snippets from Feature Envy smell locations
                 List<Map<String, Object>> snippets = featureEnvySmells.stream()
                         .limit(5)
                         .map(smell -> {
@@ -103,7 +101,6 @@ public class WrongCutsDetector extends BaseDetector {
             }
         }
 
-        // --- Indicator 2: Bidirectional (mutual) dependencies ---
         List<ServiceDependency> allDeps = dependencyRepository.findByProjectWithServices(project);
         Set<String> edgeSet = new HashSet<>();
         Map<String, ServiceDependency> depByEdge = new HashMap<>();
@@ -128,7 +125,6 @@ public class WrongCutsDetector extends BaseDetector {
                 String srcName = dep.getSourceService().getName();
                 String tgtName = dep.getTargetService().getName();
 
-                // Collect code snippets from both directions of the dependency
                 List<Map<String, Object>> biDirSnippets = new ArrayList<>();
                 for (String edgeKey : List.of(forwardKey, reverseKey)) {
                     ServiceDependency edgeDep = depByEdge.get(edgeKey);

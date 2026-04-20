@@ -31,12 +31,17 @@ import java.util.stream.Collectors;
 @Component
 public class EsbMisuseDetector extends BaseDetector {
 
+    private static final Set<String> GATEWAY_KEYWORDS = Set.of(
+            "gateway", "api-gateway", "apigateway", "edge", "edge-service",
+            "zuul", "proxy", "bff", "ingress", "router"
+    );
+
     private final ServiceDependencyRepository dependencyRepository;
     private final double mediatorThreshold;
 
     public EsbMisuseDetector(ObjectMapper objectMapper,
                               ServiceDependencyRepository dependencyRepository,
-                              @Value("${app.thresholds.esb-mediator-threshold:0.5}") double mediatorThreshold) {
+                              @Value("${app.thresholds.esb-mediator-threshold:0.4}") double mediatorThreshold) {
         super(objectMapper);
         this.dependencyRepository = dependencyRepository;
         this.mediatorThreshold = mediatorThreshold;
@@ -57,15 +62,12 @@ public class EsbMisuseDetector extends BaseDetector {
 
         int totalDependencies = allDeps.size();
 
-        // Count incoming dependencies per service (how many other services call this one)
         Map<Long, List<ServiceDependency>> incomingByService = allDeps.stream()
                 .collect(Collectors.groupingBy(dep -> dep.getTargetService().getId()));
 
-        // Count outgoing dependencies per service
         Map<Long, List<ServiceDependency>> outgoingByService = allDeps.stream()
                 .collect(Collectors.groupingBy(dep -> dep.getSourceService().getId()));
 
-        // Build a name lookup
         Map<Long, String> serviceNames = new HashMap<>();
         for (Microservice ms : microservices) {
             serviceNames.put(ms.getId(), ms.getName());
@@ -78,9 +80,8 @@ public class EsbMisuseDetector extends BaseDetector {
             int outgoingCount = outgoingByService.getOrDefault(msId, List.of()).size();
             int totalThroughService = incomingCount + outgoingCount;
 
-            double mediatorRatio = totalThroughService / (totalDependencies * 2.0);
+            double mediatorRatio = (double) totalThroughService / totalDependencies;
 
-            // Alternative: check if the service is called by a large fraction of other services
             Set<Long> uniqueCallers = incomingByService.getOrDefault(msId, List.of()).stream()
                     .map(dep -> dep.getSourceService().getId())
                     .collect(Collectors.toSet());
@@ -93,12 +94,16 @@ public class EsbMisuseDetector extends BaseDetector {
             double callerRatio = otherServicesCount > 0 ? (double) uniqueCallers.size() / otherServicesCount : 0;
             double calleeRatio = otherServicesCount > 0 ? (double) uniqueCallees.size() / otherServicesCount : 0;
 
-            // A service acts as an ESB-like mediator if it both receives calls from
-            // and makes calls to a high proportion of other services
             boolean isMediatorByConnections = callerRatio >= mediatorThreshold && calleeRatio >= mediatorThreshold;
 
-            // Or if a single service concentrates a disproportionate share of all traffic
             boolean isMediatorByVolume = mediatorRatio >= mediatorThreshold;
+
+            boolean isLikelyGateway = GATEWAY_KEYWORDS.stream()
+                    .anyMatch(kw -> ms.getName().toLowerCase().contains(kw));
+            if (isLikelyGateway) {
+                log.debug("Skipping service '{}' — likely an API gateway (not ESB misuse)", ms.getName());
+                continue;
+            }
 
             if (isMediatorByConnections || isMediatorByVolume) {
                 Path projectRoot = Path.of(project.getLocalPath());
@@ -113,7 +118,6 @@ public class EsbMisuseDetector extends BaseDetector {
                         .sorted()
                         .toList();
 
-                // Collect code snippets from incoming/outgoing dependency evidence
                 List<ServiceDependency> relevantDeps = new ArrayList<>();
                 relevantDeps.addAll(incomingByService.getOrDefault(msId, List.of()));
                 relevantDeps.addAll(outgoingByService.getOrDefault(msId, List.of()));

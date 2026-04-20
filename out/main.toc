@@ -62,5 +62,42 @@
 \contentsline {subsection}{\numberline {4.4.2}Authentication Integration}{41}{subsection.4.4.2}%
 \contentsline {subsection}{\numberline {4.4.3}Pages}{42}{subsection.4.4.3}%
 \contentsline {subsection}{\numberline {4.4.4}Reusable Components}{46}{subsection.4.4.4}%
-\contentsline {chapter}{\numberline {5}Results \& Evaluation}{47}{chapter.5}%
-\contentsline {chapter}{\numberline {6}Conclusions \& Future Work}{48}{chapter.6}%
+\contentsline {section}{\numberline {4.5}Deployment}{49}{section.4.5}%
+\contentsline {subsection}{\numberline {4.5.1}Docker Configuration}{49}{subsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.5.2}Docker Compose (Development)}{49}{subsection.4.5.2}%
+\contentsline {subsection}{\numberline {4.5.3}Docker Compose (Production)}{50}{subsection.4.5.3}%
+\contentsline {subsection}{\numberline {4.5.4}Configuration Management}{50}{subsection.4.5.4}%
+\contentsline {subsection}{\numberline {4.5.5}Production Deployment Considerations}{50}{subsection.4.5.5}%
+\contentsline {subsubsection}{Hosting Infrastructure}{50}{section*.29}%
+\contentsline {subsubsection}{Data Access and Code Snippet Storage}{51}{section*.30}%
+\contentsline {subsubsection}{TLS Termination and Domain Configuration}{52}{section*.31}%
+\contentsline {subsubsection}{Backup and Data Persistence}{52}{section*.32}%
+\contentsline {subsubsection}{Resource Sizing and Scaling}{52}{section*.33}%
+\contentsline {section}{\numberline {4.6}Summary}{53}{section.4.6}%
+\contentsline {chapter}{\numberline {5}Results \& Evaluation}{54}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Dataset Selection}{54}{section.5.1}%
+\contentsline {subsection}{\numberline {5.1.1}Selection Criteria}{54}{subsection.5.1.1}%
+\contentsline {subsection}{\numberline {5.1.2}Selected Datasets}{55}{subsection.5.1.2}%
+\contentsline {subsection}{\numberline {5.1.3}Dataset Characterization}{55}{subsection.5.1.3}%
+\contentsline {section}{\numberline {5.2}Results}{55}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}Overview of Detection Results}{55}{subsection.5.2.1}%
+\contentsline {subsection}{\numberline {5.2.2}Anti-Pattern Distribution}{56}{subsection.5.2.2}%
+\contentsline {subsection}{\numberline {5.2.3}Per-Project Results}{56}{subsection.5.2.3}%
+\contentsline {subsubsection}{Project A}{56}{section*.38}%
+\contentsline {subsubsection}{Project B}{56}{section*.39}%
+\contentsline {subsubsection}{Project C}{56}{section*.40}%
+\contentsline {subsection}{\numberline {5.2.4}Health Score Analysis}{56}{subsection.5.2.4}%
+\contentsline {subsection}{\numberline {5.2.5}Re-Analysis and Diff Results}{56}{subsection.5.2.5}%
+\contentsline {section}{\numberline {5.3}Discussion}{56}{section.5.3}%
+\contentsline {subsection}{\numberline {5.3.1}Detection Accuracy}{57}{subsection.5.3.1}%
+\contentsline {subsection}{\numberline {5.3.2}Comparison with Related Tools}{57}{subsection.5.3.2}%
+\contentsline {subsection}{\numberline {5.3.3}Threshold Sensitivity}{57}{subsection.5.3.3}%
+\contentsline {subsection}{\numberline {5.3.4}Practical Implications}{57}{subsection.5.3.4}%
+\contentsline {section}{\numberline {5.4}Limitations}{58}{section.5.4}%
+\contentsline {section}{\numberline {5.5}Threats to Validity}{59}{section.5.5}%
+\contentsline {subsection}{\numberline {5.5.1}Construct Validity}{59}{subsection.5.5.1}%
+\contentsline {subsection}{\numberline {5.5.2}Internal Validity}{60}{subsection.5.5.2}%
+\contentsline {subsection}{\numberline {5.5.3}External Validity}{61}{subsection.5.5.3}%
+\contentsline {subsection}{\numberline {5.5.4}Conclusion Validity}{62}{subsection.5.5.4}%
+\contentsline {section}{\numberline {5.6}Summary}{62}{section.5.6}%
+\contentsline {chapter}{\numberline {6}Conclusions \& Future Work}{64}{chapter.6}%

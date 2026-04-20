@@ -28,14 +28,11 @@ import java.util.stream.Collectors;
 @Service
 public class HealthScoreCalculator {
 
-    /* ── weight tables ──────────────────────────────────────────────── */
-
     private static final int ANTI_PATTERN_MAX   = 40;
     private static final int CODE_QUALITY_MAX   = 20;
     private static final int ARCHITECTURE_MAX   = 25;
     private static final int SERVICE_SIZING_MAX = 15;
 
-    // Severity → points lost per occurrence inside the Anti-Pattern category
     private static final Map<Severity, Integer> SEVERITY_PENALTY = Map.of(
             Severity.CRITICAL, 8,
             Severity.HIGH,     5,
@@ -104,7 +101,6 @@ public class HealthScoreCalculator {
 
         int totalSmells = result.getTotalCodeSmells();
         if (totalSmells > 0) {
-            // Logarithmic scaling: first smells hurt more, diminishing returns
             int penalty = (int) Math.min(CODE_QUALITY_MAX, Math.round(Math.log1p(totalSmells) * 3.5));
             totalPenalty += penalty;
             deductions.add(new Deduction(

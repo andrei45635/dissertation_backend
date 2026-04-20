@@ -48,11 +48,11 @@ app:
   thresholds:
     nano-service-max-loc: ${NANO_MAX_LOC:500}
     nano-service-max-endpoints: ${NANO_MAX_ENDPOINTS:2}
-    god-service-min-domains: ${GOD_MIN_DOMAINS:3}
-    chatty-service-min-calls: ${CHATTY_MIN_CALLS:5}
+    god-service-min-god-classes: ${GOD_MIN_GOD_CLASSES:1}
+    chatty-service-min-calls: ${CHATTY_MIN_CALLS:10}
     hardcoded-endpoint-patterns: "http://,https://,localhost:,127.0.0.1"
     wrong-cuts-min-feature-envy: ${WRONG_CUTS_MIN_FEATURE_ENVY:3}
-    esb-mediator-threshold: ${ESB_MEDIATOR_THRESHOLD:0.5}
+    esb-mediator-threshold: ${ESB_MEDIATOR_THRESHOLD:0.4}
 
 logging:
   level:

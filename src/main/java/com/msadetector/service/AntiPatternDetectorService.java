@@ -66,7 +66,6 @@ public class AntiPatternDetectorService {
         List<Microservice> microservices = microserviceRepository.findByProject(project);
         List<DetectedAntiPattern> antiPatterns = new ArrayList<>();
 
-        // Run all detectors
         for (AntiPatternDetector detector : detectors) {
             try {
                 List<DetectedAntiPattern> detected = detector.detect(project, microservices);
@@ -78,7 +77,6 @@ public class AntiPatternDetectorService {
             }
         }
 
-        // Compute summary statistics
         int totalCodeSmells = codeSmellRepository.countByProject(project);
         int totalLoc = microservices.stream().mapToInt(Microservice::getLinesOfCode).sum();
         double avgSize = microservices.isEmpty() ? 0 : (double) totalLoc / microservices.size();

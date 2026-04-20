@@ -38,9 +38,6 @@ public abstract class BaseDetector implements AntiPatternDetector {
         return str.length() > maxLength ? str.substring(0, maxLength) + "..." : str;
     }
 
-    // ========================================================================================
-    // CODE SNIPPET HELPERS
-    // ========================================================================================
 
     /**
      * Reads a code snippet from a file centred on the given line number,
