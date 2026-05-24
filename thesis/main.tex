@@ -38,15 +38,19 @@ ABSTRACT
 \vspace{0.5cm}	
 %\cleardoublepage
 
-Abstract: un rezumat în limba engleză cu prezentarea, pe scurt, a conținutului pe capitole, punând accent pe contribuțiile proprii și originalitate
+\par Microservices architecture has become the dominant paradigm for building large-scale distributed systems, yet the rapid pace of adoption has outstripped the availability of automated tools for detecting architectural anti-patterns. Existing approaches typically operate at a single level of abstraction, cover a narrow set of anti-patterns and produce abstract warnings without actionable evidence or remediation guidance. This dissertation presents the MSA Detector, an open-source static analysis tool that bridges intra-service code smell detection with inter-service dependency analysis to identify architectural anti-patterns in Java-based microservice systems.
+
+\par The tool implements a multi-level analysis pipeline that integrates DesigniteJava for code smell detection with Spoon-based Abstract Syntax Tree traversal and graph algorithms for inter-service dependency extraction. It supports the detection of ten anti-patterns across four architectural dimensions, i.e. service design, communication, data management and deployment and coupling, with configurable thresholds and evidence-based reporting that includes source code snippets and remediation guidance. An automated microservice boundary detection mechanism identifies services from build files without manual configuration, and a composite health score on a 0--100 scale with letter grading quantifies overall architectural quality and decomposes it into interpretable categories for tracking improvements over time.
+
+\par The tool was evaluated on four open-source microservices projects encompassing 60 detected services and approximately 465\,000 lines of code. Health scores ranged from 45 to 87, demonstrating that the scoring mechanism meaningfully differentiates between projects with varying degrees of architectural quality. Compared to existing tools such as Arcan, MicroART and MSANose, the MSA Detector provides broad anti-pattern coverage, configurable detection sensitivity and a unified analysis that no single reviewed tool replicates. The tool is delivered as a web application with a RESTful API, supporting both interactive use through a browser-based dashboard and a programmatic integration into CI/CD pipelines.
 
 \clearpage
 DECLARATION OF GENERATIVE AI AND AI-ASSISTED TECHNOLOGIES IN THE WRITING PROCESS
-\vspace{0.5cm}	
+\vspace{0.5cm}
 \hrule
 \vspace{0.5cm}
 
-During the preparation of this work the author used Claude Opus 4.6 in order to help clarify concepts and structure paragraphs more effectively. After using this tool/service, the author reviewed and edited the content as needed and takes full responsibility for the content of the thesis.
+During the preparation of this thesis, the author used Claude Opus 4.6 as a language-support tool to improve wording, readability, and paragraph structure, and to refine transitions between ideas. The tool was not used to generate original research contributions, interpret results, or draw scientific conclusions. All AI-assisted suggestions were reviewed, verified against the cited sources, and edited by the author, who takes full responsibility for the final content.
 
 \tableofcontents
 

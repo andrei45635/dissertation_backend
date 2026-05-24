@@ -1,4 +1,40 @@
 \chapter{Conclusions \& Future Work}
 \label{conclusions}
 
-\par Concluzii ...
+\section{Summary of Contributions}
+\label{sec:summary-contributions}
+
+\par This dissertation presented the MSA Detector, an automated static analysis tool for detecting architectural anti-patterns in Java-based microservice systems. The tool implements a multi-level analysis pipeline that combines intra-service code smell detection, performed by integrating DesigniteJava as an external subprocess, with inter-service dependency analysis based on Spoon's Abstract Syntax Tree traversal and graph algorithms. Thus, the tool uses both code-level indicators, such as God Class frequency within a service, as signals for architectural-level anti-patterns, bridging a gap that existing tools address only partially or not at all.
+
+\par The detection pipeline covers ten anti-patterns organized across four architectural dimensions: service design (Nano Service, God Service), communication (Chatty Service, Cyclic Dependency, Hardcoded Endpoints, ESB Misuse), data management (Shared Database) and deployment and coupling (Distributed Monolith, API Versioning Absence, Wrong Cuts). Each detector is implemented as a pluggable Strategy component with configurable thresholds externalized in the application configuration. Every detected anti-pattern is accompanied by source code snippets extracted during analysis, affected service lists and remediation guidance, with the aim to aid developers in understanding and acting on the findings without additional manual inspection.
+
+\par A further contribution is the automated microservice boundary detection mechanism, which identifies services by scanning for build files and filtering out non-service modules through an exclusion heuristic, eliminating the manual service enumeration that most existing tools require. The composite health score quantifies overall architectural quality on a 0--100 scale with letter grading and decomposes it into four weighted categories: anti-pattern severity, code quality, architectural coupling, and service sizing, each with an itemized list of deductions. A built-in analysis diff feature compares successive analysis runs, which teams can use to track architectural health trends over time and measure the concrete impact of refactoring efforts. The tool is delivered as a web application with a RESTful API, an Angular-based dashboard and Docker-based deployment, supporting both interactive use and programmatic integration into existing CI/CD pipelines.
+
+% \section{Discussion of Results}
+% \label{sec:discussion-results}
+
+% \textcolor{red}{nu are sens o subsectiune cu doar 4 randuri, Textul poate ramana fara titlu}
+
+% TODO - rework this
+\par The evaluation on four open-source microservice projects, encompassing 60 detected microservices and approximately 465\,000 lines of code, demonstrated that the MSA Detector can identify architectural anti-patterns that are confirmed by manual inspection.
+
+\section{Limitations}
+\label{sec:limitations}
+
+\par Several limitations of the approach should be acknowledged. The detection pipeline is restricted to Java-based microservice systems that follow Spring Boot conventions. Projects that are written in other languages or are using non-Spring frameworks cannot be analyzed. The tool relies exclusively on static analysis and does not incorporate runtime data from distributed tracing or actual call frequency measurements, meaning that anti-patterns which manifest only at runtime may not be detected accurately. The automated microservice detection heuristic, while effective for multi-module Maven and Gradle projects, may produce false positives for non-service submodules such as shared libraries, and may miss services that do not follow conventional directory structures. Similarly, the inter-service dependency resolution cannot handle dynamically constructed URLs resolved through external configuration services such as Spring Cloud Config, potentially leaving some dependencies undetected.
+
+\par The composite health score uses a linear deduction formula with fixed penalty weights that have not been empirically validated across a large corpus of projects, and the default detection thresholds were chosen based on values reported in the literature and reasonable engineering judgement rather than systematic calibration. Finally, the evaluation was conducted on four open-source sample and demonstration projects, which may not be fully representative of enterprise microservice systems in terms of scale, complexity and the distribution of anti-patterns encountered in production environments.
+
+\section{Future Work}
+\label{sec:future-work}
+
+\par Several directions for future research and development emerge from this work. The most impactful extension would be multi-language support, enabling the analysis of microservices written in Python, Go, .NET or Node.js. A language-agnostic dependency graph could be constructed from infrastructure artifacts such as Docker Compose files, Kubernetes manifests or API gateway configurations, while language-specific analyzers would handle intra-service code smell detection for each supported ecosystem.
+
+\par The anti-pattern catalog could be extended with additional patterns not yet covered, such as timeout misconfiguration in inter-service calls and the absence of an API gateway. Machine learning-based detection represents a longer-term direction: training classifiers on labeled datasets of microservice projects, or applying graph neural networks to the dependency graph could capture subtle anti-pattern manifestations that rule-based detectors miss, though the scarcity of labeled training data for microservice anti-patterns remains a significant challenge.
+
+\section{Concluding Remarks}
+\label{sec:concluding-remarks}
+
+\par As microservices adoption continues to grow, the need for automated architectural quality assurance becomes increasingly pressing. Manual architectural reviews do not scale to systems with dozens or hundreds of services and thousands of inter-service dependencies, yet the consequences of undetected anti-patterns (e.g. cascading failures, deployment friction, mounting maintenance costs) can be severe. This dissertation has demonstrated that a static analysis tool combining code-level smell detection with architectural-level dependency analysis can provide meaningful, actionable feedback on microservice architectural quality without requiring a running system or manual configuration of service boundaries.
+
+\par The MSA Detector offers developers and architects a practical means of gaining early stage visibility into architectural debt, tracking quality improvements over time through composite health score and analysis diff features. While the current implementation is limited to Java Spring Boot systems, the underlying methodology (i.e. multi-level analysis, configurable detection, evidence-based reporting and composite scoring) is applicable to microservice systems regardless of language or framework and provides a foundation upon which future extensions can build.
