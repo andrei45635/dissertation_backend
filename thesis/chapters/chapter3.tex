@@ -327,9 +327,9 @@ Firstly, the detector queries the persisted dependency graph for edges whose cal
     \label{eq:chatty-service-detection}
 \end{equation}
 
-\noindent where $\theta_{\mathit{chatty}}$ defaults to~10 (configurable via \texttt{app.thresholds.chatty-service-min-calls}). During dependency graph construction, each non-default method in a \texttt{@FeignClient} interface is counted as a separate call (rather than one call per annotation), so a Feign interface with 50~methods produces a call count of~50 on the corresponding edge.
+\noindent where $\theta_{\mathit{chatty}}$ defaults to~10 (configurable via \texttt{app.\-thres\-holds.\-cha\-tty-service-min-calls}). During dependency graph construction, each non-default method in a \texttt{@FeignClient} interface is counted as a separate call (rather than one call per annotation), so a Feign interface with 50~methods produces a call count of~50 on the corresponding edge.
 
-Furthermore, some chatty patterns are invisible to the dependency graph, such as HTTP clients built with raw \texttt{HttpURLConnection} or interfaces that lack a \texttt{@FeignClient} annotation. To catch these, the detector scans each microservice's source code with Spoon for types that exhibit chatty HTTP~client characteristics.
+Furthermore, some chatty patterns are invisible to the dependency graph, such as HTTP clients built with raw \texttt{HttpURLConnection} or interfaces that lack a \texttt{@Feign\-Client} annotation. To catch these, the detector scans each microservice's source code with Spoon for types that exhibit chatty HTTP~client characteristics.
 
 Interfaces annotated with \texttt{@FeignClient} are flagged when they declare $\geq \theta_{\mathit{chatty}}$ non-default methods. Non-Feign interfaces are flagged only when their name contains an HTTP-client keyword (\texttt{client}, \texttt{api}, \texttt{http}, \texttt{proxy}, \texttt{remote}, etc.), they are not annotated as server-side controllers, and $\geq \theta_{\mathit{chatty}}$ of their methods carry HTTP-mapping annotations (\texttt{@GetMapping}, \texttt{@PostMapping}, etc.). Classes, on the other hand, are flagged when they contain $\geq \theta_{\mathit{chatty}}$ invocations whose target method belongs to a known HTTP~client type (\texttt{RestTemplate}, \texttt{WebClient}, \texttt{HttpURLConnection}, \texttt{OkHttpClient}, etc.), with server-side controller classes excluded from this check.
 
@@ -426,7 +426,7 @@ One indicator for Wrong Cuts detection would be Feature Envy Code Smells. The de
     \label{eq:wrong-cuts-fe}
 \end{equation}
 
-\noindent where $\mathrm{FE}$ denotes the ''Feature Envy'' smell type and $\theta_{\mathit{fe}}$ is the minimum Feature Envy count (default: 3, configurable via \texttt{app.thresholds.wrong-cuts-min-feature-envy}).
+\noindent where $\mathrm{FE}$ denotes the ''Feature Envy'' smell type and $\theta_{\mathit{fe}}$ is the minimum Feature Envy count (default: 3, configurable via \texttt{app\-.thres\-holds.\-wrong-cuts-min-feature-envy}).
 
 Another indicator would be bidirectional dependencies, The detector scans the dependency graph for pairs of services with mutual (bidirectional) dependencies (i.e., edges in both directions between the same pair of vertices). Bidirectional dependencies suggest that the two services are too tightly coupled and may have been incorrectly separated:
 
@@ -471,7 +471,7 @@ A service is flagged as an ESB-like mediator when either of the following condit
     \label{eq:esb-decision}
 \end{equation}
 
-\noindent where $\theta_m$ is the mediator threshold (default: 0.4, configurable via \texttt{app.thresholds.esb-mediator-threshold}). The first condition identifies services that both receive calls from and make calls to a high proportion of other services. The second condition captures cases where a single service concentrates a disproportionate share of all dependency traffic by volume. Services whose names contain gateway-related keywords (e.g.\ \texttt{gateway}, \texttt{api-gateway}, \texttt{zuul}, \texttt{proxy}) are excluded, as they are architecturally designed to be central.
+\noindent where $\theta_m$ is the mediator threshold (default: 0.4, configurable via \texttt{app.thres\-h-olds.esb-mediator-threshold}). The first condition identifies services that both receive calls from and make calls to a high proportion of other services. The second condition captures cases where a single service concentrates a disproportionate share of all dependency traffic by volume. Services whose names contain gateway-related keywords (e.g.\ \texttt{gateway}, \texttt{api-gateway}, \texttt{zuul}, \texttt{proxy}) are excluded, as they are architecturally designed to be central.
 
 As with the Distributed Monolith detector, this detection is only performed when the system contains at least three microservices. The report includes the mediator service, all services it connects to, and code snippets from the relevant dependency evidence.
 
