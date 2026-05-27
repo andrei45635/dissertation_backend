@@ -116,6 +116,12 @@ The selected projects vary substantially in both size and structure, ranging fro
         \hline
         API Versioning Absence & 1 & 3 & 0 & 0 & 4 \\
         \hline
+        % TODO: Wrong Cuts and ESB Misuse rows were missing from the table
+        Wrong Cuts & 0 & 0 & 0 & 0 & 0 \\
+        \hline
+        ESB Misuse & 0 & 0 & 0 & 0 & 0 \\
+        \hline
+        % END-TODO
         \textbf{Total} & \textbf{5} & \textbf{11} & \textbf{19} & \textbf{2} & \textbf{37} \\
         \hline
     \end{tabularx}
@@ -123,7 +129,7 @@ The selected projects vary substantially in both size and structure, ranging fro
     \label{tab:antipattern-distribution}
 \end{table}
 
-\par Nano Service was the most frequently detected anti-pattern, with 17 instances across three of the four evaluated projects. Hardcoded Endpoints was the second most common finding, with 12 instances, while API Versioning Absence and God Service appeared less often. In contrast, no instances of Cyclic Dependency, Chatty Service, or Distributed Monolith were detected in the selected datasets. These results suggest that the evaluated projects more commonly exhibit service-sizing and configuration-related issues than severe system-level coupling problems, consistent with the empirical study by Taibi and Lenarduzzi \cite{Taibi2018}.
+\par Nano Service was the most frequently detected anti-pattern, with 17 instances across three of the four evaluated projects. Hardcoded Endpoints was the second most common finding, with 12 instances, while API Versioning Absence and God Service appeared less often. In contrast, no instances of Cyclic Dependency, Chatty Service, Distributed Monolith, Wrong Cuts, or ESB Misuse were detected in the selected datasets. % TODO: added "Wrong Cuts, or ESB Misuse" to this list These results suggest that the evaluated projects more commonly exhibit service-sizing and configuration-related issues than severe system-level coupling problems, consistent with the empirical study by Taibi and Lenarduzzi \cite{Taibi2018}.
 
 \par To illustrate how the composite health score is constructed from the four-category decomposition described in Chapter~\ref{chap:ch3}, Section~\ref{subsec:health-score}, consider the breakdown for Activiti (score~45, grade~F). The Anti-Patterns category (budget~40) incurred penalties for 2~God Service instances ($2 \times 5 = 10$), 13~Nano Service instances ($13 \times 3 = 39$), and 4~Hardcoded Endpoint instances ($4 \times 3 = 12$), for a total penalty of~61; clamped to the category budget, $S_{\mathrm{ap}} = \max(0,\; 40 - 61) = 0$. The Service Sizing category (budget~15) accumulated a nano penalty of $\min(8,\; 13 \times 3) = 8$ and a god penalty of $\min(10,\; 2 \times 5) = 10$, yielding $S_{\mathrm{sz}} = \max(0,\; 15 - 18) = 0$. Code Quality and Architecture both received perfect scores ($S_{\mathrm{cq}} = 20$, $S_{\mathrm{arch}} = 25$) because DesigniteJava did not produce code smell reports for this project and the coupling coefficient was below the 0.1 penalty threshold. The total is therefore $H = 0 + 20 + 25 + 0 = 45$. This decomposition shows that Activiti's low score is driven entirely by the high volume of anti-pattern and service sizing deductions, while its inter-service coupling structure is clean. The fact that Code Quality and Architecture scored perfectly across all four evaluated projects reflects a limitation of the evaluation corpus rather than a flaw in the scoring model: in a production setting with richer DesigniteJava output and more complex dependency graphs, these categories would contribute meaningful differentiation.
 
@@ -149,7 +155,7 @@ The selected projects vary substantially in both size and structure, ranging fro
 
 \par The majority of the 37 detected anti-pattern instances were confirmed as genuine issues upon manual inspection. The Shared Database instance in MicroservicesSocial was verified by confirming that two services declared identical datasource URLs in their configuration files, pointing to the same PostgreSQL database. All 12 Hardcoded Endpoints instances corresponded to actual literal URL strings embedded in \texttt{RestTemplate} or \texttt{WebClient} calls rather than service names resolved through a discovery mechanism. The four API Versioning Absence instances were confirmed by inspecting the controller classes and verifying that none of their request mappings included a version prefix such as \texttt{/api/v1/}. The three God Service detections were consistent with manual observation: the flagged services contained multiple DesigniteJava-detected God Classes, indicating excessive responsibility concentration.
 
-\par The Nano Service detections presented the most nuanced cases. While all 17 instances satisfied the configured thresholds (fewer than 500 lines of code and no more than 2 endpoints), some of these services, particularly in Activiti, are shared library modules or internal utility modules that were detected as microservices by the build-file heuristic but are not independently deployable services. These cases represent a limitation of the automated service boundary detection rather than a flaw in the Nano Service detector itself. No instances of Cyclic Dependency, Chatty Service, or Distributed Monolith were detected; given the relatively simple communication topologies of the evaluated projects, the absence of these anti-patterns is plausible rather than indicative of false negatives, although the possibility of missed detections due to unresolvable dynamic URLs cannot be ruled out.
+\par The Nano Service detections presented the most nuanced cases. While all 17 instances satisfied the configured thresholds (fewer than 500 lines of code and no more than 2 endpoints), some of these services, particularly in Activiti, are shared library modules or internal utility modules that were detected as microservices by the build-file heuristic but are not independently deployable services. These cases represent a limitation of the automated service boundary detection rather than a flaw in the Nano Service detector itself. No instances of Cyclic Dependency, Chatty Service, Distributed Monolith, Wrong Cuts, or ESB Misuse were detected; % TODO: added "Wrong Cuts, or ESB Misuse" to this list given the relatively simple communication topologies of the evaluated projects, the absence of these anti-patterns is plausible rather than indicative of false negatives, although the possibility of missed detections due to unresolvable dynamic URLs cannot be ruled out.
 
 % \subsection{Detection Accuracy}
 % \label{subsec:detection-accuracy}
@@ -224,6 +230,10 @@ The selected projects vary substantially in both size and structure, ranging fro
 
 \par The composite health score formula (Equation~\ref{eq:health-score}) aggregates multiple quality dimensions into a single numeric value. Any such aggregation involves a loss of information, and the chosen penalty weights may not reflect the relative importance of different anti-patterns in all contexts. The category-based breakdown provided by \texttt{HealthScoreCalculator} partially addresses this by preserving per-category scores.
 
+% TODO: Wrong Cuts double-counting limitation
+\par The Wrong Cuts detector can report a service pair for both Feature Envy and bidirectional dependency simultaneously, with each finding contributing a separate penalty to the health score. Although both signals are architecturally meaningful, the resulting double-counting may inflate the perceived severity for a single pair of services.
+% END-TODO
+
 \subsection{Internal Validity}
 \label{subsec:internal-validity}
 
@@ -232,6 +242,16 @@ The selected projects vary substantially in both size and structure, ranging fro
 \par The detectors are executed sequentially and independently; each detector receives the same input (the project and its microservices) and produces results without knowledge of other detectors' output. This independence ensures that the order of detector execution does not influence outcomes. However, the detectors share data through the database: code smells saved by the DesigniteJava integration are queried by the God Service detector. If the code smell persistence step and the anti-pattern detection step are not correctly isolated transactionally, intermittent visibility issues could affect God Service detection accuracy.
 
 \par The DesigniteJava results were parsed from CSV output files using a line-by-line parser that matches expected column positions. Changes in DesigniteJava's output format across versions could cause parsing errors, although the parser includes defensive checks for malformed lines.
+
+% TODO: fuzzy service name matching limitation
+\par The dependency graph construction relies on substring-based matching to resolve raw target strings (e.g.\ from \texttt{@FeignClient} or \texttt{RestTemplate} URLs) to known service names. If a service has a short or generic name, the fuzzy matching may incorrectly link unrelated calls to that service, introducing false-positive dependency edges. This could affect the accuracy of detectors that rely on the dependency graph, such as Chatty Service and Distributed Monolith.
+
+% TODO: hardcoded endpoint test filtering limitation
+\par The Hardcoded Endpoint detector filters out test files by checking whether the relative path contains the substring \texttt{test} or \texttt{Test}. This heuristic could incorrectly exclude production files whose package path contains a matching substring (e.g.\ \texttt{com/example/attestation/}), potentially causing false negatives. In addition, the comment-filtering logic only handles single-line comments and Javadoc continuation lines; hardcoded URLs inside multi-line block comments may still be reported as findings.
+
+% TODO: shared database URL matching limitation
+\par The Shared Database detector compares datasource URLs as literal strings. Two services pointing to the same physical database but using URLs that differ only in query parameters (e.g.\ \texttt{?ssl=true}) will not be matched, which could cause false negatives in environments where connection parameters vary across services.
+% END-TODO
 
 \subsection{External Validity}
 \label{subsec:external-validity}
