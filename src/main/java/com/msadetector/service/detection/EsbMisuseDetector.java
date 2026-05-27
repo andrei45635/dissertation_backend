@@ -20,13 +20,16 @@ import java.util.stream.Collectors;
  * that mediates most inter-service communication, acting as a central
  * hub through which all requests are routed.
  * <p>
- * This anti-pattern negates the benefits of microservices by creating
- * a single point of failure and bottleneck, similar to a monolithic
- * ESB in a SOA architecture.
- * <p>
- * Detection heuristic: if a single service handles more than
- * a configurable percentage of all incoming dependencies, it is
- * flagged as an ESB-like mediator.
+ * Uses three complementary signals:
+ * <ol>
+ *   <li><b>Connection-based:</b> a service both receives calls from and makes
+ *       calls to a high proportion of other services</li>
+ *   <li><b>Volume-based:</b> a service concentrates a disproportionate share
+ *       of all dependency traffic</li>
+ *   <li><b>Betweenness centrality:</b> a service lies on many shortest paths
+ *       between other service pairs, indicating it acts as a communication
+ *       bottleneck (Brandes' algorithm)</li>
+ * </ol>
  */
 @Component
 public class EsbMisuseDetector extends BaseDetector {
@@ -69,12 +72,29 @@ public class EsbMisuseDetector extends BaseDetector {
                 .collect(Collectors.groupingBy(dep -> dep.getSourceService().getId()));
 
         Map<Long, String> serviceNames = new HashMap<>();
+        Map<Long, Set<Long>> adjacency = new HashMap<>();
         for (Microservice ms : microservices) {
             serviceNames.put(ms.getId(), ms.getName());
+            adjacency.put(ms.getId(), new HashSet<>());
         }
+        for (ServiceDependency dep : allDeps) {
+            adjacency.computeIfAbsent(dep.getSourceService().getId(), _ -> new HashSet<>())
+                    .add(dep.getTargetService().getId());
+        }
+
+        Map<Long, Double> betweenness = computeBetweennessCentrality(adjacency);
+        int n = microservices.size();
+        double normFactor = (n - 1) * (n - 2);
 
         for (Microservice ms : microservices) {
             Long msId = ms.getId();
+
+            boolean isLikelyGateway = GATEWAY_KEYWORDS.stream()
+                    .anyMatch(kw -> ms.getName().toLowerCase().contains(kw));
+            if (isLikelyGateway) {
+                log.debug("Skipping service '{}' — likely an API gateway (not ESB misuse)", ms.getName());
+                continue;
+            }
 
             int incomingCount = incomingByService.getOrDefault(msId, List.of()).size();
             int outgoingCount = outgoingByService.getOrDefault(msId, List.of()).size();
@@ -94,18 +114,14 @@ public class EsbMisuseDetector extends BaseDetector {
             double callerRatio = otherServicesCount > 0 ? (double) uniqueCallers.size() / otherServicesCount : 0;
             double calleeRatio = otherServicesCount > 0 ? (double) uniqueCallees.size() / otherServicesCount : 0;
 
+            double rawBC = betweenness.getOrDefault(msId, 0.0);
+            double normalizedBC = normFactor > 0 ? rawBC / normFactor : 0;
+
             boolean isMediatorByConnections = callerRatio >= mediatorThreshold && calleeRatio >= mediatorThreshold;
-
             boolean isMediatorByVolume = mediatorRatio >= mediatorThreshold;
+            boolean isMediatorByCentrality = normalizedBC >= mediatorThreshold;
 
-            boolean isLikelyGateway = GATEWAY_KEYWORDS.stream()
-                    .anyMatch(kw -> ms.getName().toLowerCase().contains(kw));
-            if (isLikelyGateway) {
-                log.debug("Skipping service '{}' — likely an API gateway (not ESB misuse)", ms.getName());
-                continue;
-            }
-
-            if (isMediatorByConnections || isMediatorByVolume) {
+            if (isMediatorByConnections || isMediatorByVolume || isMediatorByCentrality) {
                 Path projectRoot = Path.of(project.getLocalPath());
 
                 List<String> callerNames = uniqueCallers.stream()
@@ -146,11 +162,13 @@ public class EsbMisuseDetector extends BaseDetector {
                                 "Service '%s' acts as a central mediator (ESB-like hub). "
                                         + "It is called by %d service(s) (%.0f%%) and calls %d service(s) (%.0f%%), "
                                         + "handling %d of %d total dependencies. "
+                                        + "Betweenness centrality: %.2f. "
                                         + "This creates a single point of failure and bottleneck.",
                                 ms.getName(),
                                 uniqueCallers.size(), callerRatio * 100,
                                 uniqueCallees.size(), calleeRatio * 100,
-                                totalThroughService, totalDependencies
+                                totalThroughService, totalDependencies,
+                                normalizedBC
                         ))
                         .affectedServicesJson(toJson(uniqueAffected))
                         .primaryService(ms)
@@ -162,7 +180,8 @@ public class EsbMisuseDetector extends BaseDetector {
                                 "uniqueCallees", calleeNames,
                                 "callerRatio", callerRatio,
                                 "calleeRatio", calleeRatio,
-                                "mediatorRatio", mediatorRatio
+                                "mediatorRatio", mediatorRatio,
+                                "betweennessCentrality", normalizedBC
                         )))
                         .codeSnippetsJson(snippetsToJson(snippets))
                         .remediation("Eliminate the central mediator by having services communicate directly "
@@ -171,14 +190,91 @@ public class EsbMisuseDetector extends BaseDetector {
                         .build();
 
                 patterns.add(pattern);
-                log.info("ESB Misuse detected: service '{}' mediates {}% of traffic "
-                                + "(called by {} services, calls {} services)",
-                        ms.getName(), String.format("%.0f", mediatorRatio * 100),
-                        uniqueCallers.size(), uniqueCallees.size());
+                log.info("ESB Misuse detected: service '{}' — callerRatio={}%, calleeRatio={}%, "
+                                + "mediatorRatio={}%, betweennessCentrality={}",
+                        ms.getName(),
+                        String.format("%.0f", callerRatio * 100),
+                        String.format("%.0f", calleeRatio * 100),
+                        String.format("%.0f", mediatorRatio * 100),
+                        String.format("%.2f", normalizedBC));
             }
         }
 
         return patterns;
+    }
+
+    /**
+     * Computes betweenness centrality for all nodes in a directed unweighted
+     * graph using Brandes' algorithm.
+     * <p>
+     * Betweenness centrality of a node v is the sum over all pairs (s,t) of
+     * the fraction of shortest paths from s to t that pass through v:
+     * <pre>
+     *   BC(v) = Σ_{s≠v≠t} σ_st(v) / σ_st
+     * </pre>
+     * Time complexity: O(V × E) for unweighted graphs.
+     *
+     * @see <a href="https://doi.org/10.1080/0022250X.2001.9990249">
+     *      Brandes, "A Faster Algorithm for Betweenness Centrality" (2001)</a>
+     */
+    private Map<Long, Double> computeBetweennessCentrality(Map<Long, Set<Long>> adjacency) {
+        Map<Long, Double> centrality = new HashMap<>();
+        for (Long v : adjacency.keySet()) {
+            centrality.put(v, 0.0);
+        }
+
+        for (Long s : adjacency.keySet()) {
+            Deque<Long> stack = new ArrayDeque<>();
+            Map<Long, List<Long>> predecessors = new HashMap<>();
+            Map<Long, Long> sigma = new HashMap<>();
+            Map<Long, Integer> dist = new HashMap<>();
+
+            for (Long v : adjacency.keySet()) {
+                predecessors.put(v, new ArrayList<>());
+                sigma.put(v, 0L);
+                dist.put(v, -1);
+            }
+
+            sigma.put(s, 1L);
+            dist.put(s, 0);
+
+            Queue<Long> queue = new ArrayDeque<>();
+            queue.add(s);
+
+            while (!queue.isEmpty()) {
+                Long v = queue.poll();
+                stack.push(v);
+
+                for (Long w : adjacency.getOrDefault(v, Set.of())) {
+                    if (dist.get(w) < 0) {
+                        queue.add(w);
+                        dist.put(w, dist.get(v) + 1);
+                    }
+                    if (dist.get(w).equals(dist.get(v) + 1)) {
+                        sigma.put(w, sigma.get(w) + sigma.get(v));
+                        predecessors.get(w).add(v);
+                    }
+                }
+            }
+
+            Map<Long, Double> delta = new HashMap<>();
+            for (Long v : adjacency.keySet()) {
+                delta.put(v, 0.0);
+            }
+
+            while (!stack.isEmpty()) {
+                Long w = stack.pop();
+                for (Long v : predecessors.get(w)) {
+                    double fraction = (double) sigma.get(v) / sigma.get(w) * (1.0 + delta.get(w));
+                    delta.put(v, delta.get(v) + fraction);
+                }
+                if (!w.equals(s)) {
+                    centrality.put(w, centrality.get(w) + delta.get(w));
+                }
+            }
+        }
+
+        return centrality;
     }
 }
 

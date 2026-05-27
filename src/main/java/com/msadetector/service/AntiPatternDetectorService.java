@@ -5,7 +5,7 @@ import com.msadetector.entity.*;
 import com.msadetector.enums.AntiPatternType;
 import com.msadetector.enums.Severity;
 import com.msadetector.repository.*;
-import com.msadetector.service.detection.AntiPatternDetector;
+import com.msadetector.service.detection.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -31,6 +31,7 @@ public class AntiPatternDetectorService {
     private final CodeSmellRepository codeSmellRepository;
     private final AnalysisResultRepository resultRepository;
     private final ObjectMapper objectMapper;
+    private final HealthScoreCalculator healthScoreCalculator;
 
     public AntiPatternDetectorService(
             DependencyGraphBuilder dependencyGraphBuilder,
@@ -39,7 +40,8 @@ public class AntiPatternDetectorService {
             ServiceDependencyRepository dependencyRepository,
             CodeSmellRepository codeSmellRepository,
             AnalysisResultRepository resultRepository,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            HealthScoreCalculator healthScoreCalculator
     ) {
         this.dependencyGraphBuilder = dependencyGraphBuilder;
         this.detectors = detectors;
@@ -48,6 +50,7 @@ public class AntiPatternDetectorService {
         this.codeSmellRepository = codeSmellRepository;
         this.resultRepository = resultRepository;
         this.objectMapper = objectMapper;
+        this.healthScoreCalculator = healthScoreCalculator;
     }
 
     /**
@@ -67,6 +70,11 @@ public class AntiPatternDetectorService {
         List<DetectedAntiPattern> antiPatterns = new ArrayList<>();
 
         for (AntiPatternDetector detector : detectors) {
+            if (!isDetectorEnabled(detector, job)) {
+                log.info("Skipping {} (disabled for this job)",
+                        detector.getClass().getSimpleName());
+                continue;
+            }
             try {
                 List<DetectedAntiPattern> detected = detector.detect(project, microservices);
                 antiPatterns.addAll(detected);
@@ -116,13 +124,25 @@ public class AntiPatternDetectorService {
                 .dependencyGraphJson(buildGraphJson(microservices, project))
                 .build();
 
-        result.calculateHealthScore();
-
         for (DetectedAntiPattern ap : antiPatterns) {
             result.addAntiPattern(ap);
         }
 
+        result.setHealthScore(healthScoreCalculator.calculate(result).overallScore());
+
         return resultRepository.save(result);
+    }
+
+    private boolean isDetectorEnabled(AntiPatternDetector detector, AnalysisJob job) {
+        return switch (detector) {
+            case CyclicDependencyDetector _ -> job.isDetectCyclicDependencies();
+            case SharedDatabaseDetector _ -> job.isDetectSharedDatabases();
+            case NanoServiceDetector _ -> job.isDetectNanoServices();
+            case GodServiceDetector _ -> job.isDetectGodServices();
+            case ChattyServiceDetector _ -> job.isDetectChattyServices();
+            case HardcodedEndpointDetector _ -> job.isDetectHardcodedEndpoints();
+            default -> true;
+        };
     }
 
     private String buildGraphJson(List<Microservice> microservices, Project project) {

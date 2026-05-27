@@ -84,17 +84,4 @@ public class AnalysisResult extends BaseEntity {
         detectedAntiPatterns.add(antiPattern);
         antiPattern.setAnalysisResult(this);
     }
-
-    /**
-     * Quick legacy calculation — kept as a fallback.
-     * The detailed breakdown is computed by {@code HealthScoreCalculator}.
-     */
-    public void calculateHealthScore() {
-        int score = 100;
-        score -= criticalIssues * 15;
-        score -= highIssues * 10;
-        score -= mediumIssues * 5;
-        score -= lowIssues * 2;
-        this.healthScore = Math.max(0, score);
-    }
 }

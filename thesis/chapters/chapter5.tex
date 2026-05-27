@@ -3,17 +3,17 @@
 \chapter{Results \& Evaluation}
 \label{chap:ch5}
 
-\par This chapter presents the evaluation of the MSA Detector system described in the preceding chapters. It begins with the selection and characterization of the datasets used for evaluation, followed by the presentation of the detection results across each dataset. The results are then discussed in the context of the detection methodology and compared against related work. The chapter concludes with an analysis of the limitations of the approach and the threats to validity of the evaluation.
+ \par This chapter presents the evaluation of the MSA Detector system described in the preceding chapters. It begins with the selection and characterization of the datasets used for evaluation, followed by the presentation of the detection results across each dataset. The results are then discussed in the context of the detection methodology and compared against related work. The chapter concludes with an analysis of the limitations of the approach and the threats to validity of the evaluation.
 
 \section{Dataset Selection}
 \label{sec:dataset-selection}
 
-\par The evaluation of the MSA Detector requires open-source Java-based microservice projects of sufficient size and complexity to exercise the detection pipeline. This section describes the criteria used for dataset selection and characterizes the selected projects.
+ \par The evaluation of the MSA Detector requires open-source Java-based microservice projects of sufficient size and complexity to exercise the detection pipeline. This section describes the criteria used for dataset selection and characterizes the selected projects.
 
 \subsection{Selection Criteria}
 \label{subsec:selection-criteria}
 
-\par The following criteria were used to select evaluation datasets:
+ \par The following criteria were used to select evaluation datasets:
 
 \begin{enumerate}
     \item The project must be implemented in Java using the Spring Boot framework, as the detection pipeline relies on Spring-specific annotations and configuration conventions (see Chapter~\ref{chap:ch3}).
@@ -25,7 +25,7 @@
 \subsection{Selected Datasets}
 \label{subsec:selected-datasets}
 
-\par Based on the criteria described above, four open-source microservice projects were selected for evaluation. Table~\ref{tab:datasets} summarizes the key characteristics of each project.
+ \par Based on the criteria described above, six open-source microservice projects were selected for evaluation. Table~\ref{tab:datasets} summarizes the key characteristics of each project.
 
 \begin{table}[htbp]
     \centering
@@ -41,6 +41,10 @@
         Activiti & 36 & 318609 &  Light-weight workflow and Business Process Management (BPM) Platform targeted at business people, developers and system admins \\
         \hline
         Karate & 4 & 125763 & Test Automation Made Simple \\
+        \hline
+        Train-Ticket & 42 & 37956 &  Benchmark Microservice System \\
+        \hline
+        Apollo-Config & 11 & 85806 & Apollo is a reliable configuration management system suitable for microservice configuration management scenarios. \\
         \hline
     \end{tabular}
     \caption{Summary of the open-source microservice projects selected for evaluation.}
@@ -60,12 +64,12 @@ The selected projects vary substantially in both size and structure, ranging fro
 \section{Results}
 \label{sec:results}
 
-\par This section presents the detection results produced by the MSA Detector for each evaluated dataset. For each project, the detected anti-patterns, health score, code smell summary and dependency graph metrics are reported.
+ \par This section presents the detection results produced by the MSA Detector for each evaluated dataset. For each project, the detected anti-patterns, health score, code smell summary and dependency graph metrics are reported.
 
 \subsection{Overview of Detection Results}
 \label{subsec:results-overview}
 
-\par Table~\ref{tab:results-overview} presents the high-level detection results for each evaluated project. The health score is computed using the formula described in Chapter~\ref{chap:ch3}, Section~\ref{subsec:health-score}, with letter grades assigned on the standard scale (A: 90--100, B: 80--89, C: 65--79, D: 50--64, F: below 50).
+ \par Table~\ref{tab:results-overview} presents the high-level detection results for each evaluated project. The health score is computed using the formula described in Chapter~\ref{chap:ch3}, Section~\ref{subsec:health-score}, with letter grades assigned on the standard scale (A: 90--100, B: 80--89, C: 65--79, D: 50--64, F: below 50).
 
 \begin{table}[htbp]
     \centering
@@ -82,80 +86,78 @@ The selected projects vary substantially in both size and structure, ranging fro
         \hline
         Karate & 87 & B & God Service, Hardcoded Endpoints \\
         \hline
+        Train-Ticket & 52 & D & Nano Service, Chatty Service, Hardcoded Endpoints, Shared Database \\
+        \hline
+        Apollo-Config & 11 & D & Nano Service, API Versioning Absence, Hardcoded Endpoints \\
+        \hline
     \end{tabularx}
     \caption{Summary of detection results across all evaluated datasets.}
     \label{tab:results-overview}
 \end{table}
 
-\par The evaluation results show substantial variation in architectural quality across the selected projects. Health scores ranged from 45 to 87, indicating that the detection pipeline was able to distinguish clearly between projects with relatively few issues and those with a much higher concentration of anti-patterns. The most frequently observed anti-patterns were God Service, Nano Service, API Versioning Absence, and Hardcoded Endpoints, while Shared Database was detected only in MicroservicesSocial. Overall, the results suggest that the MSA Detector can highlight meaningful differences in architectural quality across projects of different size and structure.
+ \par The evaluation results show substantial variation in architectural quality across the selected projects. Health scores ranged from 45 to 87, indicating that the detection pipeline was able to distinguish clearly between projects with relatively few issues and those with a much higher concentration of anti-patterns. The most frequently observed anti-patterns were God Service, Nano Service, API Versioning Absence, and Hardcoded Endpoints, while Shared Database was detected only in MicroservicesSocial. Overall, the results suggest that the MSA Detector can highlight meaningful differences in architectural quality across projects of different size and structure.
 
 \subsection{Anti-Pattern Distribution}
 \label{subsec:antipattern-distribution}
 
-\par Table~\ref{tab:antipattern-distribution} presents the breakdown of detected anti-pattern instances by type across all evaluated projects.
+ \par Table~\ref{tab:antipattern-distribution} presents the breakdown of detected anti-pattern instances by type across all evaluated projects.
 
 \begin{table}[htbp]
     \centering
     \footnotesize
-    \begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}X|>{\centering\arraybackslash}X|>{\centering\arraybackslash}X|>{\centering\arraybackslash}X|>{\centering\arraybackslash}X|>{\centering\arraybackslash}X|}        \hline
-        \textbf{Anti-Pattern} & \textbf{Micro...Social} & \textbf{microservices-design-patterns} & \textbf{Activiti} & \textbf{Karate} & \textbf{Total} \\
+  \begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}X|>{\centering\arraybackslash}X|>{\centering\arraybackslash}X|>{\centering\arraybackslash}X>|>{\centering\arraybackslash}X|>{\centering\arraybackslash}X|>{\centering\arraybackslash}X|>{\centering\arraybackslash}X|}>       \hline
+        \textbf{Anti-Pattern} & \textbf{Micro...Social} & \textbf{m-d-p} & \textbf{Activiti} & \textbf{Karate} & \textbf{Train-Ticket} & \textbf{Apollo-Config} & \textbf{Total} \\
         \hline\hline
-        Shared Database & 1 & 0 & 0 & 0 & 1 \\
+        Shared Database & 1 & 0 & 0 & 0 & 1 & 0 & 2 \\
         \hline
-        Cyclic Dependency & 0 & 0 & 0 & 0 & 0 \\
+        Cyclic Dependency & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
         \hline
-        Nano Service & 2 & 2 & 13 & 0 & 17 \\
+        Nano Service & 2 & 2 & 13 & 0 & 4 & 3 & 24 \\
         \hline
-        God Service & 0 & 0 & 2 & 1 & 3 \\
+        God Service & 0 & 0 & 2 & 1 & 0 & 0 & 3 \\
         \hline
-        Chatty Service & 0 & 0 & 0 & 0 & 0 \\
+        Chatty Service & 0 & 0 & 0 & 0 & 4 & 0 & 4 \\
         \hline
-        Hardcoded Endpoints & 1 & 6 & 4 & 1 & 12 \\
+        Hardcoded Endpoints & 1 & 6 & 4 & 1 & 27 & 3 & 42 \\
         \hline
-        Distributed Monolith & 0 & 0 & 0 & 0 & 0 \\
+        Distributed Monolith & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
         \hline
-        API Versioning Absence & 1 & 3 & 0 & 0 & 4 \\
+        API Versioning Absence & 1 & 3 & 0 & 0 & 0 & 5 & 9 \\
         \hline
-        % TODO: Wrong Cuts and ESB Misuse rows were missing from the table
-        Wrong Cuts & 0 & 0 & 0 & 0 & 0 \\
-        \hline
-        ESB Misuse & 0 & 0 & 0 & 0 & 0 \\
-        \hline
-        % END-TODO
-        \textbf{Total} & \textbf{5} & \textbf{11} & \textbf{19} & \textbf{2} & \textbf{37} \\
+        \textbf{Total} & \textbf{5} & \textbf{11} & \textbf{19} & \textbf{2} & \textbf{36} & \textbf{11} & \textbf{84} \\
         \hline
     \end{tabularx}
     \caption{Anti-pattern detection results by type across all evaluated datasets.}
     \label{tab:antipattern-distribution}
 \end{table}
 
-\par Nano Service was the most frequently detected anti-pattern, with 17 instances across three of the four evaluated projects. Hardcoded Endpoints was the second most common finding, with 12 instances, while API Versioning Absence and God Service appeared less often. In contrast, no instances of Cyclic Dependency, Chatty Service, Distributed Monolith, Wrong Cuts, or ESB Misuse were detected in the selected datasets. % TODO: added "Wrong Cuts, or ESB Misuse" to this list These results suggest that the evaluated projects more commonly exhibit service-sizing and configuration-related issues than severe system-level coupling problems, consistent with the empirical study by Taibi and Lenarduzzi \cite{Taibi2018}.
+ \par Nano Service was the most frequently detected anti-pattern, with 24 instances across five of the six evaluated projects. Hardcoded Endpoints was the second most common finding, with 12 instances, while API Versioning Absence and God Service appeared less often. In contrast, no instances of Cyclic Dependency, Chatty Service, or Distributed Monolith were detected in the selected datasets. These results suggest that the evaluated projects more commonly exhibit service-sizing and configuration-related issues than severe system-level coupling problems, consistent with the empirical study by Taibi and Lenarduzzi \cite{Taibi2018}.
 
 \par To illustrate how the composite health score is constructed from the four-category decomposition described in Chapter~\ref{chap:ch3}, Section~\ref{subsec:health-score}, consider the breakdown for Activiti (score~45, grade~F). The Anti-Patterns category (budget~40) incurred penalties for 2~God Service instances ($2 \times 5 = 10$), 13~Nano Service instances ($13 \times 3 = 39$), and 4~Hardcoded Endpoint instances ($4 \times 3 = 12$), for a total penalty of~61; clamped to the category budget, $S_{\mathrm{ap}} = \max(0,\; 40 - 61) = 0$. The Service Sizing category (budget~15) accumulated a nano penalty of $\min(8,\; 13 \times 3) = 8$ and a god penalty of $\min(10,\; 2 \times 5) = 10$, yielding $S_{\mathrm{sz}} = \max(0,\; 15 - 18) = 0$. Code Quality and Architecture both received perfect scores ($S_{\mathrm{cq}} = 20$, $S_{\mathrm{arch}} = 25$) because DesigniteJava did not produce code smell reports for this project and the coupling coefficient was below the 0.1 penalty threshold. The total is therefore $H = 0 + 20 + 25 + 0 = 45$. This decomposition shows that Activiti's low score is driven entirely by the high volume of anti-pattern and service sizing deductions, while its inter-service coupling structure is clean. The fact that Code Quality and Architecture scored perfectly across all four evaluated projects reflects a limitation of the evaluation corpus rather than a flaw in the scoring model: in a production setting with richer DesigniteJava output and more complex dependency graphs, these categories would contribute meaningful differentiation.
 
 \subsection{Results Discussion}
 \label{subsec:discussion-results}
 
-\par This section presents the detailed detection results for an evaluated project, e.g. MicroservicesSocial, including the detected microservices, anti-pattern evidence, and the health score breakdown.
+ \par This section presents the detailed detection results for an evaluated project, e.g. MicroservicesSocial, including the detected microservices, anti-pattern evidence, and the health score breakdown.
 
 \subsubsection{MicroservicesSocial}
 \label{subsubsec:results-microservicessocial}
 
-\par MicroservicesSocial is the smallest project in the evaluation, consisting of four microservices with a combined codebase of only 1\,811 lines of code. The project was developed as part of a university course assignment by a colleague and models a simplified social media platform. Its four services, a user service, a notification service, a post service and an API gateway, communicate via REST calls using \texttt{RestTemplate}. Because the project was built as a learning exercise rather than a production system, it provides a useful baseline for examining how the detection pipeline behaves on a small, structurally simple codebase. Despite its modest size, the MSA Detector identified five anti-pattern instances across four distinct anti-pattern types, which demonstrates that even small systems can exhibit a meaningful number of architectural issues.
+ \par MicroservicesSocial is the smallest project in the evaluation, consisting of four microservices with a combined codebase of only 1\,811 lines of code. The project was developed as part of a university course assignment by a colleague and models a simplified social media platform. Its four services, a user service, a notification service, a post service and an API gateway, communicate via REST calls using \texttt{RestTemplate}. Because the project was built as a learning exercise rather than a production system, it provides a useful baseline for examining how the detection pipeline behaves on a small, structurally simple codebase. Despite its modest size, the MSA Detector identified five anti-pattern instances across four distinct anti-pattern types, which demonstrates that even small systems can exhibit a meaningful number of architectural issues.
 
-\par The most architecturally significant finding was the detection of a Shared Database anti-pattern: two of the four services were configured with identical datasource URLs pointing to the same PostgreSQL database, meaning that they share a physical data store rather than owning their data independently. This is a common shortcut in student and prototype projects, where setting up separate databases for each service adds infrastructure complexity that is not central to the learning objective. The detector also flagged two Nano Service instances, corresponding to services whose line count and endpoint count both fell below the configured thresholds. It is rather unsurprising that some services qualify as nano services, in a project that only has four services with fewer than 500 lines per service on average. A single Hardcoded Endpoint was detected in a \texttt{RestTemplate} call that used a literal URL string rather than a service name resolved through a discovery mechanism and one API Versioning Absence instance was identified for a controller that exposes REST endpoints without any version prefix in the URL path. No cyclic dependencies, chatty services, god services, or distributed monolith indicators were detected which is consistent with the project's simple, linear communication topology.
+ \par The most architecturally significant finding was the detection of a Shared Database anti-pattern: two of the four services were configured with identical datasource URLs pointing to the same PostgreSQL database, meaning that they share a physical data store rather than owning their data independently. This is a common shortcut in student and prototype projects, where setting up separate databases for each service adds infrastructure complexity that is not central to the learning objective. The detector also flagged two Nano Service instances, corresponding to services whose line count and endpoint count both fell below the configured thresholds. It is rather unsurprising that some services qualify as nano services, in a project that only has four services with fewer than 500 lines per service on average. A single Hardcoded Endpoint was detected in a \texttt{RestTemplate} call that used a literal URL string rather than a service name resolved through a discovery mechanism and one API Versioning Absence instance was identified for a controller that exposes REST endpoints without any version prefix in the URL path. No cyclic dependencies, chatty services, god services, or distributed monolith indicators were detected which is consistent with the project's simple, linear communication topology.
 
-\par The overall health score for MicroservicesSocial was 77 out of 100, corresponding to a letter grade of C. The deductions were distributed across the anti-patterns category (shared database and nano service penalties). While a score of 77 places the project in the lower-middle range of evaluated datasets, the result should be interpreted in context: the anti-patterns present are largely attributable to the project's educational nature and small scale rather than to fundamental architecture missteps. A developer receiving this report would have a clear list of improvements, such as externalizing database configuration per service, introducing a service registry and adding API version prefixes, which could raise the health score significantly with modest effort.
+ \par The overall health score for MicroservicesSocial was 77 out of 100, corresponding to a letter grade of C. The deductions were distributed across the anti-patterns category (shared database and nano service penalties). While a score of 77 places the project in the lower-middle range of evaluated datasets, the result should be interpreted in context: the anti-patterns present are largely attributable to the project's educational nature and small scale rather than to fundamental architecture missteps. A developer receiving this report would have a clear list of improvements, such as externalizing database configuration per service, introducing a service registry and adding API version prefixes, which could raise the health score significantly with modest effort.
 
 
 \subsection{Manual Validation of Results}
 \label{sec:manual-validation}
 
-\par To assess the plausibility of the detection results, each reported anti-pattern instance was manually inspected by examining the source code of the evaluated projects. The inspection involved reviewing the evidence snippets attached to each finding, verifying the dependency relationships in the constructed graphs, and cross-checking configuration files for shared datasource declarations.
+ \par To assess the plausibility of the detection results, each reported anti-pattern instance was manually inspected by examining the source code of the evaluated projects. The inspection involved reviewing the evidence snippets attached to each finding, verifying the dependency relationships in the constructed graphs, and cross-checking configuration files for shared datasource declarations.
 
-\par The majority of the 37 detected anti-pattern instances were confirmed as genuine issues upon manual inspection. The Shared Database instance in MicroservicesSocial was verified by confirming that two services declared identical datasource URLs in their configuration files, pointing to the same PostgreSQL database. All 12 Hardcoded Endpoints instances corresponded to actual literal URL strings embedded in \texttt{RestTemplate} or \texttt{WebClient} calls rather than service names resolved through a discovery mechanism. The four API Versioning Absence instances were confirmed by inspecting the controller classes and verifying that none of their request mappings included a version prefix such as \texttt{/api/v1/}. The three God Service detections were consistent with manual observation: the flagged services contained multiple DesigniteJava-detected God Classes, indicating excessive responsibility concentration.
+ \par The majority of the 37 detected anti-pattern instances were confirmed as genuine issues upon manual inspection. The Shared Database instance in MicroservicesSocial was verified by confirming that two services declared identical datasource URLs in their configuration files, pointing to the same PostgreSQL database. All 12 Hardcoded Endpoints instances corresponded to actual literal URL strings embedded in \texttt{RestTemplate} or \texttt{WebClient} calls rather than service names resolved through a discovery mechanism. The four API Versioning Absence instances were confirmed by inspecting the controller classes and verifying that none of their request mappings included a version prefix such as \texttt{/api/v1/}. The three God Service detections were consistent with manual observation: the flagged services contained multiple DesigniteJava-detected God Classes, indicating excessive responsibility concentration.
 
-\par The Nano Service detections presented the most nuanced cases. While all 17 instances satisfied the configured thresholds (fewer than 500 lines of code and no more than 2 endpoints), some of these services, particularly in Activiti, are shared library modules or internal utility modules that were detected as microservices by the build-file heuristic but are not independently deployable services. These cases represent a limitation of the automated service boundary detection rather than a flaw in the Nano Service detector itself. No instances of Cyclic Dependency, Chatty Service, Distributed Monolith, Wrong Cuts, or ESB Misuse were detected; % TODO: added "Wrong Cuts, or ESB Misuse" to this list given the relatively simple communication topologies of the evaluated projects, the absence of these anti-patterns is plausible rather than indicative of false negatives, although the possibility of missed detections due to unresolvable dynamic URLs cannot be ruled out.
+\par The Nano Service detections presented the most nuanced cases. While all 17 instances satisfied the configured thresholds (fewer than 500 lines of code and no more than 2 endpoints), some of these services, particularly in Activiti, are shared library modules or internal utility modules that were detected as microservices by the build-file heuristic but are not independently deployable services. These cases represent a limitation of the automated service boundary detection rather than a flaw in the Nano Service detector itself. No instances of Cyclic Dependency, Chatty Service, or Distributed Monolith were detected; given the relatively simple communication topologies of the evaluated projects, the absence of these anti-patterns is plausible rather than indicative of false negatives, although the possibility of missed detections due to unresolvable dynamic URLs cannot be ruled out.
 
 % \subsection{Detection Accuracy}
 % \label{subsec:detection-accuracy}
@@ -202,88 +204,74 @@ The selected projects vary substantially in both size and structure, ranging fro
 \subsection{Practical Implications}
 \label{subsec:practical-implications}
 
-\par The results of this evaluation suggest several practical implications for development teams working with microservice architectures.
+ \par The results of this evaluation suggest several practical implications for development teams working with microservice architectures.
 
-\par First, the MSA Detector can be integrated into existing development workflows to provide continuous architectural quality monitoring. The REST API exposed by the backend (see Chapter~\ref{chap:ch4}, Section~\ref{subsec:rest-api}) enables programmatic integration into CI/CD pipelines: a post-build step could submit the project for analysis and fail the pipeline if the health score falls below a configurable threshold or if critical anti-patterns are detected. This is analogous to how tools such as SonarQube enforce quality gates on code-level metrics.
+ \par First, the MSA Detector can be integrated into existing development workflows to provide continuous architectural quality monitoring. The REST API exposed by the backend (see Chapter~\ref{chap:ch4}, Section~\ref{subsec:rest-api}) enables programmatic integration into CI/CD pipelines: a post-build step could submit the project for analysis and fail the pipeline if the health score falls below a configurable threshold or if critical anti-patterns are detected. This is analogous to how tools such as SonarQube enforce quality gates on code-level metrics.
 
-\par Second, the composite health score provides a quantifiable metric that teams can track over time. The diff feature (see Chapter~\ref{chap:ch4}, Section~\ref{subsec:analysis-diff}) enables teams to measure the concrete impact of refactoring efforts: when a team resolves a shared database anti-pattern, the subsequent re-analysis quantifies the health score improvement and confirms that no new anti-patterns were introduced.
+ \par Second, the composite health score provides a quantifiable metric that teams can track over time. The diff feature (see Chapter~\ref{chap:ch4}, Section~\ref{subsec:analysis-diff}) enables teams to measure the concrete impact of refactoring efforts: when a team resolves a shared database anti-pattern, the subsequent re-analysis quantifies the health score improvement and confirms that no new anti-patterns were introduced.
 
-\par Third, the evidence-based reporting approach, i.e. attaching source code snippets and affected service lists to each detected anti-pattern, reduces the effort required for developers to understand and act on the findings. Rather than receiving an abstract warning such as \textit{cyclic dependency detected}, the developer is shown the specific \texttt{@FeignClient} annotation or \texttt{RestTemplate} invocation that creates the cycle, along with the affected services and a remediation suggestion.
+ \par Third, the evidence-based reporting approach, i.e. attaching source code snippets and affected service lists to each detected anti-pattern, reduces the effort required for developers to understand and act on the findings. Rather than receiving an abstract warning such as \textit{cyclic dependency detected}, the developer is shown the specific \texttt{@FeignClient} annotation or \texttt{RestTemplate} invocation that creates the cycle, along with the affected services and a remediation suggestion.
 
 % TODO: Add a paragraph about what types of teams would benefit most
 
 \section{Threats to Validity}
 \label{sec:threats-validity}
 
-\par This section identifies and discusses the threats to the validity of the evaluation, organized by the standard classification of construct, internal, external and conclusion validity.
+ \par This section identifies and discusses the threats to the validity of the evaluation, organized by the standard classification of construct, internal, external and conclusion validity.
 
 \subsection{Construct Validity}
 \label{subsec:construct-validity}
 
-\par Construct validity concerns whether the metrics and thresholds used in the detection pipeline accurately measure the intended concepts.
+ \par Construct validity concerns whether the metrics and thresholds used in the detection pipeline accurately measure the intended concepts.
 
-\par The nano service detection criterion (Equation~\ref{eq:nano-service-detection}) uses the conjunction of LOC and endpoint count as a proxy for \textit{insufficient operational justification}. However, a low LOC service may still perform a critical function (e.g., an authentication service that delegates to an external identity provider), and a service with few endpoints may encapsulate complex internal logic. The combination of both metrics mitigates this risk but does not completely eliminate it.
+ \par The nano service detection criterion (Equation~\ref{eq:nano-service-detection}) uses the conjunction of LOC and endpoint count as a proxy for \textit{insufficient operational justification}. However, a low LOC service may still perform a critical function (e.g., an authentication service that delegates to an external identity provider), and a service with few endpoints may encapsulate complex internal logic. The combination of both metrics mitigates this risk but does not completely eliminate it.
 
-\par The god service detection criterion (Equation~\ref{eq:god-service-detection}) uses God Class frequency as a proxy for \textit{excessive responsibility concentration}. While the presence of multiple God Classes is a strong indicator, a service may handle multiple responsibilities without triggering God Class detection if the responsibilities are distributed across many small classes. Conversely, a service with a single large domain model may trigger God Class detection without genuinely spanning multiple business domains.
+ \par The god service detection criterion (Equation~\ref{eq:god-service-detection}) uses God Class frequency as a proxy for \textit{excessive responsibility concentration}. While the presence of multiple God Classes is a strong indicator, a service may handle multiple responsibilities without triggering God Class detection if the responsibilities are distributed across many small classes. Conversely, a service with a single large domain model may trigger God Class detection without genuinely spanning multiple business domains.
 
-\par The coupling coefficient (Equation~\ref{eq:coupling-coeff-dm}) measures the ratio of actual to possible inter-service dependencies. Although a high coupling coefficient suggests tight coupling, it does not account for the directionality or nature of the dependencies. A system where all services depend on a single shared library service may have a high coupling coefficient without exhibiting the characteristics of a distributed monolith.
+ \par The coupling coefficient (Equation~\ref{eq:coupling-coeff-dm}) measures the ratio of actual to possible inter-service dependencies. Although a high coupling coefficient suggests tight coupling, it does not account for the directionality or nature of the dependencies. A system where all services depend on a single shared library service may have a high coupling coefficient without exhibiting the characteristics of a distributed monolith.
 
-\par The composite health score formula (Equation~\ref{eq:health-score}) aggregates multiple quality dimensions into a single numeric value. Any such aggregation involves a loss of information, and the chosen penalty weights may not reflect the relative importance of different anti-patterns in all contexts. The category-based breakdown provided by \texttt{HealthScoreCalculator} partially addresses this by preserving per-category scores.
-
-% TODO: Wrong Cuts double-counting limitation
-\par The Wrong Cuts detector can report a service pair for both Feature Envy and bidirectional dependency simultaneously, with each finding contributing a separate penalty to the health score. Although both signals are architecturally meaningful, the resulting double-counting may inflate the perceived severity for a single pair of services.
-% END-TODO
+ \par The composite health score formula (Equation~\ref{eq:health-score}) aggregates multiple quality dimensions into a single numeric value. Any such aggregation involves a loss of information, and the chosen penalty weights may not reflect the relative importance of different anti-patterns in all contexts. The category-based breakdown provided by \texttt{HealthScoreCalculator} partially addresses this by preserving per-category scores.
 
 \subsection{Internal Validity}
 \label{subsec:internal-validity}
 
-\par Internal validity concerns whether the results are attributable to the detection methodology rather than to confounding factors such as implementation bugs or procedural errors.
+ \par Internal validity concerns whether the results are attributable to the detection methodology rather than to confounding factors such as implementation bugs or procedural errors.
 
-\par The detectors are executed sequentially and independently; each detector receives the same input (the project and its microservices) and produces results without knowledge of other detectors' output. This independence ensures that the order of detector execution does not influence outcomes. However, the detectors share data through the database: code smells saved by the DesigniteJava integration are queried by the God Service detector. If the code smell persistence step and the anti-pattern detection step are not correctly isolated transactionally, intermittent visibility issues could affect God Service detection accuracy.
+ \par The detectors are executed sequentially and independently; each detector receives the same input (the project and its microservices) and produces results without knowledge of other detectors' output. This independence ensures that the order of detector execution does not influence outcomes. However, the detectors share data through the database: code smells saved by the DesigniteJava integration are queried by the God Service detector. If the code smell persistence step and the anti-pattern detection step are not correctly isolated transactionally, intermittent visibility issues could affect God Service detection accuracy.
 
-\par The DesigniteJava results were parsed from CSV output files using a line-by-line parser that matches expected column positions. Changes in DesigniteJava's output format across versions could cause parsing errors, although the parser includes defensive checks for malformed lines.
-
-% TODO: fuzzy service name matching limitation
-\par The dependency graph construction relies on substring-based matching to resolve raw target strings (e.g.\ from \texttt{@FeignClient} or \texttt{RestTemplate} URLs) to known service names. If a service has a short or generic name, the fuzzy matching may incorrectly link unrelated calls to that service, introducing false-positive dependency edges. This could affect the accuracy of detectors that rely on the dependency graph, such as Chatty Service and Distributed Monolith.
-
-% TODO: hardcoded endpoint test filtering limitation
-\par The Hardcoded Endpoint detector filters out test files by checking whether the relative path contains the substring \texttt{test} or \texttt{Test}. This heuristic could incorrectly exclude production files whose package path contains a matching substring (e.g.\ \texttt{com/example/attestation/}), potentially causing false negatives. In addition, the comment-filtering logic only handles single-line comments and Javadoc continuation lines; hardcoded URLs inside multi-line block comments may still be reported as findings.
-
-% TODO: shared database URL matching limitation
-\par The Shared Database detector compares datasource URLs as literal strings. Two services pointing to the same physical database but using URLs that differ only in query parameters (e.g.\ \texttt{?ssl=true}) will not be matched, which could cause false negatives in environments where connection parameters vary across services.
-% END-TODO
+ \par The DesigniteJava results were parsed from CSV output files using a line-by-line parser that matches expected column positions. Changes in DesigniteJava's output format across versions could cause parsing errors, although the parser includes defensive checks for malformed lines.
 
 \subsection{External Validity}
 \label{subsec:external-validity}
 
-\par External validity concerns the generalizability of the results beyond the specific projects and configuration used in this evaluation.
+ \par External validity concerns the generalizability of the results beyond the specific projects and configuration used in this evaluation.
 
-\par The evaluation uses open-source sample and demonstration projects, which may differ from real enterprise systems in several ways. Enterprise systems tend to be larger in scale (hundreds of services, millions of LOC), employ more diverse communication mechanisms (gRPC, message queues, event streams), and evolve over years with multiple teams contributing. The anti-pattern distributions observed in the evaluated sample projects may not reflect those of enterprise systems.
+ \par The evaluation uses open-source sample and demonstration projects, which may differ from real enterprise systems in several ways. Enterprise systems tend to be larger in scale (hundreds of services, millions of LOC), employ more diverse communication mechanisms (gRPC, message queues, event streams), and evolve over years with multiple teams contributing. The anti-pattern distributions observed in the evaluated sample projects may not reflect those of enterprise systems.
 
-\par The evaluated projects may have been designed as teaching examples and may intentionally contain (or intentionally lack) certain anti-patterns. For instance, a tutorial project may use a shared database for simplicity, which the detector would correctly flag, but this design choice may be intentional rather than accidental. Conversely, well-maintained sample projects may exhibit fewer anti-patterns than typical enterprise systems where architectural debt accumulates over time \cite{Taibi2018}.
+ \par The evaluated projects may have been designed as teaching examples and may intentionally contain (or intentionally lack) certain anti-patterns. For instance, a tutorial project may use a shared database for simplicity, which the detector would correctly flag, but this design choice may be intentional rather than accidental. Conversely, well-maintained sample projects may exhibit fewer anti-patterns than typical enterprise systems where architectural debt accumulates over time \cite{Taibi2018}.
 
-\par The results are specific to Java Spring Boot projects and do not generalize to microservice systems built with other languages or frameworks. Polyglot microservice systems, i.e. where services are implemented in different languages, are increasingly common in practice, and the current tool cannot analyze non-Java services within such systems.
+ \par The results are specific to Java Spring Boot projects and do not generalize to microservice systems built with other languages or frameworks. Polyglot microservice systems, i.e. where services are implemented in different languages, are increasingly common in practice, and the current tool cannot analyze non-Java services within such systems.
 
 % TODO: Add a sentence about the number of projects
 
 \subsection{Conclusion Validity}
 \label{subsec:conclusion-validity}
 
-\par Conclusion validity concerns the reliability and reproducibility of the conclusions drawn from the evaluation.
+ \par Conclusion validity concerns the reliability and reproducibility of the conclusions drawn from the evaluation.
 
-\par The manual validation of detection results was performed by a single person (the author of this dissertation), introducing a potential bias. A different reviewer might classify borderline cases differently, particularly for anti-patterns with subjective elements such as \texttt{nano service} (where the threshold between an appropriately small service and an excessively small one is context-dependent) or \texttt{god service} (where the boundary between a feature-rich service and an over-responsible one is debatable).
+ \par The manual validation of detection results was performed by a single person (the author of this dissertation), introducing a potential bias. A different reviewer might classify borderline cases differently, particularly for anti-patterns with subjective elements such as \texttt{nano service} (where the threshold between an appropriately small service and an excessively small one is context-dependent) or \texttt{god service} (where the boundary between a feature-rich service and an over-responsible one is debatable).
 
 \par The detection results are deterministic for a given project and set of thresholds: running the tool twice on the same codebase with the same configuration produces identical results. However, different threshold configurations can lead to substantially different detection counts, which could affect the conclusions about anti-pattern prevalence and detection accuracy.
 
 \section{Summary}
 \label{sec:ch5-summary}
 
-\par This chapter presented the evaluation of the MSA Detector system on a set of open-source Java-based microservice projects. The evaluation aimed to assess the tool's effectiveness in detecting architectural anti-patterns and providing actionable insights to improve microservice design quality.
+ \par This chapter presented the evaluation of the MSA Detector system on a set of open-source Java-based microservice projects. The evaluation aimed to assess the tool's effectiveness in detecting architectural anti-patterns and providing actionable insights to improve microservice design quality.
 
-\par Four projects were selected for evaluation, meeting the criteria of being Java Spring Boot applications with multiple microservices. The selected projects included a total of 60 microservices and represented various domains such as workflow and process management applications and learning projects. The detection pipeline was able to identify a range of anti-patterns across these projects, with varying implications for architectural quality.
+ \par Four projects were selected for evaluation, meeting the criteria of being Java Spring Boot applications with multiple microservices. The selected projects included a total of 60 microservices and represented various domains such as workflow and process management applications and learning projects. The detection pipeline was able to identify a range of anti-patterns across these projects, with varying implications for architectural quality.
 
-\par The results showed that the MSA Detector could effectively identify common microservice anti-patterns such as shared databases, API versioning absences, and nano services. The health scores provided a useful summary metric for assessing the overall architectural quality, with detailed breakdowns available for deeper analysis.
+ \par The results showed that the MSA Detector could effectively identify common microservice anti-patterns such as shared databases, API versioning absences, and nano services. The health scores provided a useful summary metric for assessing the overall architectural quality, with detailed breakdowns available for deeper analysis.
 
-\par The evaluation also identified several limitations and threats to validity, including the restriction to Java Spring Boot projects, the reliance on static analysis, and the limited representativeness of the evaluation datasets. These factors may affect the generalizability of the results, and caution is advised in interpreting the findings as definitive measures of architectural quality.
+ \par The evaluation also identified several limitations and threats to validity, including the restriction to Java Spring Boot projects, the reliance on static analysis, and the limited representativeness of the evaluation datasets. These factors may affect the generalizability of the results, and caution is advised in interpreting the findings as definitive measures of architectural quality.
 
-\par Overall, the evaluation provided positive indications of the MSA Detector's capabilities, while also highlighting areas for improvement and further research. The next chapter will conclude this dissertation with a summary of contributions, reflections on the research process, and suggestions for future work in the area of microservice architecture analysis and improvement.
+ \par Overall, the evaluation provided positive indications of the MSA Detector's capabilities, while also highlighting areas for improvement and further research. The next chapter will conclude this dissertation with a summary of contributions, reflections on the research process, and suggestions for future work in the area of microservice architecture analysis and improvement.

@@ -57,8 +57,8 @@ The dependency graph itself is constructed by analyzing inter-service communicat
     \item \texttt{@FeignClient} annotations (Spring Cloud OpenFeign)
     \item \texttt{RestTemplate} usage patterns
     \item \texttt{WebClient} invocations (Spring WebFlux)
-    \item gRPC client stubs
-    \item Message queue producers and consumers
+%     \item gRPC client stubs
+%     \item Message queue producers and consumers
 \end{itemize}
 
 Figure~\ref{fig:cyclic-dependency} illustrates a cyclic dependency among three services, as presented in the introduction of this subsection.
@@ -183,7 +183,7 @@ Table~\ref{tab:anti-patterns-summary} summarizes all the anti-patterns targeted 
             \hline
             Wrong Cuts & High & Cohesion and coupling metrics \\
             \hline
-            ESB Misuse & Medium & Centrality analysis of the dependency graph \\
+            ESB Misuse & High & Centrality analysis of the dependency graph \\
             \hline
         \end{tabular}
     \end{center}

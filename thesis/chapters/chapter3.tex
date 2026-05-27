@@ -255,7 +255,7 @@ A microservice $s$ is flagged as a nano service when the following conjunction h
     \label{eq:nano-service-detection}
 \end{equation}
 
-\noindent where $\theta_{\mathit{LOC}}$ is the maximum lines of code threshold (default: 500, configurable via \texttt{app.\-thresh\-olds.\-nano-service\--max\--loc}) and $\theta{\mathit{ep}}$ is the maximum endpoint count threshold (default: 2, configurable via \texttt{app.thresholds.nano-service\--max-endpoints}).
+\noindent where $\theta_{\mathit{LOC}}$ is the maximum lines of code threshold (default: 500, configurable via \texttt{app.\-thresh\-olds.\-nano-service\--max\--loc}) and $\theta_{\mathit{ep}}$ is the maximum endpoint count threshold (default: 2, configurable via \texttt{app.thresholds.nano-service\--max-endpoints}).
 
 The LOC count is computed the microservice detection phase by recursively walking through the service's directory tree and counting lines in all \texttt{.java} files. The endpoint count is populated during the inter-service analysis phase via Spoon-based annotation scanning.
 
