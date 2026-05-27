@@ -1,8 +1,9 @@
 # MSA Detector Dissertation Presentation
 
 Total target time: **15 minutes**
-- Main presentation: ~13 minutes
-- Live demo: ~2 minutes
+- Main presentation: ~12 minutes
+- Case studies: ~1.5 minutes
+- Live demo: ~1.5 minutes
 
 ---
 
@@ -69,7 +70,7 @@ Total target time: **15 minutes**
   - Existing detection support is fragmented across abstraction levels.
   - Outputs are often hard to act on.
 - Objectives:
-  1. Detect 8 anti-patterns across 4 dimensions.
+  1. Detect 10 anti-patterns across 4 dimensions.
   2. Combine code-level and architecture-level analysis.
   3. Provide a composite health score.
   4. Deliver as web app + REST API.
@@ -88,17 +89,19 @@ Total target time: **15 minutes**
 
 **On-slide content**
 - **Service design**: Nano Service, God Service
-- **Communication**: Chatty Service, Cyclic Dependency, Hardcoded Endpoints
+- **Communication**: Chatty Service, Cyclic Dependency, Hardcoded Endpoints, ESB Misuse
 - **Data management**: Shared Database
-- **Deployment and coupling**: Distributed Monolith, API Versioning Absence
+- **Deployment and coupling**: Distributed Monolith, API Versioning Absence, Wrong Cuts
 
 **Visual**
 - Left: `thesis/figures/images/chapter2/cyclic-dependency.drawio.png`
 - Right: `thesis/figures/images/chapter2/shared_db.drawio.png`
 
 **Presenter notes**
-- I target anti-patterns that are both common and impactful in microservice systems.
+- I target ten anti-patterns that are both common and impactful in microservice systems.
 - Each detector has configurable thresholds and generates source code evidence for remediation.
+- ESB Misuse detection uses betweenness centrality via Brandes' algorithm alongside ratio-based signals.
+- Wrong Cuts uses Feature Envy smells and bidirectional dependency detection.
 
 ---
 
@@ -129,16 +132,18 @@ Total target time: **15 minutes**
 **On-slide content**
 - Dependency graph: nodes = services, edges = inter-service dependencies
 - Cycle detection via Tarjan SCC
-- Coupling metrics for distributed monolith signals
-- Health score formula:
-  - `H = max(0, 100 - 15*n_crit - 10*n_high - 5*n_med - 2*n_low)`
+- Betweenness centrality for ESB Misuse (Brandes' algorithm)
+- Coupling coefficient for distributed monolith signals
+- Health score: `H = S_ap(40) + S_cq(20) + S_arch(25) + S_sz(15)`
+  - 4 categories, each with independent cap and itemized deductions
 
 **Visual**
 - `thesis/figures/images/chapter3/dependency_graph_example.png`
 
 **Presenter notes**
-- The graph is central to detecting structural anti-patterns such as cycles and high coupling.
-- The health score gives one trackable indicator while still preserving detailed findings by severity and category.
+- The graph is central to detecting structural anti-patterns such as cycles, high coupling, and ESB misuse.
+- The health score is decomposed into four categories: Anti-Patterns (40 pts), Code Quality (20), Architecture (25), Service Sizing (15).
+- Each category has an independent cap and itemized deductions, enabling teams to identify which quality dimension is degraded.
 
 ---
 
@@ -164,30 +169,75 @@ Total target time: **15 minutes**
 ## Slide 9 - Evaluation Results (2:00)
 
 **On-slide content**
-- Dataset: 4 open-source projects, 60 microservices, ~465k LOC
+- Dataset: 6 open-source projects, 99 microservices, ~335k LOC
 - Health scores:
   - MicroservicesSocial: 77 (C)
+  - Site-Where: 69 (C)
   - microservices-design-patterns: 60 (D)
-  - Activiti: 45 (F)
-  - Karate: 87 (B)
-- Frequent detections: Nano Service, God Service, Hardcoded Endpoints
+  - Apollo-Config: 59 (D)
+  - Train-Ticket: 52 (D)
+  - Genie: 45 (F)
+- Most frequent: Hardcoded Endpoints, Nano Service, API Versioning Absence
+- ESB Misuse detected in Site-Where; Chatty Service in Train-Ticket
 
 **Visual**
 - Bar chart from `thesis/presentation/results_chart_data.csv`
 
 **Presenter notes**
-- The scoring differentiated projects with lower and higher architectural issue concentration.
-- The largest project, Activiti, scored lowest, while Karate scored highest.
-- Shared Database appears in MicroservicesSocial, consistent with its architecture.
+- Health scores ranged from 45 to 77, showing the scoring differentiates meaningfully.
+- Train-Ticket triggered Chatty Service and Shared Database detections.
+- Site-Where triggered ESB Misuse detection — validating the betweenness centrality implementation.
+- Genie scored lowest due to God Service, Nano Service and Hardcoded Endpoints.
 
 ---
 
-## Slide 10 - Conclusions and Future Work (1:00)
+## Slide 10 - Case Study: Site-Where (0:45)
+
+**On-slide content**
+- Site-Where: IoT platform, 15 microservices, 74k LOC
+- Health score: 69 (C)
+- Detected: God Service, ESB Misuse, Hardcoded Endpoints
+- First project to trigger ESB Misuse detector
+- ESB Misuse detected via betweenness centrality — a service acting as central mediator
+
+**Visual**
+- Optional: screenshot of Site-Where results page from the app
+
+**Presenter notes**
+- Site-Where is significant because it triggered the ESB Misuse detector, validating the betweenness centrality implementation.
+- The centralized orchestration layer in the IoT platform naturally creates a hub service that mediates most inter-service communication.
+- This demonstrates that the detector works on real-world architectural patterns, not just synthetic examples.
+
+---
+
+## Slide 11 - Case Study: Train-Ticket (0:45)
+
+**On-slide content**
+- Train-Ticket: academic benchmark, 42 services, 38k LOC
+- Health score: 52 (D)
+- Detected: 4 Chatty Services, 27 Hardcoded Endpoints, 4 Nano Services, 1 Shared Database
+- 36 total anti-pattern instances — highest count across all datasets
+- First project in evaluation to trigger Chatty Service detector
+- Realistic microservice topology with inter-service REST calls
+
+**Visual**
+- Optional: screenshot of Train-Ticket results page from the app
+
+**Presenter notes**
+- Train-Ticket is specifically designed as a microservice research benchmark by Fudan University.
+- The 42 services communicate via RestTemplate, producing a rich dependency graph.
+- The 4 Chatty Service detections validated a detector that no other project triggered.
+- 27 Hardcoded Endpoints reflect the project's use of literal localhost URLs rather than service discovery.
+- The Shared Database detection found services sharing a single data store, consistent with the project's known architecture.
+
+---
+
+## Slide 12 - Conclusions and Future Work (1:00)
 
 **On-slide content**
 - Contributions:
   - Multi-level static analysis approach
-  - 8 anti-pattern detectors with evidence
+  - 10 anti-pattern detectors with evidence
   - Composite health score and trend tracking
   - Automated microservice boundary detection
 - Limitations:
@@ -207,7 +257,7 @@ Total target time: **15 minutes**
 
 ---
 
-## Slide 11 - Live Demo (2:00)
+## Slide 13 - Live Demo (2:00)
 
 **On-slide content**
 - Live demo:

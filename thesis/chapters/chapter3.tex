@@ -77,7 +77,7 @@ In this dissertation, DesigniteJava is integrated as an external tool invoked as
 \subsection{Dependency Graph Construction and Analysis}
 \label{subsec:graph-analysis}
 
-\par The dependency graph is a directed graph $G = (V, E)$ where each vertex $v \in V$ represents a microservice and each edge $e = (s, t) \in E$ represents a dependency from service $s$ to service $t$. Edges are annotated with metadata including the dependency type (REST synchronous, Feign client, messaging, etc.) and the call count.
+\par The dependency graph is a directed graph $G = (V, E)$ where each vertex $v \in V$ represents a microservice and each edge $e = (s, t) \in E$ represents a dependency from service $s$ to service $t$. Edges are annotated with metadata including the dependency type (REST synchronous, Feign client, etc.) and the call count.
 
 \par A central challenge in dependency graph construction is resolving the target of an inter-service call to an actual microservice in the project. In real-world codebases, services are referenced by a variety of identifiers: directory names, \texttt{spring\-.application.name} values, \texttt{localhost:PORT} URLs, or Spring property placeholders injected via \texttt{@Value} annotations. To address this, the dependency graph builder employs a multi-strategy resolution pipeline.
 
