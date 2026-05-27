@@ -1,0 +1,331 @@
+\chapter{State of the Art}
+\label{chap:ch2}
+
+\indent\par This chapter provides the theoretical foundation and current research landscape for the detection of architectural anti-patterns in microservice-based systems.
+
+\section {Microservices Architecture}
+\label{section:microservices-background}
+
+\indent \par The microservices architectural style structures an application as a collection of loosely coupled, independently deployable services, each implementing a bounded business capability \cite{Newman2015}. Unlike monolithic architectures, where the entire application is built, tested and deployed as a single unit, microservices allow teams to develop, deploy and scale individual services autonomously \cite{Richardson2018}.
+
+The key principles of microservices include:
+
+\begin{itemize}
+    \item \textbf{Single Resposibility:} Each service encapsulates a single business domain or bounded context, following the principles of Domain Drive Design (DDD) \cite{Evans2004}.
+    \item \textbf{Independent Deployability:} Services can be deployed independently without requiring coordinated releases across the entire system.
+    \item \textbf{Decentralized Data Management:} Each service owns its data and exposes it only through well-defined APIs, following the database-per-service pattern \cite{Richardson2018}.
+    \item \textbf{Lightweight Communication:} Services communicate through lightweight protocols such as HTTP/REST or asynchronous messaging.
+    \item \textbf{Fault Isolation:} Failures in one service should not cascade to others, achieved through patterns like circuit breakers and bulkheads \cite{Nygard2018}.
+\end{itemize}
+
+Figure~\ref{fig:monolith-vs-microservices} illustrates the structural difference between a monolithic architecture and a microservices architecture. In the monolithic approach, all components reside within a single deployable unit sharing the same database. Conversely, in the microservices approach, each service is independently deployed and manages its own database.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[scale=0.45]{figures/images/chapter2/monolith_vs_microservices.drawio.png}
+    \caption{Comparison of monolithic architecture (left) and microservices architecture (right). In the monolithic approach, all modules share a singled process and database. In the microservices approach, each service is independently deployable with its own database.}
+    \label{fig:monolith-vs-microservices}
+\end{figure}
+
+While microservices offer benefits in scalability, team autonomy and technology heterogeneity, they also introduce significant overhead in terms of distributed systems challenges, e.g. network latency, partial failures, data consistency \cite{FowlerMicroservices2014}. When these challenges are poorly managed, they manifest as architectural anti-patterns, i.e. recurring design decisions that negatively impact the quality attributes of the system.
+
+\section{Microservices Anti-Patterns}
+\label{sec:anti-patterns}
+
+\indent \par An anti-pattern is a commonly occuring solution to a problem that generates negative consequences \cite{Brown1998}. In the context of microservices, anti-patterns represent architectural or design decisions that undermine the benefits of the microservices pattern. This section defines and characterizes the anti-patterns targeted by this dissertation.
+
+\subsection{Shared Database}
+\label{subsec:shared-database}
+
+\indent \par The Shared Database anti-pattern occurs when multiple microservices access and modify the same database schema, violating the principle of decentralized data management \cite{Richardson2018}. This creates tight coupling between services at the data layer, as changes to the database schema can break multiple services simultaneously. Furthermore, services cannot be independently deployed or scaled without considering the shared database.
+
+As illustrated in Figure~\ref{fig:shared-database}, when services A, B and C all connect to the same database, any schema migration in one service can cause failures in the other. The recommended remediation is to adopt the database-per-service pattern and synchronize data across services using asynchronous events or the Saga pattern \cite{Richardson2018}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[scale=0.45]{figures/images/chapter2/shared_db.drawio.png}
+    \caption{Shared Database Anti-Pattern: multiple services access the same database instance, creating tight coupling at the data layer.}
+    \label{fig:shared-database}
+\end{figure}
+
+Detection of this anti-pattern can be performed through static analysis of service configuration files. Particularly, in Java Spring Boot applications, the \texttt{application.yml} or \texttt{application.properties} files contain datasource connection URLs (e.g. \texttt{spring.datasource.url}). By comparing these URLs across all detected microservices within a project, instances of shared databases can be identified automatically.
+
+\subsection{Cyclic Dependency}
+\label{subsec:cyclic-dependency}
+
+\indent \par Cyclic dependencies occur when two or more services form a circular chain of dependencies, e.g. service A depends on service B, which depends on service C, which in and of itself depends back on service A. Cycles in the service dependency graph violate the acyclic dependencies principle and create tight coupling, making it fairly difficult to deploy, test, or reason about services independently \cite{Martin2017}.
+
+Cycle detection in directed graphs is a well-studied problem in computer science. Tarjan's algorithm for finding strongly connected components (SCCs) operates in $O(V+E)$ time, where $V$ is the number of vertices, i.e. services, and $E$ is the number of edges, i.e. dependencies \cite{Tarjan1972}. Any strongly connected component with more than one vertex represents a cycle in the dependency graph.
+
+The dependency graph itself is constructed by analyzing inter-service communication patterns. In Java-based microservices, dependencies can be identified through static analysis of:
+
+\begin{itemize}
+    \item \texttt{@FeignClient} annotations (Spring Cloud OpenFeign)
+    \item \texttt{RestTemplate} usage patterns
+    \item \texttt{WebClient} invocations (Spring WebFlux)
+    \item gRPC client stubs
+    \item Message queue producers and consumers
+\end{itemize}
+
+Figure~\ref{fig:cyclic-dependency} illustrates a cyclic dependency among three services, as presented in the introduction of this subsection.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[scale=0.45]{figures/images/chapter2/cyclic-dependency.drawio.png}
+    \caption{Example of a cyclic dependency. Services A, B and C forma a strongly connected component where no service can be deployed or tested independently.}
+    \label{fig:cyclic-dependency}
+\end{figure}
+
+\subsection{Nano Service}
+\label{subsec:nano-service}
+
+\indent\par A Nano Service is a service that is too fine-grained to justify its operational overhead \cite{Taibi2018}. Each microservice carries inherent costs: monitoring, deployment pipelines, network communication, and operational maintenance. When a service has very few lines of code and exposes only one or two endpoints, the overhead of running it as an independent process may outweigh the benefits of decomposition.
+
+The detection of nano services requires defining quantitative thresholds. In this work, a service is classified as a nano service when it satisfies the conjunction of two conditions:
+
+\begin{equation}
+    \text{LOC}(s) < \theta_{\text{LOC}} \wedge \text{endpoints}(s) \leq \theta_{\text{endpoints}}
+    \label{eq:nano-service}
+\end{equation}
+
+\noindent where $\theta_{\text{LOC}}$ is the maximum lines-of-code threshold (default: 500) and $\theta_{\text{endpoints}}$ is the maximum endpoint count threshold (default: 2). These thresholds are configurable and should be calibrated based on the specific project context.
+
+The recommended remediation for nano services is to merge them with a related, functionally cohesive service \cite{Taibi2018}.
+
+\subsection{God Service}
+\label{subsec:god-service}
+
+\indent\par A God Service is the microservice counterpart of the well-known God Class code smell \cite{Fowler1999}. It refers to a service that handles too many responsibilities, spanning multiple business domains within a single deployable unit. God services grow over time as developers add functionality to an existing service rather than creating new ones, resulting in a service that is difficult to understand, test, and scale independently.
+
+Detection of god services in this work is based on the presence of code-level indicators. Specifically, a microservice is flagged as a god service when it contains a number of God Class code smells (as detected by DesigniteJava) exceeding a configurable threshold:
+
+\begin{equation}
+    |\{c \in \text{classes}(s) : \text{isGodClass}(c)\}| \geq \theta_{\text{domains}}
+    \label{eq:god-service}
+\end{equation}
+
+\noindent where $\theta_{\text{domains}}$ is the minimum number of God Class occurrences that indicates excessive responsibility concentration (default: 3).
+
+\subsection{Chatty Service}
+\label{subsec:chatty-service}
+
+\indent\par The Chatty Service anti-pattern occurs when a service makes an excessive number of fine-grained remote calls to another service to complete a single business operation \cite{Richardson2018}. This increases network latency, reduces throughput, and makes the system fragile to network failures. The chatty communication pattern often indicates that the service boundaries were drawn incorrectly, and data that should be co-located is split across services.
+
+Detection involves analyzing the dependency graph and identifying edges with a call count exceeding a configurable threshold:
+
+\begin{equation}
+    \text{callCount}(s_1, s_2) \geq \theta_{\text{chatty}}
+    \label{eq:chatty-service}
+\end{equation}
+
+\noindent where $\theta_{\text{chatty}}$ is the minimum call count threshold (default: 5).
+
+Figure~\ref{fig:chatty-services} contrasts a chatty communication pattern with a well-designed coarse-grained interaction. In the chatty pattern, Service A makes many fine-grained calls to Service B to complete a single operation, whereas the improved design consolidates these into fewer, coarser-grained requests.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[scale=0.45]{figures/images/chapter2/chatty-services.drawio.png}
+    \caption{Example of a cyclic dependency. Services A, B and C form a strongly connected component where no service can be deployed or tested independently.}
+    \label{fig:chatty-services}
+\end{figure}
+
+\subsection{Hardcoded Endpoints}
+\label{subsec:hardcoded-endpoints}
+
+\indent\par The Hardcoded Endpoints anti-pattern occurs when service URLs are embedded directly in the source code instead of being resolved through a service discovery mechanism (e.g., Netflix Eureka, Consul, or Kubernetes DNS) \cite{Richardson2018}. Hardcoded endpoints create tight coupling between services and make the system inflexible to infrastructure changes such as scaling, failover, or environment migration.
+
+Detection involves scanning the source code and configuration files for patterns such as \texttt{http://}, \texttt{https://}, \texttt{localhost:}, or explicit IP addresses in REST client configurations.
+
+\subsection{Distributed Monolith}
+\label{subsec:distributed-monolith}
+
+\indent\par The Distributed Monolith anti-pattern describes a system that has been decomposed into multiple services but retains the tight coupling characteristics of a monolithic architecture \cite{Newman2015}. In such a system, services cannot be deployed, tested, or scaled independently --- a change in one service frequently requires coordinated changes and redeployments across several other services. The result is a system that combines the complexity of distributed systems (network latency, partial failures, operational overhead) with none of the benefits of microservices (independent deployability, team autonomy, technology heterogeneity).
+
+A distributed monolith typically arises when services share too many dependencies, communicate excessively, or rely on synchronous call chains to fulfill requests. The coupling coefficient $C$ (Equation~\ref{eq:coupling-coefficient}) serves as a quantitative indicator: when a large proportion of all possible inter-service dependencies actually exist, the system behaves more like a monolith than a collection of loosely coupled services. In this work, a system is flagged as a potential distributed monolith when the coupling coefficient exceeds a configurable threshold:
+
+\begin{equation}
+    C = \frac{|E|}{|V| \times (|V| - 1)} > \theta_{\text{monolith}}
+    \label{eq:distributed-monolith}
+\end{equation}
+
+\noindent where $\theta_{\text{monolith}}$ is the coupling coefficient threshold above which the system is considered excessively coupled.
+
+The recommended remediation involves identifying and removing unnecessary inter-service dependencies, introducing asynchronous communication where possible, and ensuring that each service encapsulates a well-defined bounded context with minimal external dependencies \cite{Richardson2018}.
+
+\subsection{Summary of Anti-Patterns}
+\label{subsec:anti-patterns-summary}
+
+\indent\par Table~\ref{tab:anti-patterns-summary} summarizes all the anti-patterns targeted by this dissertation, along with their severity levels and detection approaches.
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|l|l|p{180pt}|}
+\hline
+\textbf{Anti-Pattern} & \textbf{Severity} & \textbf{Detection Approach} \\
+\hline\hline
+Shared Database & High & Comparison of datasource URLs across services \\
+\hline
+Cyclic Dependency & Critical & Tarjan's SCC algorithm on the dependency graph \\
+\hline
+Nano Service & Medium & LOC and endpoint count thresholds \\
+\hline
+God Service & High & God Class code smell frequency via DesigniteJava \\
+\hline
+Chatty Service & Medium & Call count analysis on dependency edges \\
+\hline
+Hardcoded Endpoints & Medium & Pattern matching in source and configuration files \\
+\hline
+Distributed Monolith & Critical & Coupling coefficient analysis \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Summary of targeted microservice anti-patterns.}
+\label{tab:anti-patterns-summary}
+\end{table}
+
+\section{Tools and Technologies}
+\label{sec:tools-and-technologies}
+
+\indent \par This section describes the tools and technologies used to implement the anti-pattern detection system presented in this dissertation.
+
+\subsection{Spring Boot}
+\label{subsec:spring-boot}
+
+\indent \par Spring Boot is an opinionated framework for building production-ready Java applications with minimal configuration \footnote{\href{https://spring.io/projects/spring-boot}{Spring Boot}}. It provides auto-configuration, embedded servers, and a comprehensive ecosystem for building web applications, RESTful APIs, and data access layers. In this work, Spring Boot 4.0 serves as the application framework, providing:
+\begin{itemize}
+    \item \textbf{Spring Web:} RESTful API endpoints for project upload - either through a zip file or GitHub \/ GitLab source code URL, analysis job management and result retrieval.
+    \item \textbf{Spring Data JPA:} Object-relational mapping and repository abstractions for PostgreSQL persistence.
+    \item \textbf{Spring Security:} JWT-based authentication and authorization.
+    \item \textbf{Spring Async:} Asynchronous task execution for long-running analysis jobs.
+\end{itemize}
+
+\subsection{PostgreSQL}
+\label{subsec:postgresql}
+
+\indent \par PostgreSQL is an open-source relational database management system known for its reliability, feature richness, and extensibility \footnote{\href{https://www.postgresql.org/}{PostgreSQL}}. It is used in this disseration to persist metadata, microservice information, code smell reports, code snippets, detected anti-patterns, and analysis results. The database schema supports queries for aggregation and reporting, such as counting anti-patterns by severity or computing per-service code smell frequencies.
+
+\subsection{Spoon}
+\label{subsec:spoon}
+
+\indent \par Spoon is used for Java source code analysis, as it provides a complete metamodel of the Java language and supports visitor-based and query-traversal of the Abstract Syntax Tree \cite{Pawlak2016}.
+
+\subsection{JGit}
+\label{subsec:jgit}
+
+\indent \par JGit is a pure Java implementation of the Git version control system \footnote{\href{https://www.eclipse.org/jgit/}{JGit}}. It is used in this work to clone Git repositories submitted for analysis, enabling users to provide a repository URL rather than uploading source archives manually.
+
+\subsection{DesigniteJava}
+\label{subsec:designite-java}
+
+\indent \par DesigniteJava is a command-line tool that performs design smell detection on Java projects \cite{Sharma2018}. It accepts a source directory as input and produces CSV files containing detected smells. In this dissertation, it is invoked as a Java subprocess with configurable timeout settings.
+
+\subsection{Docker}
+\label{subsec:docker}
+
+\indent \par Docker is used for containerized deployment of the application and its dependencies. Both the Backend and the Frontend projects in this dissertation define a \texttt{docker-compose.yml} file, which outlines the multi-container setup including the Spring Boot application and PostgreSQL database.
+
+\section{Related Work}
+\label{sec:related-work}
+
+\indent \par The detection of anti-patterns in microservices architectures has received growing attention from the scientific research community. This section reviews the most relevant prior work and positions this dissertation within the existing landscape.
+
+\subsection{Empirical Studies on Microservices Anti-Patterns}
+\label{subsec:empirical-studies}
+
+\indent \par \indent\par Taibi et al.\ conducted an empirical study involving interviews with 72 developers from 52 companies, identifying the most common ``bad smells'' in microservice architectures \cite{Taibi2018}. Their findings highlighted that Shared Database, God Service (referred to as ``The Knot''), and Nano Service (``Nanoservices'') are among the most frequently encountered and impactful anti-patterns. This empirical evidence informed the selection of anti-patterns targeted by this dissertation.
+
+             %--------------------------------------------------------------
+             \subsection{Static Analysis Approaches}
+             \label{subsec:related-static}
+             %--------------------------------------------------------------
+
+             \indent\par Neri et al.\ proposed a catalog of design principles for microservices and developed static analysis techniques for detecting violations \cite{Neri2020}. Their approach focuses on service independence and decentralization principles, detecting violations through analysis of service interfaces and data models. While their work provides a principled foundation, it does not integrate code-level smell detection into the architectural analysis.
+
+             Sharma and Spinellis developed DesigniteJava and demonstrated its effectiveness for detecting code smells in Java projects \cite{Sharma2018}. While DesigniteJava operates at the code level (classes and methods), this dissertation leverages its output as input to higher-level architectural analysis, bridging the gap between code smells and microservice anti-patterns.
+
+             %--------------------------------------------------------------
+             \subsection{Dynamic and Hybrid Approaches}
+             \label{subsec:related-dynamic}
+             %--------------------------------------------------------------
+
+             \indent\par Dynamic analysis approaches monitor running systems to detect anti-patterns from runtime behavior. For example, distributed tracing tools such as Jaeger and Zipkin can reveal chatty communication and cyclic call patterns at runtime. However, dynamic approaches require a running system and representative workloads, making them less suitable for early-stage or continuous integration analysis.
+
+             Hybrid approaches combine static and dynamic analysis. For instance, tools may perform static dependency extraction and complement it with runtime call frequency data. While hybrid approaches can provide higher accuracy, they introduce additional complexity and infrastructure requirements.
+
+             This dissertation focuses on static analysis to enable anti-pattern detection without requiring a running system, making it applicable to source code repositories at any stage of development.
+
+             %--------------------------------------------------------------
+             \subsection{Automated Detection Tools}
+             \label{subsec:related-tools}
+             %--------------------------------------------------------------
+
+             \indent\par Several tools have been developed for microservice analysis:
+
+             \begin{itemize}
+                 \item \textbf{Arcan} is a tool for architectural smell detection in Java projects that supports dependency graph analysis and cycle detection \cite{Arcelli2017}. However, it is designed for monolithic architectures and does not specifically target microservice anti-patterns.
+                 \item \textbf{MicroART} reconstructs microservice architectures from source code and Docker configurations, providing visualization capabilities \cite{Granchelli2017}. It focuses on architecture recovery rather than anti-pattern detection.
+                 \item \textbf{MSANose} is a detection tool specifically designed for microservice smells, based on the catalog established by Taibi et al.\ \cite{Walker2020}. It detects smells such as Shared Persistence, Cyclic Dependencies, and Hardcoded Endpoints through static analysis of Spring Boot projects.
+             \end{itemize}
+
+             Table~\ref{tab:related-tools-comparison} provides a feature comparison of these tools against the system presented in this dissertation.
+
+             \begin{table}[htbp]
+             \begin{center}
+             \small
+             \begin{tabular}{|p{100pt}|c|c|c|c|}
+             \hline
+             \textbf{Feature} & \textbf{Arcan} & \textbf{MicroART} & \textbf{MSANose} & \textbf{This Work} \\
+             \hline\hline
+             Targets microservices & $\times$ & \checkmark & \checkmark & \checkmark \\
+             \hline
+             Code smell detection & \checkmark & $\times$ & $\times$ & \checkmark \\
+             \hline
+             Cycle detection & \checkmark & $\times$ & \checkmark & \checkmark \\
+             \hline
+             Shared database detection & $\times$ & $\times$ & \checkmark & \checkmark \\
+             \hline
+             God service detection & $\times$ & $\times$ & $\times$ & \checkmark \\
+             \hline
+             Chatty service detection & $\times$ & $\times$ & $\times$ & \checkmark \\
+             \hline
+             Hardcoded endpoints & $\times$ & $\times$ & \checkmark & \checkmark \\
+             \hline
+             Auto service discovery & $\times$ & Partial & $\times$ & \checkmark \\
+             \hline
+             Health score metric & $\times$ & $\times$ & $\times$ & \checkmark \\
+             \hline
+             Web interface / API & $\times$ & \checkmark & $\times$ & \checkmark \\
+             \hline
+             Configurable thresholds & $\times$ & $\times$ & $\times$ & \checkmark \\
+             \hline
+             Target language & Java & Multi & Java & Java \\
+             \hline
+             Analysis technique & Static & Static & Static & Static \\
+             \hline
+             \end{tabular}
+             \end{center}
+             \caption{Feature comparison of related architectural analysis tools. \checkmark\ indicates the feature is supported, $\times$\ indicates it is not supported.}
+             \label{tab:related-tools-comparison}
+             \end{table}
+
+             %--------------------------------------------------------------
+             \subsection{Positioning of This Work}
+             \label{subsec:positioning}
+             %--------------------------------------------------------------
+
+             \indent\par This dissertation differentiates itself from existing work in several ways:
+
+             \begin{enumerate}
+                 \item \textbf{Multi-level analysis:} It combines intra-service code smell detection (via DesigniteJava) with inter-service architectural analysis (via Spoon and graph algorithms), providing a more comprehensive view than tools that operate at a single level.
+                 \item \textbf{Automated microservice detection:} The tool automatically identifies microservice boundaries within a multi-module project by scanning for build files (\texttt{pom.xml}, \texttt{build.gradle}) and source directories, eliminating the need for manual service enumeration.
+                 \item \textbf{Configurable thresholds:} Detection thresholds for metrics-based anti-patterns (nano service, god service, chatty service) are externalized as configuration parameters, allowing calibration to project-specific norms.
+                 \item \textbf{Health score aggregation:} A composite health score (Equation~\ref{eq:health-score}) provides a single, trackable metric for architectural quality, enabling trend monitoring across analysis runs.
+                 \item \textbf{Web-based interface:} The tool is delivered as a web application with RESTful APIs, supporting integration into CI/CD pipelines for continuous architectural quality monitoring.
+             \end{enumerate}
+
+             %--------------------------------------------------------------
+             \section{Summary}
+             \label{sec:ch2-summary}
+             %--------------------------------------------------------------
+
+             \indent\par This chapter has established the theoretical and technological foundation for this dissertation. The microservices architectural style was introduced along with its core principles and inherent challenges. A taxonomy of ten microservice anti-patterns was presented, with formal detection criteria defined for each. The detection techniques --- including static code analysis, AST-based analysis with Spoon, code smell detection with DesigniteJava, and graph-based dependency analysis --- were described in detail. The tools and technologies used in the implementation were surveyed. Finally, the related work was reviewed and the positioning of this dissertation within the existing research landscape was articulated. The next chapter presents the detailed design and implementation of the anti-pattern detection system.

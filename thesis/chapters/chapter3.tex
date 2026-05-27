@@ -18,7 +18,7 @@
 \subsection{Static Code Analysis}
 \label{subsec:static-analysis}
 
-\par Static code analysis examines source code without executing it, allowing detection of structural issues, code smells, and architectural violations at the source level \cite{Chess2007}. In the context of microservices, static analysis can be applied at two levels. Intra-service analysis examines the internal structure of each microservice for code-level smells such as God Class, Long Method, Feature Envy, and Complex Method; these smells serve as indicators of architectural problems at the service level. Inter-service analysis, on the other hand, examines the communication patterns, dependencies, and shared resources across microservices to detect architectural anti-patterns such as cyclic dependencies and shared databases.
+\par Static code analysis examines source code without executing it, allowing detection of structural issues, code smells, and architectural violations at the source level \cite{Chess2007}. In the context of microservices, static analysis can be applied at two levels. Intra-service analysis examines the internal structure of each microservice for code-level smells such as God Class, Long Method, Feature Envy, and Complex Method. The aforementioned smells serve as indicators of architectural problems at the service level. Inter-service analysis, on the other hand, examines the communication patterns, dependencies, and shared resources across microservices to detect architectural anti-patterns such as cyclic dependencies and shared databases.
 
 \subsection{Abstract Syntax Tree Analysis with Spoon}
 \label{subsec:spoon-analysis}
@@ -36,7 +36,9 @@ The AST-based approach is more robust than regular expression-based scanning, as
 
 \par DesigniteJava is a static analysis tool that detects design smells, implementation smells and architecture smells in Java projects \cite{Sharma2018}. It analyzes Java source code and produces CSV reports categorizing detected smells by type, affected class and file location.
 
-The tool detects three categories of smells, summarized in Table~\ref{tab:code-smell-categories}.
+% The tool detects three categories of smells, summarized in Table~\ref{tab:code-smell-categories}.
+
+In this dissertation, DesigniteJava is integrated as an external tool invoked as a subprocess. The analysis pipeline passes each detected microservice's source directory to DesigniteJava, parses the resulting CSV output files (\texttt{DesignSmells.csv}, \texttt{ImplementationSmells.csv}, \texttt{ArchitectureSmells.csv}), and stores the results in the application database. The God Class smell frequency per service is then used as a signal for god service detection (see Section~\ref{subsec:god-service}).
 
 \begin{table}[htbp]
     \centering
@@ -72,16 +74,14 @@ The tool detects three categories of smells, summarized in Table~\ref{tab:code-s
     \label{tab:code-smell-categories}
 \end{table}
 
-In this dissertation, DesigniteJava is integrated as an external tool invoked as a subprocess. The analysis pipeline passes each detected microservice's source directory to DesigniteJava, parses the resulting CSV output files (\texttt{DesignSmells.csv}, \texttt{ImplementationSmells.csv}, \texttt{ArchitectureSmells.csv}), and stores the results in the application database. The God Class smell frequency per service is then used as a signal for god service detection (see Section~\ref{subsec:god-service}).
-
 \subsection{Dependency Graph Construction and Analysis}
 \label{subsec:graph-analysis}
 
 \par The dependency graph is a directed graph $G = (V, E)$ where each vertex $v \in V$ represents a microservice and each edge $e = (s, t) \in E$ represents a dependency from service $s$ to service $t$. Edges are annotated with metadata including the dependency type (REST synchronous, Feign client, messaging, etc.) and the call count.
 
-A central challenge in dependency graph construction is resolving the \textit{target} of an inter-service call to an actual microservice in the project. In real-world codebases, services are referenced by a variety of identifiers: directory names, \texttt{spring\-.application.name} values, \texttt{localhost:PORT} URLs, or Spring property placeholders injected via \texttt{@Value} annotations. To address this, the dependency graph builder employs a multi-strategy resolution pipeline.
+\par A central challenge in dependency graph construction is resolving the target of an inter-service call to an actual microservice in the project. In real-world codebases, services are referenced by a variety of identifiers: directory names, \texttt{spring\-.application.name} values, \texttt{localhost:PORT} URLs, or Spring property placeholders injected via \texttt{@Value} annotations. To address this, the dependency graph builder employs a multi-strategy resolution pipeline.
 
-The first step is a configuration pre-scan: before scanning source code, each service's \texttt{application.yml} or \texttt{application.properties} is parsed. The \texttt{spring\-.application.name} property is registered as an alias for the service directory name, and \texttt{server.port} values are recorded in a port-to-service mapping. Next, the pipeline performs \texttt{@Value} field resolution, in which fields annotated with Spring's \texttt{@Value} (e.g., \texttt{@Value("\$\{order\--service.url:http://localhost:8081\}")}) are pre-scanned using Spoon. Property placeholders are resolved against the service's configuration, falling back to default values when the property key is not found. Finally, a cascading target resolution strategy is applied: when a call target is extracted from a \texttt{@FeignClient} annotation, \texttt{RestTemplate} invocation, or \texttt{WebClient} call, it is matched to a microservice using three strategies applied in order, i.e. exact match against service names and registered aliases, port-based matching for \texttt{localhost:PORT}-style targets, and fuzzy substring matching with common suffix stripping (e.g., matching ''order'' to ''order-service''). For \texttt{@FeignClient} interfaces, each non-default, non-static method is registered as a separate call evidence entry, since each method corresponds to an individual HTTP request at runtime. This produces accurate per-method call counts that feed into chatty service detection.
+\par The first step is a configuration pre-scan: before scanning source code, each service's \texttt{application.yml} or \texttt{application.properties} is parsed. The \texttt{spring\-.application.name} property is registered as an alias for the service directory name, and \texttt{server.port} values are recorded in a port-to-service mapping. Next, the pipeline performs \texttt{@Value} field resolution, in which fields annotated with Spring's \texttt{@Value} (e.g., \texttt{@Value("\$\{order\--service.url:http://localhost:8081\}")}) are pre-scanned using Spoon. Property placeholders are resolved against the service's configuration, falling back to default values when the property key is not found. Finally, a cascading target resolution strategy is applied: when a call target is extracted from a \texttt{@FeignClient} annotation, \texttt{RestTemplate} invocation, or \texttt{WebClient} call, it is matched to a microservice using three strategies applied in order, i.e. exact match against service names and registered aliases, port-based matching for \texttt{localhost:PORT}-style targets, and fuzzy substring matching with common suffix stripping (e.g., matching ''order'' to ''order-service''). For \texttt{@FeignClient} interfaces, each non-default, non-static method is registered as a separate call evidence entry, since each method corresponds to an individual HTTP request at runtime. This produces accurate per-method call counts that feed into chatty service detection.
 
 Figure~\ref{fig:dependency-graph-example} shows an example dependency graph for a hypothetical microservice system. Each node represents a service, and edges are labeled with the dependency type and call count. The graph reveals a cycle between the Order, Inventory and Payment services as well as a potential ESB misuse pattern where the API Gateway mediates most communication.
 
@@ -92,7 +92,7 @@ Figure~\ref{fig:dependency-graph-example} shows an example dependency graph for 
     \label{fig:dependency-graph-example}
 \end{figure}
 
-Graph-based anti-pattern detection encompasses several analytical techniques. Cycle detection involves finding strongly connected components using Tarjan's algorithm to identify cyclic dependencies, while centrality analysis computes betweenness centrality to detect potential ESB misuse, where a single service mediates a disproportionate share of communication. Additionally, coupling metrics are evaluated by computing the coupling coefficient as the ratio of actual dependencies to possible dependencies.
+\par Graph-based anti-pattern detection encompasses several analytical techniques. Cycle detection involves finding strongly connected components using Tarjan's algorithm to identify cyclic dependencies, while centrality analysis computes betweenness centrality to detect potential ESB misuse, where a single service mediates a disproportionate share of communication. Additionally, coupling metrics are evaluated by computing the coupling coefficient as the ratio of actual dependencies to possible dependencies.
 
 \begin{equation}
     C = \frac{|E|}{|V| \times (|V| - 1)}
@@ -160,7 +160,7 @@ Table~\ref{tab:severity-weights} details the severity levels, their correspondin
 
 In the first phase, the configuration files of each microservice are parsed to extract the datasource URL. For Spring Boot applications, the detector reads \texttt{application.yml}, \texttt{application.yaml}, or \texttt{application.properties} configuration files located in the \texttt{/resources} directory of each service. From YAML files, the nested property \texttt{spring.datasource.url} is extract using a recursive map traversal, whereas from properties files, the same key is read directly. Spring property placeholders with default values (e.g., \texttt{\$\{DB\_HOST:localhost\}}) are resolved to their defaults to enable meaningful comparison.
 
-In the second phase, microservices are grouped by their resolved datasource URL. Any group containing more than one service indicates a shared database instance. Formally, let $\mathcal{S}$ denote the set of all microservices and $\text{dsUrl}$ denote the resolved datasource URL of service $s$. The detector reports a Shared Database anti-pattern for each equivalence class:
+In the second phase, microservices are grouped by their resolved datasource URL. Any group containing more than one service indicates a shared database instance. Formally, let $\mathcal{S}$ denote the set of all microservices and $\mathit{dsUrl}$ denote the resolved datasource URL of service $s$. The detector reports a Shared Database anti-pattern for each equivalence class:
 
 \begin{equation}
     \forall\, u \in \mathit{URLs} : \bigl|\{s \in \mathcal{S} : \mathit{dsUrl}(s) = u\}\bigr| > 1
@@ -264,14 +264,14 @@ As evidence, the detector attempts to locate the service's main application clas
 \subsection{God Service Detection}
 \label{subsec:detect-god-service}
 
-\par The God Service detector identifies microservices that handle too many responsibilities \cite{Taibi2018}. Detection uses two complementary signals; a service is flagged when either signal identifies at least one God Class. Firstly, the detector queries the code smell repository for \textit{God Class} smells reported by DesigniteJava. A single God Class occurrence is sufficient to flag the service:
+\par The God Service detector identifies microservices that handle too many responsibilities \cite{Taibi2018}. Detection uses two complementary signals and a service is flagged when either signal identifies at least one God Class. Firstly, the detector queries the code smell repository for \textit{God Class} smells reported by DesigniteJava. A single God Class occurrence is sufficient to flag the service:
 
 \begin{equation}
     \bigl|\{c \in \mathit{classes}(s) : \mathit{isGodClass}_{\mathit{DJ}}(c)\}\bigr| \geq \theta_{\mathit{god}}
     \label{eq:god-service-detection}
 \end{equation}
 
-\noindent where $\theta_{\mathit{god}}$ defaults to~1 (configurable via \texttt{app\-.thresh\-olds.\-god\--ser\-vice-min-god-classes}). The threshold of 1 is intentionally low because even a single God Class in a service indicates a significant concentration of responsibilities that may impair independent deployability and testability. Teams that prefer a less sensitive setting can raise the threshold via configuration.
+\noindent where $\theta_{\mathit{god}}$ defaults to~1 (configurable via \texttt{ap\-p\-.thr\-esh\-ol\-ds.\-god\--ser\-vice-min-god-classes}). The threshold of 1 is intentionally low because even a single God Class in a service indicates a significant concentration of responsibilities that may impair independent deployability and testability. Teams that prefer a less sensitive setting can raise the threshold via configuration.
 
 Then, when DesigniteJava reports no God Classes (e.g.\ because it was disabled or the project structure prevented its execution), the detector falls back to a Spoon-based structural analysis. Each non-abstract class is evaluated against six metrics, summarised in Table~\ref{tab:god-class-metrics}. A class is flagged as a God Class when $\geq 3$ of the six metrics simultaneously exceed their thresholds:
 
@@ -384,7 +384,7 @@ The system is flagged as a distributed monolith when any of the following condit
     \label{eq:dm-decision-rule}
 \end{equation}
 
-The composite rule captures three distinct manifestations of the anti-pattern; firstly, systems where more than half of all possible inter-service dependencies exist. Secondly, systems where nearly all services are connected and they additionally share databases. Lastly, systems where nearly all services are connected with a moderately high coupling coefficient. The composite decision rule is intentionally sensitive by design, as undetected distributed monoliths carry severe long-term consequences. Teams that find the rule too aggressive for their context can raise the coupling and connectivity thresholds via configuration.
+The composite rule captures three distinct manifestations of the anti-pattern. Firstly, systems where more than half of all possible inter-service dependencies exist. Secondly, systems where nearly all services are connected and they additionally share databases. Lastly, systems where nearly all services are connected with a moderately high coupling coefficient. The composite decision rule is intentionally sensitive by design, as undetected distributed monoliths carry severe long-term consequences. Teams that find the rule too aggressive for their context can raise the coupling and connectivity thresholds via configuration.
 
 The detection is performed when the system contains at least three microservices ($|V| \geq 3$), as smaller systems do not exhibit the structural characteristics of a distributed monolith.
 
@@ -410,7 +410,7 @@ The detector then queries all endpoints for each microservice. A service is flag
     \label{eq:api-versioning-detection}
 \end{equation}
 
-As evidence, the detector locates the controller classes that declare unversioned endpoints and extracts the code snippets showing the \texttt{@RestController} or \texttt{@Re\-questMap\-ping} annotations. This allows the developer to see where versioning prefixes (e.g., \texttt{/v1/}) could be added.
+As evidence, the detector locates the controller classes that declare unversioned endpoints and extracts the code snippets showing the \texttt{@RestController} or \texttt{@Re\-questMap\-ping} annotations. Thus, development teams are able to see where versioning prefixes (e.g., \texttt{/v1/}) could be added.
 
 %--------------------------------------------------------------
 \subsection{Wrong Cuts Detection}

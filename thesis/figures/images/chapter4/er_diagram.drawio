@@ -1,0 +1,145 @@
+<mxfile host="app.diagrams.net" agent="GitHub Copilot" version="24.0.0">
+  <diagram id="er-diagram" name="Entity-Relationship Diagram">
+    <mxGraphModel dx="1522" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ==================== USER ==================== -->
+        <mxCell id="user-box" value="&lt;b style=&quot;font-size:14px;&quot;&gt;User&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div style=&quot;text-align:left;padding:4px;font-size:11px;line-height:1.6;&quot;&gt;🔑 id : Long (PK)&lt;br&gt;name : String&lt;br&gt;email : String (UNIQUE)&lt;br&gt;password : String (BCrypt)&lt;br&gt;github_token : String&lt;br&gt;enabled : Boolean&lt;br&gt;&lt;i style=&quot;color:#888;&quot;&gt;created_at / updated_at&lt;/i&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;verticalAlign=top;align=center;overflow=fill;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="160" width="240" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== PROJECT ==================== -->
+        <mxCell id="project-box" value="&lt;b style=&quot;font-size:14px;&quot;&gt;Project&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div style=&quot;text-align:left;padding:4px;font-size:11px;line-height:1.6;&quot;&gt;🔑 id : Long (PK)&lt;br&gt;🔗 owner_id : Long (FK → User)&lt;br&gt;name : String&lt;br&gt;description : String&lt;br&gt;source_type : Enum&lt;br&gt;source_url : String&lt;br&gt;branch : String&lt;br&gt;is_private : Boolean&lt;br&gt;local_path : String&lt;br&gt;&lt;i style=&quot;color:#888;&quot;&gt;created_at / updated_at&lt;/i&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;verticalAlign=top;align=center;overflow=fill;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="380" y="120" width="260" height="270" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== MICROSERVICE ==================== -->
+        <mxCell id="ms-box" value="&lt;b style=&quot;font-size:14px;&quot;&gt;Microservice&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div style=&quot;text-align:left;padding:4px;font-size:11px;line-height:1.6;&quot;&gt;🔑 id : Long (PK)&lt;br&gt;🔗 project_id : Long (FK → Project)&lt;br&gt;name : String&lt;br&gt;relative_path : String&lt;br&gt;lines_of_code : Integer&lt;br&gt;number_of_classes : Integer&lt;br&gt;number_of_endpoints : Integer&lt;br&gt;number_of_entities : Integer&lt;br&gt;datasource_url : String&lt;br&gt;datasource_name : String&lt;br&gt;&lt;i style=&quot;color:#888;&quot;&gt;created_at / updated_at&lt;/i&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B3E0DC;strokeColor=#5BA89A;verticalAlign=top;align=center;overflow=fill;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="760" y="120" width="280" height="290" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ENDPOINT ==================== -->
+        <mxCell id="ep-box" value="&lt;b style=&quot;font-size:14px;&quot;&gt;Endpoint&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div style=&quot;text-align:left;padding:4px;font-size:11px;line-height:1.6;&quot;&gt;🔑 id : Long (PK)&lt;br&gt;🔗 microservice_id : Long (FK)&lt;br&gt;path : String&lt;br&gt;http_method : Enum&lt;br&gt;controller_class : String&lt;br&gt;method_name : String&lt;br&gt;api_version : String&lt;br&gt;has_versioning : Boolean&lt;br&gt;&lt;i style=&quot;color:#888;&quot;&gt;created_at / updated_at&lt;/i&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;verticalAlign=top;align=center;overflow=fill;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="120" width="260" height="240" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== SERVICE DEPENDENCY ==================== -->
+        <mxCell id="dep-box" value="&lt;b style=&quot;font-size:14px;&quot;&gt;ServiceDependency&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div style=&quot;text-align:left;padding:4px;font-size:11px;line-height:1.6;&quot;&gt;🔑 id : Long (PK)&lt;br&gt;🔗 source_service_id : Long (FK)&lt;br&gt;🔗 target_service_id : Long (FK)&lt;br&gt;dependency_type : Enum&lt;br&gt;call_count : Integer&lt;br&gt;evidence_file : String&lt;br&gt;evidence_line : Integer&lt;br&gt;evidence_code : String&lt;br&gt;target_url : String&lt;br&gt;&lt;i style=&quot;color:#888;&quot;&gt;created_at / updated_at&lt;/i&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6F3FF;strokeColor=#6FA8DC;verticalAlign=top;align=center;overflow=fill;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="420" width="260" height="270" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== CODE SMELL ==================== -->
+        <mxCell id="smell-box" value="&lt;b style=&quot;font-size:14px;&quot;&gt;CodeSmell&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div style=&quot;text-align:left;padding:4px;font-size:11px;line-height:1.6;&quot;&gt;🔑 id : Long (PK)&lt;br&gt;🔗 microservice_id : Long (FK)&lt;br&gt;smell_type : String&lt;br&gt;description : String&lt;br&gt;file_path : String&lt;br&gt;class_name : String&lt;br&gt;method_name : String&lt;br&gt;line_number : Integer&lt;br&gt;severity : Enum&lt;br&gt;source_tool : String&lt;br&gt;&lt;i style=&quot;color:#888;&quot;&gt;created_at / updated_at&lt;/i&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6F0;strokeColor=#CC6699;verticalAlign=top;align=center;overflow=fill;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="750" width="260" height="280" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ANALYSIS JOB ==================== -->
+        <mxCell id="job-box" value="&lt;b style=&quot;font-size:14px;&quot;&gt;AnalysisJob&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div style=&quot;text-align:left;padding:4px;font-size:11px;line-height:1.6;&quot;&gt;🔑 id : Long (PK)&lt;br&gt;🔗 project_id : Long (FK → Project)&lt;br&gt;status : Enum (JobStatus)&lt;br&gt;current_phase : String&lt;br&gt;current_service : String&lt;br&gt;progress_percentage : Integer&lt;br&gt;analysis_number : Integer&lt;br&gt;run_designite : Boolean&lt;br&gt;detect_* flags : Boolean (×6)&lt;br&gt;threshold params (nano, god, chatty)&lt;br&gt;&lt;i style=&quot;color:#888;&quot;&gt;started_at / completed_at / error_message&lt;/i&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;verticalAlign=top;align=center;overflow=fill;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="380" y="470" width="260" height="280" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ANALYSIS RESULT ==================== -->
+        <mxCell id="result-box" value="&lt;b style=&quot;font-size:14px;&quot;&gt;AnalysisResult&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div style=&quot;text-align:left;padding:4px;font-size:11px;line-height:1.6;&quot;&gt;🔑 id : Long (PK)&lt;br&gt;🔗 analysis_job_id : Long (FK, 1:1)&lt;br&gt;health_score : Integer&lt;br&gt;services_analyzed : Integer&lt;br&gt;total_anti_patterns : Integer&lt;br&gt;total_code_smells : Integer&lt;br&gt;critical / high / medium / low _issues&lt;br&gt;total_lines_of_code : Integer&lt;br&gt;coupling_coefficient : Double&lt;br&gt;dependency_graph_json : TEXT&lt;br&gt;&lt;i style=&quot;color:#888;&quot;&gt;created_at / updated_at&lt;/i&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;verticalAlign=top;align=center;overflow=fill;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="380" y="820" width="260" height="280" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== DETECTED ANTI-PATTERN ==================== -->
+        <mxCell id="ap-box" value="&lt;b style=&quot;font-size:14px;&quot;&gt;DetectedAntiPattern&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div style=&quot;text-align:left;padding:4px;font-size:11px;line-height:1.6;&quot;&gt;🔑 id : Long (PK)&lt;br&gt;🔗 analysis_result_id : Long (FK)&lt;br&gt;🔗 primary_service_id : Long (FK, opt)&lt;br&gt;pattern_type : Enum (AntiPatternType)&lt;br&gt;severity : Enum&lt;br&gt;description : String&lt;br&gt;remediation : String&lt;br&gt;affected_services : TEXT (JSON)&lt;br&gt;details_json / evidence_json : TEXT&lt;br&gt;cycle_length / call_count : Integer&lt;br&gt;code_snippets : TEXT (JSON)&lt;br&gt;&lt;i style=&quot;color:#888;&quot;&gt;created_at / updated_at&lt;/i&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;verticalAlign=top;align=center;overflow=fill;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="760" y="820" width="280" height="310" as="geometry" />
+        </mxCell>
+
+        <!-- ===================================================== -->
+        <!--              RELATIONSHIP ARROWS                       -->
+        <!-- ===================================================== -->
+
+        <!-- User 1──* Project -->
+        <mxCell id="rel-user-project" value="1          owns          *" style="endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;html=1;strokeWidth=2;strokeColor=#333333;fontColor=#333333;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" source="user-box" target="project-box" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Project 1──* Microservice -->
+        <mxCell id="rel-project-ms" value="1     contains     *" style="endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;html=1;strokeWidth=2;strokeColor=#333333;fontColor=#333333;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" source="project-box" target="ms-box" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Project 1──* AnalysisJob -->
+        <mxCell id="rel-project-job" value="1     has     *" style="endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;html=1;strokeWidth=2;strokeColor=#333333;fontColor=#333333;fontSize=11;edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="project-box" target="job-box" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- AnalysisJob 1──1 AnalysisResult -->
+        <mxCell id="rel-job-result" value="1   produces   1" style="endArrow=ERmandOne;endFill=0;startArrow=ERmandOne;startFill=0;html=1;strokeWidth=2;strokeColor=#333333;fontColor=#333333;fontSize=11;edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="job-box" target="result-box" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- AnalysisResult 1──* DetectedAntiPattern -->
+        <mxCell id="rel-result-ap" value="1   has   *" style="endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;html=1;strokeWidth=2;strokeColor=#333333;fontColor=#333333;fontSize=11;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="result-box" target="ap-box" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- DetectedAntiPattern *──0..1 Microservice (dashed, optional) -->
+        <mxCell id="rel-ap-ms" value="*   primary service   0..1" style="endArrow=ERzeroToOne;endFill=0;startArrow=ERmany;startFill=0;html=1;strokeWidth=2;strokeColor=#999999;fontColor=#666666;fontSize=11;dashed=1;dashPattern=8 4;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=1;entryY=1;entryDx=0;entryDy=0;" edge="1" source="ap-box" target="ms-box" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="882" />
+              <mxPoint x="1100" y="410" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Microservice 1──* Endpoint -->
+        <mxCell id="rel-ms-ep" value="1          *" style="endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;html=1;strokeWidth=2;strokeColor=#333333;fontColor=#333333;fontSize=11;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="ms-box" target="ep-box" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Microservice 1──* ServiceDependency (source) -->
+        <mxCell id="rel-ms-dep" value="1   source   *" style="endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;html=1;strokeWidth=2;strokeColor=#333333;fontColor=#333333;fontSize=11;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" source="ms-box" target="dep-box" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="265" />
+              <mxPoint x="1100" y="501" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ServiceDependency *──1 Microservice (target, dashed self-ref) -->
+        <mxCell id="rel-dep-ms-target" value="target" style="endArrow=ERmandOne;endFill=0;startArrow=ERmany;startFill=0;html=1;strokeWidth=2;strokeColor=#999999;fontColor=#666666;fontSize=11;dashed=1;dashPattern=8 4;edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" source="dep-box" target="ms-box" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1290" y="400" />
+              <mxPoint x="900" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Microservice 1──* CodeSmell -->
+        <mxCell id="rel-ms-smell" value="1          *" style="endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;html=1;strokeWidth=2;strokeColor=#333333;fontColor=#333333;fontSize=11;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" source="ms-box" target="smell-box" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="352" />
+              <mxPoint x="1100" y="834" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===================================================== -->
+        <!--                  ANNOTATIONS                           -->
+        <!-- ===================================================== -->
+
+        <!-- BaseEntity note -->
+        <mxCell id="base-note" value="&lt;i&gt;All entities extend &lt;b&gt;BaseEntity&lt;/b&gt;&lt;br&gt;(id, created_at, updated_at)&lt;/i&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontColor=#888888;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="40" y="420" width="240" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend-box" value="&lt;b&gt;Legend&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div style=&quot;text-align:left;font-size:11px;line-height:2;&quot;&gt;━━━  Mandatory FK (cascade delete)&lt;br&gt;╌╌╌  Optional / self-reference&lt;br&gt;🔑  Primary Key&lt;br&gt;🔗  Foreign Key&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;verticalAlign=top;align=center;overflow=fill;strokeWidth=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="520" width="240" height="120" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+
