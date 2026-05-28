@@ -15,7 +15,7 @@
 \section{System Overview}
 \label{sec:system-overview}
 
-\par The MSA Detector follows a client--server architecture with three main components: a Spring Boot backend that exposes a RESTful API \cite{Fielding2000}, an Angular single-page application (SPA) that provides the user interface, and a PostgreSQL relational database for persistent storage. All components are containerized using Docker and orchestrated via Docker Compose, as can be seen in figure~\ref{fig:architecture-overview}.
+\par The MSA Detector follows a client--server architecture with three main components: a Spring Boot backend that exposes a RESTful API \cite{Fielding2000}, an Angular\footnote{\url{https://angular.dev/}} single-page application (SPA) that provides the user interface, and a PostgreSQL\footnote{\url{https://www.postgresql.org/}} relational database for persistent storage. All components are containerized using Docker \cite{Merkel2014} and orchestrated via Docker Compose, as can be seen in figure~\ref{fig:architecture-overview}.
 
 \begin{figure}
     \centering

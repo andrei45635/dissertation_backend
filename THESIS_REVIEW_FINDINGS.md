@@ -154,132 +154,88 @@ A service not named "gateway" but acting as one (e.g. "edge-router", "reverse-pr
 
 ---
 
-## Chapter Length Analysis
+## Citation Gap Analysis — Applied
 
-### Raw sizes (source characters / lines)
+**3 citations added to `references.bib` and `chapter4_slimmer.tex`:**
+- Docker → `\cite{Merkel2014}` at system overview (line 18), tech stack table, and chapter summary
+- Twelve-Factor App → `\cite{TwelveFactor}` replacing `\cite{Newman2015}` at §4.5.4 config management paragraph; also in chapter summary
+- BCrypt → `\cite{Provos1999}` at §4.3.2 "Passwords are hashed using BCrypt" and chapter summary
 
-| Chapter | Lines | Chars | Est. PDF pages |
-|---|---|---|---|
-| Ch.1 Introduction | 28 | 6.7k | ~2 |
-| Ch.2 Background & Related Work | 403 | 41.1k | ~15 |
-| Ch.3 Detection Methodology | 526 | 46.6k | ~18 |
-| Ch.4 Application Design & Impl. | 654 | 69.7k | ~30+ |
-| Ch.5 Results & Evaluation | 299 | 36.3k | ~13 |
-| Ch.6 Conclusions | 40 | 7.7k | ~3 |
+**7 footnotes added to `chapter4_slimmer.tex`:**
+- Angular → footnote at system overview (line 18) and tech stack table
+- PostgreSQL → footnote at system overview (line 18) and tech stack table
+- Flyway → footnote at §4.2 first mention (line 88); existing footnote in Docker Compose section removed to avoid duplication
+- JGit → footnote in tech stack table
+- Lombok → footnote in tech stack table
+- Cytoscape.js → footnote at §4.4.3 Results page and §4.4.4 Reusable Components
+- OpenAPI → footnote in tech stack table
 
-### Chapter 4 — Shrink Candidates
+---
 
-Ch.4 is nearly 70k chars — roughly 50% larger than the next biggest chapter and likely 30+ PDF pages. The following subsections are the primary candidates for trimming:
+## Citation Gap Analysis (original analysis)
 
-**1. §4.4 Frontend Implementation (L399–L530, ~130 lines, ~14k chars)**
-This is the single largest section in Ch.4. It describes every Angular component in exhaustive detail: routing config, auth interceptor implementation, file upload drag-and-drop events, SVG gauge math (`2πr ≈ 283 units`), Cytoscape.js force-directed layout parameters. Most of this is implementation-level detail that belongs in source code documentation, not a thesis.
-- **Recommendation**: **Cut by ~60%.** Keep the application structure overview, the routing table, and one paragraph per page component summarising its purpose. Move the component-level implementation details (§4.4.4 Reusable Components) to an appendix or remove entirely. The SVG math, drag-and-drop DOM events, and Cytoscape configuration parameters add no academic value.
+The dissertation currently has 28 references. Below are opportunities to add citations, organized by strength of recommendation.
 
-**2. §4.5 Deployment (L532–L650, ~120 lines, ~13k chars)**
-Five subsubsections under "Production Deployment Considerations" (hosting, data access, TLS, backup, scaling) read more like a deployment guide than a thesis chapter.
-- **Recommendation**: **Cut by ~50%.** Merge the five production subsubsections into a single paragraph noting key considerations. The Docker Compose dev/prod comparison is valuable; the detailed TLS/Caddy/Cloudflare discussion and `pg_dump` backup guidance is not thesis-relevant.
+### Strongly Recommended (academic credibility gaps)
 
-**3. §4.3.2 Authentication and Security (L202–L247, ~45 lines)**
-Very detailed description of JWT flow, BCrypt, SecurityContext. Standard Spring Security boilerplate.
-- **Recommendation**: **Cut by ~30%.** Keep the architecture overview; remove the step-by-step request lifecycle description.
+**1. Docker / containerization — Ch.4 §4.5 (Deployment)**
+Docker is mentioned extensively (Dockerfile, Docker Compose, multi-stage builds, container-aware JVM flags) but never cited. Add:
+- Merkel, D. (2014). "Docker: Lightweight Linux Containers for Consistent Development and Deployment." *Linux Journal*, 2014(239), Article 2.
+- *Where*: Ch.4 line 18 ("containerized using Docker") or line 495 ("containerized using Docker and orchestrated with Docker Compose")
 
-**4. Code listings (scattered)**
-The JWT generation listing (L221–L243) and the Dockerfile runtime listing (L542–L563) are ~20 lines each. These are fine to keep — they add concrete evidence. The AnalysisWorker listing (L264–L307) is critical and should stay.
+**2. Angular — Ch.4 §4.4 (Frontend)**
+Angular is used as the entire frontend framework but has no citation. Add:
+- The official Angular documentation or a canonical reference:
+  - Google LLC. "Angular — One Framework. Mobile & Desktop." https://angular.dev/ (accessed 2026-XX-XX).
+- *Where*: Ch.4 line 407 ("built with Angular 19")
 
-### Estimated savings from Ch.4 trimming
-- Frontend: ~8k chars saved
-- Deployment: ~6k chars saved
-- Auth: ~2k chars saved
-- **Total: ~16k chars → roughly 6–8 fewer PDF pages → Ch.4 drops to ~22–24 pages**
+**3. Flyway — Ch.4 §4.2 (Data Model)**
+Flyway is mentioned for schema migrations (line 88, line 59 in tech table) but only has a footnote in Docker Compose section. Should have a proper citation or at least a consistent footnote. Currently there's a footnote at line 529 but not at line 88 where it's first mentioned.
+- *Where*: Ch.4 line 88 ("versioned using Flyway migrations")
 
-### Other Chapters — Assessment
+**4. Twelve-Factor App / Cloud-Native configuration — Ch.4 §4.5.4**
+Line 539 cites Newman2015 for "established practices for cloud-native applications" regarding environment variable configuration. A stronger citation would be:
+- Wiggins, A. (2017). "The Twelve-Factor App." https://12factor.net/ (accessed 2026-XX-XX).
+- *Where*: Ch.4 line 539, replace or supplement `\cite{Newman2015}` with a Twelve-Factor App citation, since the env-var externalization pattern originates from Factor III (Config).
 
-**Ch.2 (41k chars, ~15 pages)**: Appropriate length for a background + related work chapter. The related work section (§2.3, L237–L397) is thorough and well-structured. No cuts recommended.
+### Nice to Have (strengthen existing mentions)
 
-**Ch.3 (47k chars, ~18 pages)**: Contains 10 anti-pattern detector algorithms plus the health score, deployability gate, and dependency graph sections. Length is justified by the number of detectors. The pseudocode algorithms (Shared DB, Tarjan's SCC) are appropriately concise. No cuts recommended.
+**5. Cytoscape.js — Ch.4 §4.4.3/§4.4.4**
+The dependency graph visualization uses Cytoscape.js (mentioned in §4.4.3 line 476 and §4.4.4 line 490) but has no citation. Add:
+- Franz, M. et al. (2016). "Cytoscape.js: a graph theory library for visualisation and analysis." *Bioinformatics*, 32(2), 309–311. doi:10.1093/bioinformatics/btv557
+- *Where*: Ch.4 line 476 ("interactive dependency graph rendered with Cytoscape.js")
 
-**Ch.5 (36k chars, ~13 pages)**: Good length. The MicroservicesSocial case study section (§5.3.1) could theoretically be shortened, but it provides useful worked-example value. No cuts recommended.
+**6. JGit — Ch.4 §4.3.1**  
+JGit is used for Git cloning (line 255) and listed in the tech stack table but has no citation or footnote. Add:
+- Eclipse Foundation. "JGit." https://www.eclipse.org/jgit/ (accessed 2026-XX-XX).
+- *Where*: Ch.4 line 57 in tech stack table, or line 255.
 
-**Ch.1 & Ch.6**: Both short and appropriate. Ch.1 could arguably be expanded slightly but is fine as-is.
+**7. Lombok — Ch.4 Table 4.1**
+Lombok is in the tech stack table (line 61) with no citation. Add:
+- Project Lombok. https://projectlombok.org/ (accessed 2026-XX-XX).
+- *Where*: footnote in tech stack table.
+
+**8. PostgreSQL — Ch.4**
+PostgreSQL is a core component but never cited. Add:
+- The PostgreSQL Global Development Group. "PostgreSQL: The World's Most Advanced Open Source Relational Database." https://www.postgresql.org/ (accessed 2026-XX-XX).
+- *Where*: Ch.4 line 18 or line 67 in tech stack table.
+
+**9. BCrypt — Ch.4 §4.3.2**
+BCrypt is mentioned for password hashing (line 246) but not cited. Add:
+- Provos, N. and Mazières, D. (1999). "A Future-Adaptable Password Scheme." *Proceedings of the USENIX Annual Technical Conference*, 81–92.
+- *Where*: Ch.4 line 246 ("Passwords are hashed using BCrypt")
+
+**10. OpenAPI / Swagger — Ch.4 Table 4.1**
+SpringDoc OpenAPI is in the tech stack (line 73) but has no citation. A footnote to the OpenAPI specification would suffice:
+- OpenAPI Initiative. "OpenAPI Specification." https://spec.openapis.org/oas/latest.html
+- *Where*: footnote in tech stack table.
+
+### Not Needed (already well-covered or too minor)
+
+- Spring Boot, Spring Security, Spring Data JPA — industry-standard frameworks; citation not expected in a thesis unless discussing their design principles specifically.
+- Nginx — only mentioned once in Docker Compose; footnote at most.
+- Maven — standard build tool, no citation needed.
 
 ### Summary
 
-The only chapter that warrants shrinking is **Chapter 4**, and the primary targets are the **frontend component descriptions** and the **production deployment guide**. These two sections together account for ~27k chars (~40% of the chapter) and could be cut roughly in half without losing any academically relevant content.
-
----
-
-## Consistency Check Summary
-
-| Item | Abstract | Ch.5 | Ch.6 | Slides |
-|---|---|---|---|---|
-| Project count | 8 ✓ | 8 ✓ | 8 ✓ | 8 ✓ |
-| Service count | 116 ✓ | 116 ✓ | 116 ✓ | 116 ✓ |
-| LOC | ~350k ✓ | ~350k ✓ | ~350k ✓ | ~350k ✓ |
-| Anti-pattern instances | 106 ✓ | 106 ✓ | 106 ✓ | 106 ✓ |
-| Anti-pattern types detected | 9 ✓ | 9 ✓ | 9 ✓ | 9 ✓ |
-| Score range | 45–77 ✓ | 45–77 ✓ | — | 45–77 ✓ |
-| Activiti/Karate refs | None ✓ | None ✓ | None ✓ | None ✓ |
-| ESB Misuse severity | High ✓ | High ✓ | — | High ✓ |
-| Health score formula | Category-based ✓ | Category-based ✓ | — | Category-based ✓ |
-| ESB betweenness centrality | Ch.3 ✓ | Validated ✓ | — | — |
-| Deployability gate | Ch.3 ✓ | — | — | Slide 4 ✓ |
-| MapStruct disclaimer | — | — | Ch.4 footnote ✓ | — |
-
----
-
-## Chapter 4 Cuts Applied (chapter4_slimmer.tex)
-
-The following cuts were applied to `thesis/chapters/chapter4_slimmer.tex`, reducing it from 654 → 587 source lines (~67 lines, ~10% reduction, estimated 6–8 fewer PDF pages).
-
-| Section | What was cut | Before | After |
-|---|---|---|---|
-| §4.4.2 Auth Integration | BehaviorSubject details, RxJS catchError internals, CanActivateFn implementation, per-interceptor paragraphs | 4 paragraphs | 1 paragraph |
-| §4.4.3 Pages | Per-component implementation details (ngModel binding, HttpEvent.UploadProgress, setInterval polling internals, modal dialog flow, metric card layout, Jobs tab) | ~60 lines | ~20 lines (kept all 4 figures) |
-| §4.4.4 Reusable Components | All 7 detailed component paragraphs (SVG math, stroke-dashoffset, Cytoscape CoSE params, drag-drop DOM events, CodeSnippet pre-rendering, ProgressTracker step classification) | 7 paragraphs (~70 lines) | 1 summary paragraph listing all 7 components |
-| §4.5.5 Production Deployment | 5 subsubsections (Hosting Infrastructure, Data Access, TLS Termination, Backup, Resource Sizing) collapsed | 5 subsubsections (~30 lines) | 1 paragraph retaining the key architectural insight (DB-only statefulness) |
-| §4.3.2 Backend Auth | OncePerRequestFilter lifecycle, CustomUserDetailsService, UserPrincipal fields | verbose paragraph | trimmed to essentials |
-| §4.6 Summary | Updated to mention frontend components and merged deployment note | — | reflects shortened content |
-
-### What was preserved
-- All 4 page screenshots (Figures: login, upload, results, history)
-- Routing table (Table 4.5)
-- All code listings (JWT generation, AnalysisWorker, Detector interface, Dockerfile runtime)
-- Application structure & directory layout paragraph
-- All backend sections unchanged (REST API, Pipeline, Detector Architecture, Diff, Exception Handling)
-- Docker Compose dev/prod subsections
-- Configuration management table
-
----
-
-## Further Cuts Analysis (All Chapters)
-
-After reviewing all chapters for additional trimming opportunities, here are the findings:
-
-### Candidates for cutting
-
-**1. Ch.5 §5.2.3 MicroservicesSocial detailed walkthrough (~30 lines)**
-The step-by-step narrative of how the tool analyzed MicroservicesSocial (clone → scan → results) is a useful worked example but could be condensed from ~30 lines to ~15 lines by removing intermediate observations and keeping only the key findings and the "what the tool detected vs. what was expected" comparison.
-- **Savings**: ~15 lines (~1 page)
-
-**2. Ch.2 §2.3.4 Dynamic and Hybrid Approaches (~8 lines, L308–315)**
-Describes runtime tracing, chaos engineering, and hybrid approaches that the tool does NOT use. Could be removed entirely or reduced to a single sentence noting these exist but are out of scope.
-- **Savings**: ~6 lines (~0.3 pages)
-
-### Not recommended for cutting
-
-- **Ch.1 (28 lines)**: Already minimal.
-- **Ch.2 anti-pattern definitions (§2.1)**: Core background, all needed.
-- **Ch.2 related work (§2.3)**: Well-structured comparison, justifies the tool's position.
-- **Ch.3 detection algorithms**: All 10 detectors + health score + deployability gate are essential.
-- **Ch.5 evaluation tables & per-project results**: Core contribution, cannot be cut.
-- **Ch.6 (40 lines)**: Already minimal.
-
-### Source cleanup (no page count impact)
-
-- Ch.5 has ~40 lines of commented-out LaTeX (old validation paragraphs, precision/recall table skeleton, TODO comments) that take no PDF space but clutter the source. Can be removed for cleanliness.
-- Ch.2 has ~40 lines of commented-out tools comparison section. Same — no PDF impact, but cleaner without them.
-
-### Verdict
-
-**Very little remains to cut.** The Chapter 4 cuts already removed the main excess. The remaining chapters are appropriately sized. At most, ~1.5 pages could be saved from Ch.5 §5.2.3 and Ch.2 §2.3.4, but the quality trade-off is marginal. The dissertation at 70 pages is well within the normal 60–100 page range for a master's thesis.
-
+**4 strongly recommended** citations (Docker, Angular, Flyway consistency, Twelve-Factor App) would address the most visible gaps. **6 nice-to-have** citations (Cytoscape.js, JGit, Lombok, PostgreSQL, BCrypt, OpenAPI) would bring the reference list to ~34–38 entries, which is solid for a master's thesis. The most impactful additions are **Docker** and **Twelve-Factor App**, as they back core architectural decisions discussed at length in the deployment section.
