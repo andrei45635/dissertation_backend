@@ -96,6 +96,60 @@ Distributed Monolith is the only anti-pattern type with zero detections across a
 
 ---
 
+## Chapter Length Analysis
+
+### Raw sizes (source characters / lines)
+
+| Chapter | Lines | Chars | Est. PDF pages |
+|---|---|---|---|
+| Ch.1 Introduction | 28 | 6.7k | ~2 |
+| Ch.2 Background & Related Work | 403 | 41.1k | ~15 |
+| Ch.3 Detection Methodology | 526 | 46.6k | ~18 |
+| Ch.4 Application Design & Impl. | 654 | 69.7k | ~30+ |
+| Ch.5 Results & Evaluation | 299 | 36.3k | ~13 |
+| Ch.6 Conclusions | 40 | 7.7k | ~3 |
+
+### Chapter 4 — Shrink Candidates
+
+Ch.4 is nearly 70k chars — roughly 50% larger than the next biggest chapter and likely 30+ PDF pages. The following subsections are the primary candidates for trimming:
+
+**1. §4.4 Frontend Implementation (L399–L530, ~130 lines, ~14k chars)**
+This is the single largest section in Ch.4. It describes every Angular component in exhaustive detail: routing config, auth interceptor implementation, file upload drag-and-drop events, SVG gauge math (`2πr ≈ 283 units`), Cytoscape.js force-directed layout parameters. Most of this is implementation-level detail that belongs in source code documentation, not a thesis.
+- **Recommendation**: **Cut by ~60%.** Keep the application structure overview, the routing table, and one paragraph per page component summarising its purpose. Move the component-level implementation details (§4.4.4 Reusable Components) to an appendix or remove entirely. The SVG math, drag-and-drop DOM events, and Cytoscape configuration parameters add no academic value.
+
+**2. §4.5 Deployment (L532–L650, ~120 lines, ~13k chars)**
+Five subsubsections under "Production Deployment Considerations" (hosting, data access, TLS, backup, scaling) read more like a deployment guide than a thesis chapter.
+- **Recommendation**: **Cut by ~50%.** Merge the five production subsubsections into a single paragraph noting key considerations. The Docker Compose dev/prod comparison is valuable; the detailed TLS/Caddy/Cloudflare discussion and `pg_dump` backup guidance is not thesis-relevant.
+
+**3. §4.3.2 Authentication and Security (L202–L247, ~45 lines)**
+Very detailed description of JWT flow, BCrypt, SecurityContext. Standard Spring Security boilerplate.
+- **Recommendation**: **Cut by ~30%.** Keep the architecture overview; remove the step-by-step request lifecycle description.
+
+**4. Code listings (scattered)**
+The JWT generation listing (L221–L243) and the Dockerfile runtime listing (L542–L563) are ~20 lines each. These are fine to keep — they add concrete evidence. The AnalysisWorker listing (L264–L307) is critical and should stay.
+
+### Estimated savings from Ch.4 trimming
+- Frontend: ~8k chars saved
+- Deployment: ~6k chars saved
+- Auth: ~2k chars saved
+- **Total: ~16k chars → roughly 6–8 fewer PDF pages → Ch.4 drops to ~22–24 pages**
+
+### Other Chapters — Assessment
+
+**Ch.2 (41k chars, ~15 pages)**: Appropriate length for a background + related work chapter. The related work section (§2.3, L237–L397) is thorough and well-structured. No cuts recommended.
+
+**Ch.3 (47k chars, ~18 pages)**: Contains 10 anti-pattern detector algorithms plus the health score, deployability gate, and dependency graph sections. Length is justified by the number of detectors. The pseudocode algorithms (Shared DB, Tarjan's SCC) are appropriately concise. No cuts recommended.
+
+**Ch.5 (36k chars, ~13 pages)**: Good length. The MicroservicesSocial case study section (§5.3.1) could theoretically be shortened, but it provides useful worked-example value. No cuts recommended.
+
+**Ch.1 & Ch.6**: Both short and appropriate. Ch.1 could arguably be expanded slightly but is fine as-is.
+
+### Summary
+
+The only chapter that warrants shrinking is **Chapter 4**, and the primary targets are the **frontend component descriptions** and the **production deployment guide**. These two sections together account for ~27k chars (~40% of the chapter) and could be cut roughly in half without losing any academically relevant content.
+
+---
+
 ## Consistency Check Summary
 
 | Item | Abstract | Ch.5 | Ch.6 | Slides |
