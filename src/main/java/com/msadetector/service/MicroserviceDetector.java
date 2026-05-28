@@ -56,9 +56,14 @@ public class MicroserviceDetector {
             "module-info"
     );
 
-    /** Annotations / markers that indicate a framework entry point. */
+    /** Annotations / markers that indicate a framework entry point. The
+     * {@code extends MicroserviceApplication} marker recognises CDI/Jakarta EE
+     * microservices (e.g. SiteWhere) whose bootstrap class is annotated with a
+     * generic {@code @ApplicationScoped} and inherits {@code main()} from a shared
+     * base class, so neither a Spring annotation nor a literal main() is present
+     * in the module itself. */
     private static final Pattern FRAMEWORK_ENTRY_PATTERN = Pattern.compile(
-            "@SpringBootApplication|@QuarkusMain|@ApplicationPath|Micronaut\\.run\\("
+            "@SpringBootApplication|@QuarkusMain|@ApplicationPath|Micronaut\\.run\\(|extends\\s+MicroserviceApplication"
     );
 
     /** Pattern matching a Java main method signature. */

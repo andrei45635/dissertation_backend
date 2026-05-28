@@ -111,7 +111,7 @@ Figure~\ref{fig:dependency-graph-example} shows an example dependency graph for 
 
 \noindent where each category score $S_i = \max(0,\; M_i - P_i)$, with $M_i$ the maximum budget and $P_i$ the total penalty for that category. The four categories and their budgets are described in the following paragraphs.
 
-\par The first category, Anti-Patterns ($M_{\mathrm{ap}} = 40$), penalises each detected anti-pattern according to its severity (Table~\ref{tab:severity-weights}). The deduction per issue is 8~points for critical severity, 5 for high, 3 for medium, and 1 for low.
+\par The first category, Anti-Patterns ($M_{\mathrm{ap}} = 40$), penalises each detected anti-pattern according to its severity (Table~\ref{tab:severity-weights}). The deduction per issue is 8~points for critical severity, 5 for high, 3 for medium, and 1 for low. Nano Service and God Service instances are excluded from this category and accounted for solely under Service Sizing, so that each service-sizing issue contributes to the score exactly once.
 
 \par The second category, Code Quality ($M_{\mathrm{cq}} = 20$), captures the density of code smells reported by DesigniteJava. The penalty is computed on a logarithmic scale, $P_{\mathrm{cq}} = \min(20,\; \lfloor \ln(1 + n_{\mathrm{smells}}) \times 3.5 \rceil)$, which dampens the impact of very large smell counts while still penalising smell-heavy codebases.
 
@@ -292,7 +292,7 @@ As evidence, the detector attempts to locate the service's main application clas
 
 \noindent where $\theta_{\mathit{god}}$ defaults to~1 (configurable via \texttt{ap\-p\-.thr\-esh\-ol\-ds.\-god\--ser\-vice-min-god-classes}). The threshold of 1 is intentionally low because even a single God Class in a service indicates a significant concentration of responsibilities that may impair independent deployability and testability. Teams that prefer a less sensitive setting can raise the threshold via configuration.
 
-Then, when DesigniteJava reports no God Classes (e.g.\ because it was disabled or the project structure prevented its execution), the detector falls back to a Spoon-based structural analysis. Each non-abstract class is evaluated against six metrics, summarised in Table~\ref{tab:god-class-metrics}. A class is flagged as a God Class when $\geq 3$ of the six metrics simultaneously exceed their thresholds:
+Then, when DesigniteJava reports no God Classes (e.g.\ because it was disabled or the project structure prevented its execution), the detector falls back to a Spoon-based structural analysis. Before scoring, pure data-holder classes (those carrying a data annotation such as \texttt{@Entity} or \texttt{@Data}, having a data-class name suffix such as \texttt{Dto} or \texttt{Model}, or whose public methods are predominantly getters and setters) are excluded, since such classes naturally exhibit many fields and low cohesion without representing an architectural anti-pattern. Each remaining non-abstract class is evaluated against six metrics, summarised in Table~\ref{tab:god-class-metrics}. A class is flagged as a God Class when $\geq 3$ of the six metrics simultaneously exceed their thresholds:
 
 \begin{equation}
     \bigl|\{m \in M : \mathit{exceeds}(m, c)\}\bigr| \geq 3

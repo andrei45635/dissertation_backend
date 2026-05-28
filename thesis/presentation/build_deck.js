@@ -703,7 +703,6 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
         const findings = [
             ["26×", "Hardcoded Endpoints", "−3 each = −78"],
             ["4×",  "Chatty Service",      "−5 each = −20"],
-            ["4×",  "Nano Service",        "−3 each = −12"],
             ["1×",  "Shared Database",     "−5 each = −5"],
         ];
         findings.forEach((row, i) => {
@@ -732,7 +731,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             x: 0.5, y: 2.95, w: 4.5, h: 0.45,
             fill: { color: C.navy }, line: { color: C.navy },
         });
-        s.addText("Total penalty: 115   →   AP clamped at 0", {
+        s.addText("Total penalty: 103   →   AP clamped at 0", {
             x: 0.5, y: 2.95, w: 4.5, h: 0.45,
             fontSize: 12, fontFace: BODY_FONT, color: "FFFFFF", bold: true,
             align: "center", valign: "middle", margin: 0,
@@ -808,13 +807,13 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
         s.addNotes(
             "Spend ~75 seconds. This is the slide that makes the scoring reproducible.\n\n" +
             "Walk through it:\n" +
-            "• 'Take Train-Ticket as an example — an academic benchmark with 42 microservices. It has 26 hardcoded endpoints, 4 chatty services, 4 nano services, and 1 shared database. Total penalty: 115 — but the AP category caps at 40, so it clamps to zero.'\n" +
-            "• 'Service Sizing loses 8 points from the nano service penalty (capped at 8).'\n" +
+            "• 'Take Train-Ticket as an example — an academic benchmark with 41 microservices. In the anti-pattern category it has 26 hardcoded endpoints, 4 chatty services, and 1 shared database — total penalty 103, but the AP category caps at 40, so it clamps to zero.'\n" +
+            "• 'Its 4 nano services are scored under Service Sizing instead of the anti-pattern category (to avoid double counting), costing 8 points there (capped at 8).'\n" +
             "• 'Code Quality and Architecture both score perfect — DesigniteJava produced no smells, and the coupling coefficient stayed below the penalty threshold.'\n" +
             "• 'So the final score is 0 + 20 + 25 + 7 = 52. Grade D.'\n\n" +
             "This slide demonstrates: (1) the scoring formula is fully transparent and reproducible, (2) the decomposition tells you exactly what's wrong — here it's overwhelmingly hardcoded URLs and chatty inter-service calls.\n\n" +
             "EXPECT QUESTION: 'Code Quality and Architecture scoring perfect — is that real?'\n" +
-            "Honest answer: 'DesigniteJava genuinely didn't flag smells in this project, and the coupling coefficient is low because Train-Ticket has 42 services but relatively few resolved inter-service edges. A richer evaluation corpus would exercise those categories more. I note this in Chapter 5.'"
+            "Honest answer: 'DesigniteJava genuinely didn't flag smells in this project, and the coupling coefficient is low because Train-Ticket has 41 services but relatively few resolved inter-service edges. A richer evaluation corpus would exercise those categories more. I note this in Chapter 5.'"
         );
     }
 
@@ -830,7 +829,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
         s.addChart(pres.charts.BAR, [{
             name: "Health score",
             labels: ["MicroSocial", "Site-Where", "design-pat.", "Apollo", "Train-Ticket", "Genie", "NetworkDisk", "recruit"],
-            values: [77, 69, 60, 59, 52, 45, 53, 48],
+            values: [83, 69, 60, 68, 52, 70, 62, 48],
         }], {
             x: 0.4, y: 0.95, w: 5.9, h: 3.0,
             barDir: "col",
@@ -861,7 +860,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             ["design-pat.",   "16", "19k"],
             ["Site-Where",    "15", "74k"],
             ["Genie",         "11", "118k"],
-            ["Train-Ticket",  "42", "38k"],
+            ["Train-Ticket",  "41", "36k"],
             ["Apollo-Config", "11", "86k"],
             ["NetworkDisk",   "10", "7k"],
             ["recruit",       "8",  "8k"],
@@ -925,7 +924,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "Spend ~90 seconds.\n\n" +
             "Talking points:\n" +
             "• 'I evaluated on eight open-source Spring Boot projects, spanning from a 2k-LOC student project to Genie at 118k LOC. 116 microservices, 350k LOC total.'\n" +
-            "• 'Health scores ranged from 45 to 77 — the scoring mechanism produces meaningful spread.'\n" +
+            "• 'Health scores ranged from 48 to 83 — the scoring mechanism produces meaningful spread.'\n" +
             "• 'The dominant findings are configuration and sizing issues: 45 hardcoded endpoints, 24 API versioning absences, 20 nano services. But importantly, Cyclic Dependency and Wrong Cuts were detected in microservice-recruit — adding those two projects exercised detectors that previously produced zero results.'\n" +
             "• '106 total anti-pattern instances across 9 distinct types. Only Distributed Monolith was not detected — plausible given these projects' topologies.'\n\n" +
             "EXPECT: 'Only 8 projects, is that enough?'\n" +
@@ -1018,7 +1017,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "• Have a second browser tab open with a PREVIOUSLY COMPLETED analysis loaded, as a fallback. If the live clone fails or runs slow, switch to that tab and say 'here's a previous run on the same project.'\n\n" +
             "Demo script (~2 min):\n" +
             "1. CLONE (~30 s): 'I'll paste a GitHub URL of a small microservice project and submit it.' Paste, click submit. While it runs: 'the pipeline is now detecting microservices, running DesigniteJava per service, building the dependency graph, and running the ten detectors.'\n" +
-            "2. DASHBOARD (~30 s): When the results page loads, point at the health score gauge. 'Score 77, grade C. The four-category breakdown shows where the deductions came from — mostly Anti-Patterns category.'\n" +
+            "2. DASHBOARD (~30 s): When the results page loads, point at the health score gauge. 'Score 83, grade B. The four-category breakdown shows where the deductions came from — mostly Anti-Patterns category.'\n" +
             "3. DRILL-DOWN (~45 s): Click on the Shared Database finding to expand it. 'You can see the affected services, the actual datasource URL that's being shared, the code snippet from the application.yml file, and remediation guidance.' This is the slide's strongest moment — the committee sees the evidence-based reporting in action.\n" +
             "4. DEPENDENCY GRAPH (~15 s): Scroll down or switch to the dep-graph view. 'Interactive force-directed graph. Each node is a service, edges show inter-service calls, node size scales with LOC.'\n\n" +
             "Then say: 'I'll switch back to the slides.' Click back to slide 11.\n\n" +

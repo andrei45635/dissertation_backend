@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
  *   <li><b>Spoon-based multi-metric analysis:</b> scans each class for structural
  *       indicators of God Class behaviour — high field count, high public method count,
  *       high LOC, many import domains, and low cohesion (TCC). A class is flagged when
- *       ≥2 metrics exceed their thresholds simultaneously.</li>
+ *       ≥3 metrics exceed their thresholds simultaneously.</li>
  * </ol>
  * A service is reported as a God Service if it contains at least one God Class
  * from either approach.

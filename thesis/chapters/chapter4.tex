@@ -15,7 +15,7 @@
 \section{System Overview}
 \label{sec:system-overview}
 
-\par The MSA Detector follows a client-server architecture with three main components: a Spring Boot backend that exposes a RESTful API \cite{Fielding2000}, an Angular\footnote{\hyperlink{Angular}{https://angular.dev/}} single-page application (SPA) that provides the user interface, and a PostgreSQL\footnote{\hyperlink{PostgreSQL}{https://www.postgresql.org/}} relational database for persistent storage. All components are containerized using Docker \cite{Merkel2014} and orchestrated via Docker Compose, as can be seen in figure~\ref{fig:architecture-overview}.
+\par The MSA Detector follows a client-server architecture with three main components: a Spring Boot backend that exposes a RESTful API \cite{Fielding2000}, an Angular\footnote{\url{https://angular.dev/}} single-page application (SPA) that provides the user interface, and a PostgreSQL\footnote{\url{https://www.postgresql.org/}} relational database for persistent storage. All components are containerized using Docker \cite{Merkel2014} and orchestrated via Docker Compose, as can be seen in figure~\ref{fig:architecture-overview}.
 
 \begin{figure}
     \centering
@@ -72,8 +72,8 @@ Table~\ref{tab:tech-stack} summarizes the technologies used in each layer of the
         \hline
         API Doc               & SpringDoc OpenAPI 2.7.0                           & Swagger UI and OpenAPI spec           \\
         \hline
-        Testing                         & JUnit 5, Testcontainers 1.20.4                    & Unit and integration testing          \\
-        \hline
+%         Testing                         & JUnit 5, Testcontainers 1.20.4                    & Unit and integration testing          \\
+%         \hline
     \end{tabular}
     \caption{Technology stack summary for the MSA Detector system.
     % \textcolor{red}{tabelul depasea marginea. Am prescurtat API Doc, recompileaza sa vedem ca e ok}
@@ -197,7 +197,7 @@ All foreign key relationships use \texttt{ON DELETE CASCADE} at the database lev
     \label{tab:api-endpoints}
 \end{table}
 
-All endpoints except \texttt{/api/**}, Swagger UI, and the actuator health endpoint require JWT authentication. Request and response payloads use Java \texttt{record} DTOs serialized to JSON via Jackson, with null fields excluded from responses.
+All endpoints except \texttt{/api/auth/**}, Swagger UI, and the actuator health endpoint require JWT authentication. Request and response payloads use Java \texttt{record} DTOs serialized to JSON via Jackson, with null fields excluded from responses.
 
 \subsection{Authentication and Security}
 \label{subsec:auth-security}
@@ -319,7 +319,7 @@ The fourth phase, Anti-Pattern Detection (\texttt{DETECTING\_PATTERNS}), delegat
 
 Finally, in the Result Assembly phase, summary statistics are computed (e.g. total lines of code, average service size, coupling coefficient (see Chapter ~\ref{chap:ch3}, Equation~\ref{eq:coupling-coefficient}), issue counts by severity) and the health score is calculated following the methodology described in Chapter~\ref{chap:ch3}, Section~\ref{subsec:health-score}. The dependency graph is serialized to a JSON structure containg nodes (services with metadata) and edges (dependencies with type and weight). The \texttt{AnalysisResult} entity is persisted, and the job status is set to \texttt{COMPLETED}.
 
-If any phase fails, the exception is caught, the job status is set \texttt{FAILED} with the error messsage and the failure is logged. Users may also cancel a running job via the API, which sets the status to \texttt{CANCELLED}. The \texttt{JobProgressUpdated} service provides atomic progress updates by executing each update in an independent transaction (\texttt{Propagation.REQUIRES\_NEW}), thus ensuring that progress changes are immediately visible to polling clients regardless of the outer analysis transaction.
+If any phase fails, the exception is caught, the job status is set \texttt{FAILED} with the error messsage and the failure is logged. Users may also cancel a running job via the API, which sets the status to \texttt{CANCELLED}. The \texttt{JobProgressUpdater} service provides atomic progress updates by executing each update in an independent transaction (\texttt{Propagation.REQUIRES\_NEW}), thus ensuring that progress changes are immediately visible to polling clients regardless of the outer analysis transaction.
 
 \subsection{Anti-Pattern Detector Architecture}
 \label{subsec:detector-architecture}

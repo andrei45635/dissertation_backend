@@ -1,8 +1,67 @@
-# Thesis Review Findings (Round 4)
+# Thesis Review Findings (Round 5)
 
-Cross-reference of the thesis against the backend codebase. Updated after adding NetworkDisk and microservice-recruit, formalizing betweenness centrality, adding the deployability gate, and all related prose updates.
+Cross-reference of the thesis against the backend codebase. Round 5 is a fresh full pass over `main.tex`, all six included chapters, `references.bib`, and the backend source. New issues found in this pass are collected in the **Round 5 — New Findings** section immediately below; prior rounds' content is preserved underneath.
 
 Items marked **FIXED** were resolved in prior rounds. Items marked **OPEN** remain.
+
+---
+
+## Round 5 — New Findings (2026-05-28)
+
+Numbers in the evaluation tables were re-checked and are internally consistent: services sum to 116, LOC sums to ~348k, the anti-pattern distribution rows/columns both total 106, every per-project anti-pattern list in Table 5.2 matches the distribution table, all grades match the score bands, and the Train-Ticket worked example (H = 0 + 20 + 25 + 7 = 52) reproduces exactly under `HealthScoreCalculator`. The issues below are the genuine problems.
+
+### CRITICAL / HIGH-VISIBILITY — all FIXED by author
+
+- **R5-1. FIXED** — `main.tex:6` `type=bachelor` → `type=master`.
+- **R5-2. FIXED** — real title set in `main.tex:21` (was `[Titlu lucrare]` placeholder).
+- **R5-3. FIXED** — Ch.1 MSANose citation corrected to `\cite{Walker2020}`.
+- **R5-4. FIXED** — `chapter4.tex:200` corrected to `/api/auth/**`.
+
+### MEDIUM (correctness / defensibility)
+
+**R5-5. CODE FIXED — thesis NOT yet updated.**
+Was: health score double-counted Nano/God services in both the **Anti-Patterns** and **Service Sizing** categories. Fixed in `HealthScoreCalculator.buildAntiPatternCategory` by filtering out `NANO_SERVICE`/`GOD_SERVICE` so Service Sizing is their sole home; each anti-pattern is now counted once.
+
+**Impact — re-run done, thesis updated.** After re-running the tool, the projects whose scores actually moved were:
+
+| Project | Old | New | Grade |
+|---|---|---|---|
+| MicroservicesSocial | 77 | 83 | C→B |
+| Apollo-Config | 59 | 68 | D→C |
+| Genie | 45 | 70 | F→C |
+| NetworkDisk | 53 | 62 | D→D |
+
+All four match the exact double-count-removal calculation. All others unchanged (m-d-p 60, Site-Where 69, Train-Ticket 52, microservice-recruit 48 — the last two have their Anti-Patterns category floored at 0, so removing the nano penalty there has no effect). m-d-p and Site-Where did **not** rise despite having nano/god services — offset by other category movement in the re-run. Headline range is now **48–83**.
+
+Thesis updates applied: Table 5.2 (MicroservicesSocial 83/B, Apollo 68/C, Genie 70/C, NetworkDisk 62/D), abstract range (`main.tex:55`) and §5.2 range → "48 to 83", MicroservicesSocial subsection → "83/100 (grade B)", Train-Ticket worked example (`chapter5.tex:151`, nano removed from Anti-Patterns category, 115→103, score still 52), and §3.2.4 methodology note that Nano/God are scored only under Service Sizing.
+
+**R5-6. FIXED** — `chapter4.tex:18` Angular/PostgreSQL footnotes changed from `\hyperlink{...}{URL}` (which targets a nonexistent internal anchor) to `\url{...}`.
+
+**R5-7. Wrong class name: `JobProgressUpdated`.**
+`chapter4.tex:322` — "The `JobProgressUpdated` service provides atomic progress updates…". The actual class is `JobProgressUpdater.java`. Factual error.
+
+**R5-8. FIXED** — author commented out the "JUnit 5, Testcontainers — Unit and integration testing" row in Table 4.1, removing the claim (no tests will be written).
+
+### LOW (polish / draft artifacts)
+
+**R5-9. WON'T FIX (author decision)** — leftover TODO/scaffolding comments are intentionally kept for now.
+
+**R5-10. WON'T FIX (author decision)** — `chapter4_cuts.tex` / `chapter4_slimmer.tex` kept intentionally.
+
+**R5-11. FIXED** — `GodServiceDetector` Javadoc updated to "≥3 metrics" to match `MIN_METRICS_EXCEEDED = 3`.
+
+**R5-12. FIXED** — §3.4 now states that data-holder classes (data annotation, data-class name suffix, or predominantly getters/setters) are excluded before the six-metric evaluation, matching `GodServiceDetector.isDataClass()`.
+
+**R5-13. NOT AN ISSUE (author clarification)** — the thesis never claimed all ten detectors are per-job toggleable; the six-flag set is intentional.
+
+**R5-14. OPEN — Hardcoded-endpoint regex/description in §3.7 doesn't exactly match the code.**
+`chapter3.tex:362–363`: the printed regex omits the trailing `*` quantifier present in `HardcodedEndpointDetector.URL_PATTERN` (line 29–31), the comment-prefix list shows an empty `\texttt{}` (should be `*`), and "verifies the match occurs within a string literal (i.e., enclosed in quotes)" overstates the check — the code only verifies a *leading* quote (`line.contains("\"" + pattern)`, line 114), not full enclosure. Cosmetic but inaccurate.
+
+### Corrections to prior-round findings
+
+**R5-15. Re-verify the `ChattyServiceDetector` `LazyInitializationException` (Detector Code Review #2).** `findChattyDependencies` still lacks `JOIN FETCH` (`ServiceDependencyRepository.java:45–49`), and the prior note assumed the path never executes "because no project has a dependency with callCount ≥ 10." But Train-Ticket now reports **4 Chatty Service** instances (Table 5.3), so this code ran and produced results. That implies either the detection executes inside a transaction (making the LazyInit concern moot) or those 4 came from the Spoon source-scan path rather than the graph-edge path. The finding should be confirmed empirically rather than asserted, and downgraded if the edge path is in fact transactional.
+
+**R5-16. `buildGraphJson` N+1 (Detector Code Review #6) is likely overstated.** `AntiPatternDetectorService.buildGraphJson` (line 158) uses `findByProject` (no fetch), but it only reads `dep.getSourceService().getId()` / `getTargetService().getId()` (proxy-id access, no initialization) plus `dep.getDependencyType()` and `dep.getCallCount()`, which are fields of `ServiceDependency` itself, not of the lazy related entities. So no proxy initialization is triggered and there is no N+1 here. Keep using `findByProjectWithServices` for consistency if desired, but this isn't a live performance bug.
 
 ---
 

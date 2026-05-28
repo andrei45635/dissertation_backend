@@ -68,8 +68,12 @@ public class HealthScoreCalculator {
         List<Deduction> deductions = new ArrayList<>();
         int totalPenalty = 0;
 
+        // Nano/God services are scored exclusively in the Service Sizing category,
+        // so they are excluded here to avoid penalising them in two categories.
         Map<AntiPatternType, List<DetectedAntiPattern>> byType =
                 result.getDetectedAntiPatterns().stream()
+                        .filter(p -> p.getPatternType() != AntiPatternType.NANO_SERVICE
+                                && p.getPatternType() != AntiPatternType.GOD_SERVICE)
                         .collect(Collectors.groupingBy(DetectedAntiPattern::getPatternType));
 
         for (var entry : byType.entrySet()) {
