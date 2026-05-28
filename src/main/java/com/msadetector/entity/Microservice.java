@@ -45,6 +45,14 @@ public class Microservice extends BaseEntity {
     @Builder.Default
     private Integer numberOfEntities = 0;
 
+    @Size(max = 20)
+    @Column(name = "detection_confidence")
+    private String detectionConfidence;
+
+    @Size(max = 100)
+    @Column(name = "detection_signal")
+    private String detectionSignal;
+
     @Size(max = 500)
     @Column(name = "datasource_url")
     private String datasourceUrl;

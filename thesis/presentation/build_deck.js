@@ -269,7 +269,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
         const rows = [
             { icon: icCogs,    color: C.deepBlue, title: "Multi-level analysis",        text: "Combines intra-service code smells (DesigniteJava) with inter-service dependency analysis (Spoon + graphs)." },
             { icon: icSitemap, color: C.teal,     title: "Ten anti-patterns detected",  text: "Across four dimensions: service design, communication, data management, deployment & coupling." },
-            { icon: icSearch,  color: C.navy,     title: "Automated boundary detection",text: "Identifies microservices from build files — no manual enumeration required." },
+            { icon: icSearch,  color: C.navy,     title: "Automated boundary detection",text: "Three-signal deployability gate (framework entry point, Dockerfile, main method) with confidence levels." },
             { icon: icChart,   color: C.good,     title: "Composite health score",      text: "0–100 with letter grading; decomposes into four interpretable categories; tracks change over time." },
             { icon: icFile,    color: C.warn,     title: "Evidence-based reporting",    text: "Every finding includes source snippets, affected services, and remediation guidance." },
         ];
@@ -295,7 +295,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "What to actually say:\n" +
             "• 'The work has five contributions. The first is the multi-level analysis itself — using code-level signals like God Class frequency to flag architectural problems like God Service. That bridge between abstraction levels is the central novelty.'\n" +
             "• 'Second, ten anti-patterns across four dimensions — broader coverage than any single existing tool.'\n" +
-            "• 'Third, automated microservice boundary detection from build files — most existing tools require manual configuration.'\n" +
+            "• 'Third, automated microservice boundary detection via a three-signal deployability gate — framework entry points, Dockerfiles, and main methods — with confidence levels. Most existing tools require manual configuration.'\n" +
             "• 'Fourth, a composite health score on 0–100, decomposed into four categories so you can see which dimension is dragging the score down.'\n" +
             "• 'Fifth, evidence-based reporting — every finding includes the actual code that triggered it.'\n\n" +
             "Don't dwell on each one. They'll see the details later. This slide sets expectations for the rest of the talk."
@@ -313,7 +313,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
         // Five-stage flow with icons
         const stages = [
             { x: 0.45, title: "1. Ingest",            sub: "ZIP upload / Git clone",     icon: icServer,  color: C.navy },
-            { x: 2.30, title: "2. Detect services",   sub: "Scan build files",           icon: icSearch,  color: C.deepBlue },
+            { x: 2.30, title: "2. Detect services",   sub: "Deployability gate (3 signals)", icon: icSearch,  color: C.deepBlue },
             { x: 4.15, title: "3. Intra + Inter",     sub: "DesigniteJava + Spoon",      icon: icCogs,    color: C.teal },
             { x: 6.00, title: "4. Detect patterns",   sub: "10 detectors (Strategy)",    icon: icShield,  color: C.warn },
             { x: 7.85, title: "5. Score & report",    sub: "Health score + evidence",    icon: icChart,   color: C.good },
@@ -377,7 +377,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "Spend ~2 minutes here. This is the spine of the talk — get the pipeline right and everything else follows.\n\n" +
             "Walk left to right:\n" +
             "• Ingest: user uploads a ZIP or pastes a Git URL. The system extracts/clones and creates an analysis job.\n" +
-            "• Service detection: scan for build files — pom.xml, build.gradle, build.gradle.kts. Filter out non-service modules using ~40 exclusion keywords.\n" +
+            "• Service detection: scan for build files — pom.xml, build.gradle, build.gradle.kts. Filter out non-service modules using exclusion keywords and aggregator checks. Then apply a three-signal deployability gate: framework entry point (HIGH), Dockerfile (MEDIUM), main() method (LOW). Only candidates passing at least one signal are kept.\n" +
             "• Intra-service analysis runs DesigniteJava as a subprocess for code smells. Inter-service uses Spoon AST to find @FeignClient, RestTemplate, WebClient calls and build the dependency graph.\n" +
             "• Then ten detectors run over that graph + the smells. Each is a Spring component implementing a common interface — Strategy pattern.\n" +
             "• Finally results are assembled, the health score is computed, the dependency graph is serialised to JSON, and everything is persisted.\n\n" +
@@ -701,7 +701,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             fontSize: 13, fontFace: HEADER_FONT, color: C.navy, bold: true, margin: 0,
         });
         const findings = [
-            ["27×", "Hardcoded Endpoints", "−3 each = −81"],
+            ["26×", "Hardcoded Endpoints", "−3 each = −78"],
             ["4×",  "Chatty Service",      "−5 each = −20"],
             ["4×",  "Nano Service",        "−3 each = −12"],
             ["1×",  "Shared Database",     "−5 each = −5"],
@@ -732,7 +732,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             x: 0.5, y: 2.95, w: 4.5, h: 0.45,
             fill: { color: C.navy }, line: { color: C.navy },
         });
-        s.addText("Total penalty: 118   →   AP clamped at 0", {
+        s.addText("Total penalty: 115   →   AP clamped at 0", {
             x: 0.5, y: 2.95, w: 4.5, h: 0.45,
             fontSize: 12, fontFace: BODY_FONT, color: "FFFFFF", bold: true,
             align: "center", valign: "middle", margin: 0,
@@ -798,7 +798,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             fontSize: 14, fontFace: HEADER_FONT, color: C.navy, bold: true,
             align: "center", valign: "middle", margin: 0,
         });
-        s.addText("Score driven by AP deductions (27 Hardcoded Endpoints + 4 Chatty Services). Service Sizing loses 8 pts from nano services. Architecture and Code Quality are clean.", {
+        s.addText("Score driven by AP deductions (26 Hardcoded Endpoints + 4 Chatty Services). Service Sizing loses 8 pts from nano services. Architecture and Code Quality are clean.", {
             x: 0.5, y: 3.95, w: 4.5, h: 1.0,
             fontSize: 10, fontFace: BODY_FONT, color: C.muted, italic: true, margin: 0,
         });
@@ -808,7 +808,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
         s.addNotes(
             "Spend ~75 seconds. This is the slide that makes the scoring reproducible.\n\n" +
             "Walk through it:\n" +
-            "• 'Take Train-Ticket as an example — an academic benchmark with 42 microservices. It has 27 hardcoded endpoints, 4 chatty services, 4 nano services, and 1 shared database. Total penalty: 118 — but the AP category caps at 40, so it clamps to zero.'\n" +
+            "• 'Take Train-Ticket as an example — an academic benchmark with 42 microservices. It has 26 hardcoded endpoints, 4 chatty services, 4 nano services, and 1 shared database. Total penalty: 115 — but the AP category caps at 40, so it clamps to zero.'\n" +
             "• 'Service Sizing loses 8 points from the nano service penalty (capped at 8).'\n" +
             "• 'Code Quality and Architecture both score perfect — DesigniteJava produced no smells, and the coupling coefficient stayed below the penalty threshold.'\n" +
             "• 'So the final score is 0 + 20 + 25 + 7 = 52. Grade D.'\n\n" +
@@ -824,13 +824,13 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
     {
         const s = pres.addSlide();
         s.background = { color: C.bg };
-        addTitle(s, "Evaluation: six open-source projects");
+        addTitle(s, "Evaluation: eight open-source projects");
 
         // Top: results bar chart (project vs score)
         s.addChart(pres.charts.BAR, [{
             name: "Health score",
-            labels: ["MicroSocial", "Site-Where", "design-pat.", "Apollo", "Train-Ticket", "Genie"],
-            values: [77, 69, 60, 59, 52, 45],
+            labels: ["MicroSocial", "Site-Where", "design-pat.", "Apollo", "Train-Ticket", "Genie", "NetworkDisk", "recruit"],
+            values: [77, 69, 60, 59, 52, 45, 53, 48],
         }], {
             x: 0.4, y: 0.95, w: 5.9, h: 3.0,
             barDir: "col",
@@ -838,13 +838,13 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             chartArea:   { fill: { color: C.bg } },
             catAxisLabelColor: C.muted,
             valAxisLabelColor: C.muted,
-            catAxisLabelFontSize: 9,
+            catAxisLabelFontSize: 8,
             valAxisLabelFontSize: 9,
             valAxisMinVal: 0, valAxisMaxVal: 100,
             valGridLine: { color: C.cardBorder, size: 0.5 },
             catGridLine: { style: "none" },
             showValue: true, dataLabelPosition: "outEnd",
-            dataLabelColor: C.text, dataLabelFontSize: 10,
+            dataLabelColor: C.text, dataLabelFontSize: 9,
             showLegend: false,
             showTitle: true, title: "Health scores by project (0–100)",
             titleColor: C.navy, titleFontSize: 13, titleFontFace: HEADER_FONT,
@@ -863,36 +863,38 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             ["Genie",         "11", "118k"],
             ["Train-Ticket",  "42", "38k"],
             ["Apollo-Config", "11", "86k"],
-            ["Total",         "99", "335k"],
+            ["NetworkDisk",   "10", "7k"],
+            ["recruit",       "8",  "8k"],
+            ["Total",         "116", "350k"],
         ];
         rows.forEach((r, i) => {
-            const y = 1.35 + i * 0.42;
+            const y = 1.35 + i * 0.34;
             const isTotal = i === rows.length - 1;
             s.addShape(pres.shapes.RECTANGLE, {
-                x: tx, y: y, w: 3.0, h: 0.38,
+                x: tx, y: y, w: 3.0, h: 0.30,
                 fill: { color: isTotal ? C.navy : C.card },
                 line: { color: C.cardBorder, width: 0.5 },
             });
             s.addText(r[0], {
-                x: tx + 0.1, y: y, w: 1.4, h: 0.38,
-                fontSize: 10.5, fontFace: BODY_FONT,
+                x: tx + 0.1, y: y, w: 1.4, h: 0.30,
+                fontSize: 9.5, fontFace: BODY_FONT,
                 color: isTotal ? "FFFFFF" : C.text, bold: isTotal, valign: "middle", margin: 0,
             });
             s.addText(r[1], {
-                x: tx + 1.5, y: y, w: 0.5, h: 0.38,
-                fontSize: 10.5, fontFace: BODY_FONT,
+                x: tx + 1.5, y: y, w: 0.5, h: 0.30,
+                fontSize: 9.5, fontFace: BODY_FONT,
                 color: isTotal ? "FFFFFF" : C.text, bold: isTotal,
                 align: "center", valign: "middle", margin: 0,
             });
             s.addText(r[2], {
-                x: tx + 2.0, y: y, w: 0.95, h: 0.38,
-                fontSize: 10.5, fontFace: BODY_FONT,
+                x: tx + 2.0, y: y, w: 0.95, h: 0.30,
+                fontSize: 9.5, fontFace: BODY_FONT,
                 color: isTotal ? "FFFFFF" : C.text, bold: isTotal,
                 align: "right", valign: "middle", margin: 0,
             });
         });
         s.addText("services   /   LOC", {
-            x: tx + 1.5, y: 3.49, w: 1.5, h: 0.25,
+            x: tx + 1.5, y: 4.49, w: 1.5, h: 0.25,
             fontSize: 8, fontFace: BODY_FONT, color: C.muted, italic: true,
             align: "right", margin: 0,
         });
@@ -911,9 +913,9 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             fontSize: 12, fontFace: HEADER_FONT, color: C.navy, bold: true, margin: 0,
         });
         s.addText([
-            { text: "Hardcoded Endpoints (43) and Nano Service (17) dominate — configuration and sizing issues most prevalent.",
+            { text: "106 anti-pattern instances across 9 types. Hardcoded Endpoints (45) and API Versioning Absence (24) dominate.",
                 options: { bullet: true, fontSize: 11, color: C.text, breakLine: true } },
-            { text: "ESB Misuse detected in Site-Where (3); Chatty Service in Train-Ticket (4) — validates communication-topology detectors.",
+            { text: "Cyclic Dependency and Wrong Cuts detected in microservice-recruit — broader corpus exercises more detectors.",
                 options: { bullet: true, fontSize: 11, color: C.text } },
         ], { x: 0.8, y: 4.45, w: 8.7, h: 0.65, fontFace: BODY_FONT, margin: 0, paraSpaceAfter: 2 });
 
@@ -922,11 +924,11 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
         s.addNotes(
             "Spend ~90 seconds.\n\n" +
             "Talking points:\n" +
-            "• 'I evaluated on six open-source Spring Boot projects, spanning from a 2k-LOC student project to Genie at 118k LOC. 99 microservices, 335k LOC total.'\n" +
+            "• 'I evaluated on eight open-source Spring Boot projects, spanning from a 2k-LOC student project to Genie at 118k LOC. 116 microservices, 350k LOC total.'\n" +
             "• 'Health scores ranged from 45 to 77 — the scoring mechanism produces meaningful spread.'\n" +
-            "• 'The dominant findings are configuration and sizing issues: 43 hardcoded endpoints, 17 nano services. But importantly, ESB Misuse was detected in Site-Where and Chatty Service in Train-Ticket — validating the communication-topology detectors.'\n" +
-            "• '81 total anti-pattern instances across 7 distinct types. Cyclic Dependency, Distributed Monolith, and Wrong Cuts were not detected — plausible given these projects' topologies.'\n\n" +
-            "EXPECT: 'Only 6 projects, is that enough?'\n" +
+            "• 'The dominant findings are configuration and sizing issues: 45 hardcoded endpoints, 24 API versioning absences, 20 nano services. But importantly, Cyclic Dependency and Wrong Cuts were detected in microservice-recruit — adding those two projects exercised detectors that previously produced zero results.'\n" +
+            "• '106 total anti-pattern instances across 9 distinct types. Only Distributed Monolith was not detected — plausible given these projects' topologies.'\n\n" +
+            "EXPECT: 'Only 8 projects, is that enough?'\n" +
             "Answer: 'Not for a statistical claim. This evaluation is a feasibility demonstration across heterogeneous codebases. A full precision/recall study would need a labelled corpus, which doesn't exist for microservice anti-patterns — that's an open problem in the field. I note this in Threats to Validity.'"
         );
     }
@@ -1056,13 +1058,13 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
                 options: { bullet: true, fontSize: 11.5, color: C.text, breakLine: true } },
             { text: "Static analysis only — no runtime call frequency data.",
                 options: { bullet: true, fontSize: 11.5, color: C.text, breakLine: true } },
-            { text: "Service detection heuristic can misclassify shared library modules as microservices.",
+            { text: "Service detection deployability gate may miss services without framework annotations, Dockerfile, or main method.",
                 options: { bullet: true, fontSize: 11.5, color: C.text, breakLine: true } },
             { text: "Dynamic URLs (e.g. Spring Cloud Config) are not resolved.",
                 options: { bullet: true, fontSize: 11.5, color: C.text, breakLine: true } },
             { text: "Health score weights chosen by engineering judgement, not empirically calibrated.",
                 options: { bullet: true, fontSize: 11.5, color: C.text, breakLine: true } },
-            { text: "Evaluation on 6 open-source projects — not a statistical claim.",
+            { text: "Evaluation on 8 open-source projects — not a statistical claim.",
                 options: { bullet: true, fontSize: 11.5, color: C.text } },
         ], { x: 0.8, y: 1.7, w: 4.0, h: 3.2, fontFace: BODY_FONT, margin: 0, paraSpaceAfter: 4 });
 
@@ -1164,7 +1166,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "4. Answer concisely. If you don't know, say 'I didn't investigate that — my best guess is X but I'd want to verify.'\n\n" +
             "Common questions to prepare for:\n" +
             "• 'Why God Service threshold = 1?' → false positives cheap, false negatives expensive; configurable.\n" +
-            "• 'Why only 6 projects?' → feasibility demo not statistical claim; no labelled corpus exists.\n" +
+            "• 'Why only 8 projects?' → feasibility demo not statistical claim; no labelled corpus exists.\n" +
             "• 'Score compression at the bottom?' → known limitation, logarithmic AP penalty would fix.\n" +
             "• 'Why static instead of dynamic?' → applicability over precision; no deployed system required.\n" +
             "• 'Why Spring Boot only?' → biggest Java microservice ecosystem; other frameworks future work."

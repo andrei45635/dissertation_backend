@@ -103,10 +103,12 @@ public class AnalysisWorker {
     }
 
     private List<Microservice> detectMicroservices(Project project, Path projectPath) {
-        List<Path> servicePaths = microserviceDetector.detectServices(projectPath);
+        List<MicroserviceDetector.DetectedService> detectedServices =
+                microserviceDetector.detectServicesWithConfidence(projectPath);
         List<Microservice> microservices = new ArrayList<>();
 
-        for (Path servicePath : servicePaths) {
+        for (MicroserviceDetector.DetectedService detected : detectedServices) {
+            Path servicePath = detected.path();
             String name = servicePath.getFileName().toString();
             String relativePath = projectPath.relativize(servicePath).toString();
 
@@ -115,6 +117,8 @@ public class AnalysisWorker {
                     .relativePath(relativePath)
                     .project(project)
                     .linesOfCode(countLinesOfCode(servicePath))
+                    .detectionConfidence(detected.confidence().name())
+                    .detectionSignal(detected.signal())
                     .build();
 
             ms = microserviceRepository.save(ms);
