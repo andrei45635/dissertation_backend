@@ -166,3 +166,27 @@ The only chapter that warrants shrinking is **Chapter 4**, and the primary targe
 | ESB betweenness centrality | Ch.3 ✓ | Validated ✓ | — | — |
 | Deployability gate | Ch.3 ✓ | — | — | Slide 4 ✓ |
 | MapStruct disclaimer | — | — | Ch.4 footnote ✓ | — |
+
+---
+
+## Chapter 4 Cuts Applied (chapter4_slimmer.tex)
+
+The following cuts were applied to `thesis/chapters/chapter4_slimmer.tex`, reducing it from 654 → 587 source lines (~67 lines, ~10% reduction, estimated 6–8 fewer PDF pages).
+
+| Section | What was cut | Before | After |
+|---|---|---|---|
+| §4.4.2 Auth Integration | BehaviorSubject details, RxJS catchError internals, CanActivateFn implementation, per-interceptor paragraphs | 4 paragraphs | 1 paragraph |
+| §4.4.3 Pages | Per-component implementation details (ngModel binding, HttpEvent.UploadProgress, setInterval polling internals, modal dialog flow, metric card layout, Jobs tab) | ~60 lines | ~20 lines (kept all 4 figures) |
+| §4.4.4 Reusable Components | All 7 detailed component paragraphs (SVG math, stroke-dashoffset, Cytoscape CoSE params, drag-drop DOM events, CodeSnippet pre-rendering, ProgressTracker step classification) | 7 paragraphs (~70 lines) | 1 summary paragraph listing all 7 components |
+| §4.5.5 Production Deployment | 5 subsubsections (Hosting Infrastructure, Data Access, TLS Termination, Backup, Resource Sizing) collapsed | 5 subsubsections (~30 lines) | 1 paragraph retaining the key architectural insight (DB-only statefulness) |
+| §4.3.2 Backend Auth | OncePerRequestFilter lifecycle, CustomUserDetailsService, UserPrincipal fields | verbose paragraph | trimmed to essentials |
+| §4.6 Summary | Updated to mention frontend components and merged deployment note | — | reflects shortened content |
+
+### What was preserved
+- All 4 page screenshots (Figures: login, upload, results, history)
+- Routing table (Table 4.5)
+- All code listings (JWT generation, AnalysisWorker, Detector interface, Dockerfile runtime)
+- Application structure & directory layout paragraph
+- All backend sections unchanged (REST API, Pipeline, Detector Architecture, Diff, Exception Handling)
+- Docker Compose dev/prod subsections
+- Configuration management table

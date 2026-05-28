@@ -1,11 +1,11 @@
 \chapter{Application Design \& Implementation}
 \label{chap:ch4}
 
-% TODO - !!!!!!!!!!!!!!!!!!!!!! FIX THE STUPID DIAGRAMS AND TABLES !!!!!!!!!!!!!!!!!!!!!! 
-% - here I think this chapter should cover thinks like 
+% TODO - !!!!!!!!!!!!!!!!!!!!!! FIX THE STUPID DIAGRAMS AND TABLES !!!!!!!!!!!!!!!!!!!!!!
+% - here I think this chapter should cover thinks like
 % 1) system overview => high-level architecture diagram (backend, frontend, db, docker), tech stack summary (more in depth than chapter 2) => maybe move the tech stack from chapter 2 here
 % 2) data model => entity relation diagram, entity descriptions
-% 3) backend implementation 
+% 3) backend implementation
 % 4) frontend implementation
 % 5) deployment
 
@@ -58,7 +58,7 @@ Table~\ref{tab:tech-stack} summarizes the technologies used in each layer of the
         \cline{2-3}
         & Flyway                                            & Database schema migrations            \\
         \cline{2-3}
-        & Lombok 1.18.38                   & DTO mapping and boilerplate reduction \\
+        & Lombok 1.18.38                   & Boilerplate reduction \\
         \hline
         \multirow{2}{*}{Frontend}       & Angular 19                                        & Single-page application framework     \\
         \cline{2-3}
@@ -89,7 +89,7 @@ Table~\ref{tab:tech-stack} summarizes the technologies used in each layer of the
 
 \begin{figure}
     \centering
-    \includegraphics[scale=0.1]{figures/images/chapter4/er-diagram.png}
+    \includegraphics[scale=0.1]{figures/images/chapter4/er-diagram-modified.png}
     \caption{Entity-relationship diagram of the persistent data model, showing the nine JPA entities and their associations.}
     \label{fig:er-diagram}
 \end{figure}
@@ -197,7 +197,7 @@ All foreign key relationships use \texttt{ON DELETE CASCADE} at the database lev
     \label{tab:api-endpoints}
 \end{table}
 
-All endpoints except \texttt{/api/auth/**}, Swagger UI, and the actuator health endpoint require JWT authentication. Request and response payloads use Java \texttt{record} DTOs serialized to JSON via Jackson, with null fields excluded from responses.
+All endpoints except \texttt{/api/**}, Swagger UI, and the actuator health endpoint require JWT authentication. Request and response payloads use Java \texttt{record} DTOs serialized to JSON via Jackson, with null fields excluded from responses.
 
 \subsection{Authentication and Security}
 \label{subsec:auth-security}
@@ -311,15 +311,15 @@ public void processJob(Long jobId) {
 In the first phase, Microservice Detection (\texttt{DETECTING\_MICROSERVICES}), the \texttt{MicroserviceDetector} identifies service boundaries using the deployability gate described in Chapter~\ref{chap:ch3}, Section~\ref{subsec:microservice-detection}. The detector first scans the project directory for build files (\texttt{pom.xml}, \texttt{build.gradle}, \texttt{build.gradle.kts}) to assemble a set of candidate modules, filtering out non-service directories (e.g.\ examples, tests, documentation, benchmarks, build support modules, and templates) using an exclusion keyword set matched against full directory names, as well as ancestor directory names. Root-level and nested aggregator modules that declare submodules are also excluded. Each surviving candidate is then evaluated against a three-signal deployability gate: framework entry point annotations such as \texttt{@SpringBootApplication} (HIGH confidence), Dockerfile presence (MEDIUM confidence), and a \texttt{public static void main()} method (LOW confidence). Only candidates that pass at least one signal are accepted as microservices; when all candidates are gated out, a fallback strategy retains the single candidate or the project root. For each detected microservice, a \texttt{Microservice} entity is created with the service name, relative path, lines of code count (computed by recursively walking all \texttt{.java} files), and the detection confidence level and signal that triggered inclusion.
 
 The second phase, Intra-Service Analysis (\texttt{ANALYZING\_SERVICES}), invokes DesigniteJava as a subprocess for each microservice when enabled. The service passes the microservice's source directory to DesigniteJava, which produces the following CSV output files: \texttt{DesignSmells.csv}, \texttt{ImplementationSmells.csv}, and \texttt{ArchitectureSmells.csv}.
-These files are parsed line by line and the detected smells are stored as \texttt{CodeSmell} entities with severity levels mapped from the smell type. The number of classes is extracted from the \texttt{TypeMetrics.csv} output. A configurable timeout (default: 1800 seconds) prevents runaway hanging subprocesses. Progress is reported per-service, allowing the frontend to display which service is currently being analyzed and what fraction is complete.
+These files are parsed line by line and the detected smells are stored as \texttt{CodeSmell} entities with severity levels mapped from the smell type. The number of classes is extracted from the \texttt{TypeMetrics.csv} output. A configurable timeout (default: 1800 seconds) prevents runaway hanging subprocesses. Progress is reported per-service, allowing the frontend to display which service is currrently being analyzed and what fraction is complete.
 
 During the third phase, Dependency Graph Construction (\texttt{BUILDING\_GRAPH}), the \texttt{DependencyGraphBuilder} scans each microservice's source code using the Spoon static analysis library \cite{Pawlak2016} to extract REST endpoints, parse datasource configuration from \texttt{application.yml} and \texttt{application.properties} and detect inter-service calls via \texttt{@FeignClient}, \texttt{RestTemplate}, and \texttt{WebClient}. The target resolution strategy, described in detail in Chapter~\ref{chap:ch3}, Section~\ref{subsec:graph-analysis}, uses the exact name matching, port-based matching and fuzzy substring matching to resolve call targets to actual microservices. The resulting \texttt{Endpoint} and \texttt{Ser\-viceDe\-pen\-den\-cy} entities are persisted to the database.
 
 The fourth phase, Anti-Pattern Detection (\texttt{DETECTING\_PATTERNS}), delegates to the \texttt{AntiPatternDetectorService}, which orchestrates all registered detectors (see Section~\ref{subsec:detector-architecture}). Each detector is invoked in sequence, receiving the project and the list of microservices, then returning a list of \texttt{DetectedAntiPattern} instances. Failed detectors are logged and skipped, ensuring that a failure in one does not abort the entire analysis.
 
-Finally, in the Result Assembly phase, summary statistics are computed (e.g. total lines of code, average service size, coupling coefficient (see Chapter ~\ref{chap:ch3}, Equation~\ref{eq:coupling-coefficient}), issue counts by severity) and the health score is calculated following the methodology described in Chapter~\ref{chap:ch3}, Section~\ref{subsec:health-score}. The dependency graph is serialized to a JSON structure containing nodes (services with metadata) and edges (dependencies with type and weight). The \texttt{AnalysisResult} entity is persisted, and the job status is set to \texttt{COMPLETED}.
+Finally, in the Result Assembly phase, summary statistics are computed (e.g. total lines of code, average service size, coupling coefficient (see Chapter ~\ref{chap:ch3}, Equation~\ref{eq:coupling-coefficient}), issue counts by severity) and the health score is calculated following the methodology described in Chapter~\ref{chap:ch3}, Section~\ref{subsec:health-score}. The dependency graph is serialized to a JSON structure containg nodes (services with metadata) and edges (dependencies with type and weight). The \texttt{AnalysisResult} entity is persisted, and the job status is set to \texttt{COMPLETED}.
 
-If any phase fails, the exception is caught, the job status is set \texttt{FAILED} with the error message and the failure is logged. Users may also cancel a running job via the API, which sets the status to \texttt{CANCELLED}. The \texttt{JobProgressUpdater} service provides atomic progress updates by executing each update in an independent transaction (\texttt{Propagation.REQUIRES\_NEW}), thus ensuring that progress changes are immediately visible to polling clients regardless of the outer analysis transaction.
+If any phase fails, the exception is caught, the job status is set \texttt{FAILED} with the error messsage and the failure is logged. Users may also cancel a running job via the API, which sets the status to \texttt{CANCELLED}. The \texttt{JobProgressUpdated} service provides atomic progress updates by executing each update in an independent transaction (\texttt{Propagation.REQUIRES\_NEW}), thus ensuring that progress changes are immediately visible to polling clients regardless of the outer analysis transaction.
 
 \subsection{Anti-Pattern Detector Architecture}
 \label{subsec:detector-architecture}
@@ -393,7 +393,7 @@ The diff is automatically embedded in the analysis results response and is also 
 \subsection{Exception Handling}
 \label{subsec:exception-handling}
 
-\par A global exception handler (\texttt{GlobalExceptionHandler}) annotated with Spring's \texttt{@RestControllerAdvice} provides a centralized error handling across all controllers. The handler translates domain exceptions into structured JSON error responses with a consistent format containing an error code, a human-readable message, and a timestamp. \texttt{ResourceNotFoundException} maps to \texttt{404 Not Found}; \texttt{InvalidFileException} and \texttt{IllegalArgumentException} map to \texttt{400 Bad Request}; \texttt{IllegalStateException} maps to \texttt{409 Conflict} for operations on resources in an invalid state (e.g., cancelling an already-completed job); \texttt{Bad\-Cre\-den\-tialsEx\-cep\-tion} maps to \texttt{401 Unauthorized}; and \texttt{Me\-thodAr\-gu\-mentNotVa\-lidEx\-ception} maps to \texttt{400 Bad Request} with per-field validation messages. A catch-all handler logs unexpected exceptions at error level and returns a generic \texttt{500 Internal Server Error} to avoid leaking stack traces.
+\par A global exception handler (\texttt{GlobalExceptionHandler}) annotated with Spring's \texttt{@RestControllerAdvice} provides a centralized error handling across all controllers. The handler translated domain exceptions into structured JSON error responses with a consistent format containing an error code, a human-readable message, and a timestamp. \texttt{ResourceNotFoundException} maps to \texttt{404 Not Found}; \texttt{InvalidFileException} and \texttt{IllegalArgumentException} map to \texttt{400 Bad Request}; \texttt{IllegalStateException} maps to \texttt{409 Conflict} for operations on resources in an invalid state (e.g., cancelling an already-completed job); \texttt{Bad\-Cre\-den\-tialsEx\-cep\-tion} maps to \texttt{401 Unauthorized}; and \texttt{Me\-thodAr\-gu\-mentNotVa\-lidEx\-ception} maps to \texttt{400 Bad Request} with per-field validation messages. A catch-all handler logs unexpected exceptions at error level and returns a generic \texttt{500 Internal Server Error} to avoid leaking stack traces.
 
 
 \section{Frontend Implementation}
@@ -441,7 +441,7 @@ Table~\ref{tab:frontend-routes} lists the route configuration. The empty path re
 
 \par The frontend authentication layer consists of four cooperating pieces: a service that manages token storage and user state, two HTTP interceptors that transparently handle token attachment and session expiration, and a route guard that protects authenticated pages.
 
-The \texttt{AuthService} is a singleton service provided at the root level. It stores the JWT token and the serialized user object in the browser's \texttt{localStorage} under the keys \texttt{auth\_token} and \texttt{auth\_user}, respectively. On construction, the service attempts to load a previously stored user from \texttt{localStorage} and initializes \texttt{BehaviorSubject<UserResponse | null>}, which is exposed as the \texttt{cur\-rentUser\$} observable. This observable is consumed by the root \texttt{AppComponent} to reactively render the navigation bar. The service provides \texttt{login()} and \texttt{re\-gis\-ter()} methods that POST credentials to the backend's \texttt{/api/auth/login} and \texttt{/api/\-auth/\-re\-gis\-ter} endpoints, respectively; both methods pipe the response through a \texttt{tap} operator that persists the returned token and user object. The \texttt{logout()} method clears both \texttt{localStorage} entries and pushes \texttt{null} into the subject, which immediately updates all subscribed components. The \texttt{is\-Au\-then\-ti\-cated()} method performs a simple null check on the stored token and is used by both the route guard and the navigation bar.
+The \texttt{AuthService} is a singleton service provided at the root level. It stores the JWT token and the serialized user object in the browser's \texttt{localStorage} under the keys \texttt{auth\_token} and \texttt{auth\_user}, respectively. On construction, the service attempts to load a previously stored used from \texttt{localStorage} and initializes \texttt{BehaviorSubject<UserResponse | null>}, which is exposed as the \texttt{cur\-rentUser\$} observable. This observable is consumed by the root \texttt{AppComponent} to reactively render the navigation bar. The service provides \texttt{login()} and \texttt{re\-gis\-ter()} methods that POST credentials to the backend's \texttt{/api/auth/login} and \texttt{/api/\-auth/\-re\-gis\-ter} endpoints, respectively; both methods pipe the response through a \texttt{tap} operator that persists the returned token and user object. The \texttt{logout()} method clears both \texttt{localStorage} entries and pushes \texttt{null} into the subject, which immediately updates all subscribed components. The \texttt{is\-Au\-then\-ti\-cated()} method performs a simple null check on the stored token and is used by both the route guard and the navigation bar.
 
 The \texttt{authInterceptor} is implemented as a functional \texttt{HttpInterceptorFn}. For every outgoing HTTP request, it injects the \texttt{AuthService} via Angular's \texttt{in\-ject()} function and retrieves the current token. Requests to the \texttt{/auth/login} and \texttt{/auth/re\-gis\-ter} endpoints are passed through unmodified, since those endpoints are public. For all other requests, if a token is present, the interceptor clones the request with an \texttt{Authorization: Bearer <token>} header attached.
 
