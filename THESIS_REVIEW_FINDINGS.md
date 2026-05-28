@@ -96,6 +96,64 @@ Distributed Monolith is the only anti-pattern type with zero detections across a
 
 ---
 
+## Detector Code Review
+
+### HIGH
+
+**1. `HardcodedEndpointDetector`: duplicate evidence per line**
+
+`scanForHardcodedUrls()` iterates over all URL patterns (`http://`, `https://`, `localhost:`, `127.0.0.1`) for each line. A line like `"http://localhost:8080/api"` matches both `http://` and `localhost:`, creating **duplicate evidence entries** for the same line. This inflates the hardcoded endpoint count and produces duplicate snippets in the UI.
+
+*Fix*: break after the first pattern match per line, or deduplicate by `(file, lineNumber)` before building the result.
+
+**2. `ChattyServiceDetector`: dormant `LazyInitializationException`**
+
+`findChattyDependencies()` does not use `JOIN FETCH` for `sourceService`/`targetService`. With `open-in-view: false`, calling `dep.getSourceService().getName()` (line 89) on the detached proxy will throw `LazyInitializationException`. This has never triggered because no test project has a dependency with `callCount >= 10` (the default threshold), so the for-loop at line 88 never executes. If a project ever does produce such a dependency, the detector will crash.
+
+*Fix*: add `JOIN FETCH sd.sourceService JOIN FETCH sd.targetService` to the `findChattyDependencies` query.
+
+### MEDIUM
+
+**3. `GodServiceDetector`: immutable list mutation risk (line 125 + 135)**
+
+When DesigniteJava finds god classes, `snippets` is assigned from `.stream()...toList()` (unmodifiable). The Spoon branch at line 135 calls `snippets.add()`. Currently unreachable (Spoon only runs when DesigniteJava finds nothing), but fragile if the guard at line 94 is ever changed.
+
+*Fix*: always initialize `snippets` as `new ArrayList<>()`.
+
+**4. `CyclicDependencyDetector`: misleading cycle description**
+
+Tarjan's SCC returns nodes in reverse finishing order, not in actual cycle traversal order. The displayed cycle string `A -> B -> C -> A` may not correspond to any real edge chain — the SCC guarantees mutual reachability, not that those specific directed edges exist consecutively.
+
+*Fix*: after finding the SCC, reconstruct an actual cycle path by following edges, or label the description as "services involved in cycle" rather than implying a specific path.
+
+**5. `HardcodedEndpointDetector`: dynamic URL concatenation false positives**
+
+The regex pattern matches `"http://"` inside string literals that are part of dynamic concatenations (e.g. `"http://" + instance.getHost()`). These are runtime-resolved URLs, not hardcoded endpoints. Already documented in Manual Inspection Notes above (Apollo, NetworkDisk).
+
+*Known limitation*: would require AST-level analysis (checking if the string literal is the sole initializer of a field/variable vs. part of a concatenation expression) to fix properly.
+
+**6. `AntiPatternDetectorService.buildGraphJson()`: N+1 query performance**
+
+`findByProject()` (line 158) lacks `JOIN FETCH` for `sourceService`/`targetService`. Each `dep.getSourceService().getId()` works via Hibernate's proxy ID optimization (no initialization needed), so this doesn't crash, but `.getDependencyType()` and `.getCallCount()` may trigger proxy initialization, causing N+1 queries.
+
+*Fix*: use `findByProjectWithServices()` instead.
+
+### LOW
+
+**7. `BaseDetector.readSnippet()`: reads entire file into memory**
+
+`Files.readAllLines()` loads the whole file even when only ~7 lines are needed. Could use `Files.lines().skip(start).limit(count)` to stream only the necessary lines. Not a correctness issue — only relevant for very large generated files.
+
+**8. `NanoServiceDetector.findMainClass()`: reads all Java files into memory**
+
+`Files.walk().toList()` materializes all paths, then `Files.readString()` reads each file fully. Could use lazy streaming with `Files.lines()` to scan for the `@SpringBootApplication` pattern line-by-line without loading entire files, and short-circuit on first match without materializing the full path list.
+
+**9. `EsbMisuseDetector`: gateway exclusion is name-based only**
+
+A service not named "gateway" but acting as one (e.g. "edge-router", "reverse-proxy") could be falsely flagged as ESB misuse. Conversely, a non-gateway service coincidentally containing "gateway" in its name would be silently skipped. Could be improved by also checking for gateway-related annotations (`@EnableZuulProxy`, `@EnableGateway`) or Spring Cloud Gateway dependencies in `pom.xml`/`build.gradle`.
+
+---
+
 ## Chapter Length Analysis
 
 ### Raw sizes (source characters / lines)
@@ -190,3 +248,38 @@ The following cuts were applied to `thesis/chapters/chapter4_slimmer.tex`, reduc
 - All backend sections unchanged (REST API, Pipeline, Detector Architecture, Diff, Exception Handling)
 - Docker Compose dev/prod subsections
 - Configuration management table
+
+---
+
+## Further Cuts Analysis (All Chapters)
+
+After reviewing all chapters for additional trimming opportunities, here are the findings:
+
+### Candidates for cutting
+
+**1. Ch.5 §5.2.3 MicroservicesSocial detailed walkthrough (~30 lines)**
+The step-by-step narrative of how the tool analyzed MicroservicesSocial (clone → scan → results) is a useful worked example but could be condensed from ~30 lines to ~15 lines by removing intermediate observations and keeping only the key findings and the "what the tool detected vs. what was expected" comparison.
+- **Savings**: ~15 lines (~1 page)
+
+**2. Ch.2 §2.3.4 Dynamic and Hybrid Approaches (~8 lines, L308–315)**
+Describes runtime tracing, chaos engineering, and hybrid approaches that the tool does NOT use. Could be removed entirely or reduced to a single sentence noting these exist but are out of scope.
+- **Savings**: ~6 lines (~0.3 pages)
+
+### Not recommended for cutting
+
+- **Ch.1 (28 lines)**: Already minimal.
+- **Ch.2 anti-pattern definitions (§2.1)**: Core background, all needed.
+- **Ch.2 related work (§2.3)**: Well-structured comparison, justifies the tool's position.
+- **Ch.3 detection algorithms**: All 10 detectors + health score + deployability gate are essential.
+- **Ch.5 evaluation tables & per-project results**: Core contribution, cannot be cut.
+- **Ch.6 (40 lines)**: Already minimal.
+
+### Source cleanup (no page count impact)
+
+- Ch.5 has ~40 lines of commented-out LaTeX (old validation paragraphs, precision/recall table skeleton, TODO comments) that take no PDF space but clutter the source. Can be removed for cleanliness.
+- Ch.2 has ~40 lines of commented-out tools comparison section. Same — no PDF impact, but cleaner without them.
+
+### Verdict
+
+**Very little remains to cut.** The Chapter 4 cuts already removed the main excess. The remaining chapters are appropriately sized. At most, ~1.5 pages could be saved from Ch.5 §5.2.3 and Ch.2 §2.3.4, but the quality trade-off is marginal. The dissertation at 70 pages is well within the normal 60–100 page range for a master's thesis.
+
