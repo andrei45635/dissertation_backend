@@ -467,7 +467,7 @@ Both submission paths follow the same post-submission flow. Once the backend res
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[scale=0.35]{figures/images/chapter4/analysis_page.png}
+    \includegraphics[scale=0.3]{figures/images/chapter4/analysis_page.png}
     \caption{Results page displaying the health score gauge, summary metrics, issues by severity, health score breakdown, detected anti-patterns, and dependency graph.}
     \label{fig:results-page}
 \end{figure}
@@ -484,7 +484,7 @@ Below the summary grid, the \texttt{HealthScoreBreakdownComponent} renders the p
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[scale=0.4]{figures/images/chapter4/history_page.png}
+    \includegraphics[scale=0.3]{figures/images/chapter4/history_page.png}
     \caption{History page showing the projects list with an expanded project's analysis timeline and diff information.}
     \label{fig:history-page}
 \end{figure}
@@ -531,6 +531,7 @@ The Jobs tab displays the 20 most recent analysis jobs, loaded via \texttt{ApiSe
         fontsize=\small,
         linenos=true,
         breaklines=true,
+        formatcom=\color{white},
     ]{docker}
 FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app
