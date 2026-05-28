@@ -10,11 +10,6 @@
 
 \par A further contribution is the automated microservice boundary detection mechanism, which identifies services by scanning for build files and filtering out non-service modules through an exclusion heuristic, eliminating the manual service enumeration that most existing tools require. The composite health score quantifies overall architectural quality on a 0--100 scale with letter grading and decomposes it into four weighted categories: anti-pattern severity, code quality, architectural coupling, and service sizing, each with an itemized list of deductions. A built-in analysis diff feature compares successive analysis runs, which teams can use to track architectural health trends over time and measure the concrete impact of refactoring efforts. The tool is delivered as a web application with a RESTful API, an Angular-based dashboard and Docker-based deployment, supporting both interactive use and programmatic integration into existing CI/CD pipelines.
 
-% \section{Discussion of Results}
-% \label{sec:discussion-results}
-
-% \textcolor{red}{nu are sens o subsectiune cu doar 4 randuri, Textul poate ramana fara titlu}
-
 % TODO - rework this
 \par The evaluation on eight open-source microservice projects, encompassing 116 detected microservices and approximately 348\,000 lines of code, demonstrated that the MSA Detector can identify architectural anti-patterns that are confirmed by manual inspection. A total of 106 anti-pattern instances were detected across nine distinct types, including ESB Misuse, Chatty Service, Cyclic Dependency and Wrong Cuts, validating detectors that target inter-service communication topology and cross-boundary coupling.
 

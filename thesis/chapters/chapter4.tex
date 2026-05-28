@@ -204,21 +204,6 @@ All endpoints except \texttt{/api/auth/**}, Swagger UI, and the actuator health 
 
 \par The system uses stateless JWT based authentication \cite{RFC7519}. The security layer is built on Spring Security and consists of five components. The \texttt{SecurityConfig} class configures stateless session management, disables CSRF protection (the token-based API does not rely on cookies), and defines the authorization rules: public endpoints such as \texttt{/api/auth/**}, Swagger UI, and the actuator health check are exempted from authentication, while all other requests require a valid token. The \texttt{JwtTokenProvider} component generates and validates tokens using the HMAC-SHA algorithm \cite{RFC4634} - each token encodes the user ID and email as claims and carries a configurable expiration (default: 24 hours). Listing~\ref{lst:jwt-generate} illustrates the token generation logic.
 
-% \begin{figure}[htbp]
-% \begin{lstlisting}[style=intellijDarcula]
-% public String generateToken(Long userId, String email) {
-%     Date now = new Date();
-%     Date expiry = new Date(now.getTime() + expirationMs);
-%     return Jwts.builder()
-%             .subject(userId.toString())
-%             .claim("email", email)
-%             .issuedAt(now)
-%             .expiration(expiry)
-%             .signWith(key)
-%             .compact();
-% }
-% \end{lstlisting}
-
 \begin{figure}[htbp]
     \begin{minted}[
         bgcolor=darculaBg,

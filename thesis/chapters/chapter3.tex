@@ -36,8 +36,6 @@ The AST-based approach is more robust than regular expression-based scanning, as
 
 \par DesigniteJava is a static analysis tool that detects design smells, implementation smells and architecture smells in Java projects \cite{Sharma2018}. It analyzes Java source code and produces CSV reports categorizing detected smells by type, affected class and file location.
 
-% The tool detects three categories of smells, summarized in Table~\ref{tab:code-smell-categories}.
-
 In this dissertation, DesigniteJava is integrated as an external tool invoked as a subprocess. The analysis pipeline passes each detected microservice's source directory to DesigniteJava, parses the resulting CSV output files (\texttt{DesignSmells.csv}, \texttt{ImplementationSmells.csv}, \texttt{ArchitectureSmells.csv}), and stores the results in the application database. The God Class smell frequency per service is then used as a signal for god service detection (see Section~\ref{subsec:god-service}).
 
 \begin{table}[htbp]
@@ -103,8 +101,6 @@ Figure~\ref{fig:dependency-graph-example} shows an example dependency graph for 
 
 \subsection{Health Score Computation}
 \label{subsec:health-score}
-
-% TO-DO: go into a bit more depth maybe and/or revise this score
 
 \par To provide an overall assessment of a system's architectural health, this dissertation computes a composite health score using a category-based decomposition. The total budget of 100~points is divided across four categories, each with an independent cap:
 
@@ -377,16 +373,6 @@ For each detected hardcoded URL, the detector records the file path, line number
 Another metric is the connected service ratio ($R$), the fraction of services that participate in at least one dependency, as either source or target (Equation~\ref{eq:connected-ratio}).
 Lastly, the shared database count ($D$), which represents the number of distinct database URLs that are shared by more than one service, computed using the same grouping logic as the Shared Database detector.
 
-% The three metrics are:
-
-% \begin{enumerate}
-%     \item \textbf{Coupling coefficient} ($C$): The ratio of actual unique dependency edges to the maximum number of possible edges in a directed graph (Equation~\ref{eq:coupling-coeff-dm}).
-
-%     \item \textbf{Connected service ratio} ($R$): The fraction of services that participate in at least one dependency, as either source or target (Equation~\ref{eq:connected-ratio}).
-
-%     \item \textbf{Shared database count} ($D$): The number of distinct database URLs that are shared by more than one service, computed using the same grouping logic as the Shared Database detector.
-% \end{enumerate}
-
 \begin{equation}
     C = \frac{|\text{unique edges}|}{|V| \times (|V| - 1)}
     \label{eq:coupling-coeff-dm}
@@ -435,10 +421,8 @@ The detector then queries all endpoints for each microservice. A service is flag
 
 As evidence, the detector locates the controller classes that declare unversioned endpoints and extracts the code snippets showing the \texttt{@RestController} or \texttt{@Re\-questMap\-ping} annotations. Thus, development teams are able to see where versioning prefixes (e.g., \texttt{/v1/}) could be added.
 
-%--------------------------------------------------------------
 \subsection{Wrong Cuts Detection}
 \label{subsec:detect-wrong-cuts}
-%--------------------------------------------------------------
 
 \par The Wrong Cuts detector identifies misplaced service boundaries where functionality that should reside in one service is spread across multiple services, or tightly-coupled functionality has been incorrectly split \cite{Taibi2018}. The detector uses two complementary indicators.
 
@@ -460,10 +444,8 @@ Another indicator would be bidirectional dependencies, The detector scans the de
 
 Each pair is reported only once, regardless of the order of discovery. Code snippets are collected from the dependency evidence for both directions, showing the inter-service call declarations (e.g., \texttt{@FeignClient} annotations) that create the mutual dependency.
 
-%--------------------------------------------------------------
 \subsection{ESB Misuse Detection}
 \label{subsec:detect-esb-misuse}
-%--------------------------------------------------------------
 
 \par The ESB (Enterprise Service Bus) Misuse detector identifies services that act as central mediators, routing a disproportionate share of inter-service communication through a single hub \cite{Taibi2018, Richards2015}. This pattern negates the benefits of microservices by creating a single point of failure and performance bottleneck.
 
