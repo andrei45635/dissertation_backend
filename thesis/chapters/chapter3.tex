@@ -467,7 +467,7 @@ Each pair is reported only once, regardless of the order of discovery. Code snip
 
 \par The ESB (Enterprise Service Bus) Misuse detector identifies services that act as central mediators, routing a disproportionate share of inter-service communication through a single hub \cite{Taibi2018, Richards2015}. This pattern negates the benefits of microservices by creating a single point of failure and performance bottleneck.
 
-The detector computes two ratios for each service. Let $s$ be a service, $\text{callers}(s)$ the set of services that have a dependency edge targeting $s$, $\text{callees}(s)$ the set of services that $s$ depends on, and $n = |V| - 1$ the number of other services:
+The detector computes three signals for each service. Let $s$ be a service, $\text{callers}(s)$ the set of services that have a dependency edge targeting $s$, $\text{callees}(s)$ the set of services that $s$ depends on, and $n = |V| - 1$ the number of other services:
 
 \begin{equation}
     \begin{array}{l}
@@ -484,17 +484,34 @@ Additionally, the detector computes a volume-based mediator ratio:
     \label{eq:esb-mediator-ratio}
 \end{equation}
 
-A service is flagged as an ESB-like mediator when either of the following conditions holds:
+The third signal is \textit{betweenness centrality}, a graph-theoretic measure of how frequently a node lies on shortest paths between other node pairs \cite{Brandes2001}. For a node $v$ in directed graph $G = (V, E)$:
+
+\begin{equation}
+    BC(v) = \sum_{\substack{s,t \in V \\ s \neq v \neq t}} \frac{\sigma_{st}(v)}{\sigma_{st}}
+    \label{eq:betweenness-centrality}
+\end{equation}
+
+\noindent where $\sigma_{st}$ is the total number of shortest paths from $s$ to $t$, and $\sigma_{st}(v)$ is the number of those paths that pass through $v$. To enable threshold comparison across graphs of different sizes, the raw score is normalised by the maximum possible value:
+
+\begin{equation}
+    BC_{\mathit{norm}}(v) = \frac{BC(v)}{(n-1)(n-2)}
+    \label{eq:betweenness-norm}
+\end{equation}
+
+\noindent Betweenness centrality is computed using Brandes' algorithm \cite{Brandes2001}, which runs in $O(|V| \cdot |E|)$ time and is well-suited to the small-to-medium dependency graphs typical of microservice systems.
+
+A service is flagged as an ESB-like mediator when any of the following three conditions holds:
 
 \begin{equation}
     \begin{array}{c}
         (\mathit{callerRatio}(s) \geq \theta_m \;\wedge\; \mathit{calleeRatio}(s) \geq \theta_m) \\[4pt]
-        \vee\;\; \mathit{medRatio}(s) \geq \theta_m
+        \vee\;\; \mathit{medRatio}(s) \geq \theta_m \\[4pt]
+        \vee\;\; BC_{\mathit{norm}}(s) \geq \theta_m
     \end{array}
     \label{eq:esb-decision}
 \end{equation}
 
-\noindent where $\theta_m$ is the mediator threshold (default: 0.4, configurable via \texttt{app.thres\-h-olds.esb-mediator-threshold}). The first condition identifies services that both receive calls from and make calls to a high proportion of other services. The second condition captures cases where a single service concentrates a disproportionate share of all dependency traffic by volume. Services whose names contain gateway-related keywords (e.g.\ \texttt{gateway}, \texttt{api-gateway}, \texttt{zuul}, \texttt{proxy}) are excluded, as they are architecturally designed to be central.
+\noindent where $\theta_m$ is the mediator threshold (default: 0.4, configurable via \texttt{app.thres\-h-olds.esb-mediator-threshold}). The first condition identifies services that both receive calls from and make calls to a high proportion of other services. The second condition captures cases where a single service concentrates a disproportionate share of all dependency traffic by volume. The third condition flags services that act as structural intermediaries on the shortest communication paths between other services, even when connection and volume ratios alone may not exceed the threshold. Services whose names contain gateway-related keywords (e.g.\ \texttt{gateway}, \texttt{api-gateway}, \texttt{zuul}, \texttt{proxy}) are excluded, as they are architecturally designed to be central.
 
 As with the Distributed Monolith detector, this detection is only performed when the system contains at least three microservices. The report includes the mediator service, all services it connects to, and code snippets from the relevant dependency evidence.
 
@@ -504,6 +521,6 @@ As with the Distributed Monolith detector, this detection is only performed when
 \par This chapter presented the detection methodology employed by this work. The analysis pipeline was described, starting from source code ingestion, through microservice boundary detection via a three-signal deployability gate (Section~\ref{subsec:microservice-detection}), intra-service code smell analysis (via DesigniteJava) and inter-service dependency extraction (via Spoon-based AST analysis), to dependency graph construction and anti-pattern detection.
 
 The detailed detection algorithm for each of the ten targeted anti-patterns was presented. Shared Database detection compares datasource URLs across services (Section~\ref{subsec:detect-shared-database}). Cyclic Dependency detection applies Tarjan's SCC algorithm on the dependency graph (Section~\ref{subsec:detect-cyclic-dependency}). Nano Service detection uses LOC and endpoint count thresholds (Section~\ref{subsec:detect-nano-service}). God Service detection combines DesigniteJava God Class smells with a Spoon-based multi-metric structural fallback (Section~\ref{subsec:detect-god-service}). Chatty Service detection analyzes both dependency edge call counts and source-based HTTP~client patterns (Section~\ref{subsec:detect-chatty-service}). Hardcoded Endpoint detection performs URL pattern matching in source files (Section~\ref{subsec:detect-hardcoded-endpoint}). Distributed Monolith detection employs composite coupling metric analysis (Section~\ref{subsec:detect-distributed-monolith}). API Versioning Absence detection matches endpoint path versioning patterns (Section~\ref{subsec:detect-versioning-absence}).
-Wrong Cuts detection combines Feature Envy frequency with bidirectional dependency detection (Section~\ref{subsec:detect-wrong-cuts}). Finally, ESB Misuse detection uses centrality and mediator ratio analysis (Section~\ref{subsec:detect-esb-misuse}).
+Wrong Cuts detection combines Feature Envy frequency with bidirectional dependency detection (Section~\ref{subsec:detect-wrong-cuts}). Finally, ESB Misuse detection uses a three-signal approach combining connection ratios, volume-based mediator ratio, and normalised betweenness centrality (Section~\ref{subsec:detect-esb-misuse}).
 
 All detection thresholds are externalized as configuration parameters, allowing calibration to project-specific norms. Each detector produces evidence-based reports with source code snippets, enabling developers to quickly understand and remediate detected issues. The next chapter describes the implementation of these detection algorithms within the web application.
