@@ -1,21 +1,21 @@
 \chapter{Application Design \& Implementation}
 \label{chap:ch4}
 
-% TODO - !!!!!!!!!!!!!!!!!!!!!! FIX THE STUPID DIAGRAMS AND TABLES !!!!!!!!!!!!!!!!!!!!!! 
-% - here I think this chapter should cover thinks like 
+% TODO - !!!!!!!!!!!!!!!!!!!!!! FIX THE STUPID DIAGRAMS AND TABLES !!!!!!!!!!!!!!!!!!!!!!
+% - here I think this chapter should cover thinks like
 % 1) system overview => high-level architecture diagram (backend, frontend, db, docker), tech stack summary (more in depth than chapter 2) => maybe move the tech stack from chapter 2 here
 % 2) data model => entity relation diagram, entity descriptions
-% 3) backend implementation 
+% 3) backend implementation
 % 4) frontend implementation
 % 5) deployment
 
-\par This chapter presents the design and implementation of the MSA Detector, a web application that can detect the antipatterns described in the theoretical part and represents a proof of concept to assist developers in writing code with an improved quality. The chapter begins with a high-level system overview and technology stack summary, followed by the data model design. The backend implementation is described, covering the REST API, analysis pipeline orchestration, and security layer. The frontend implementation is then presented, followed by the deployment configuration.
+ \par This chapter presents the design and implementation of the MSA Detector, a web application that can detect the antipatterns described in the theoretical part and represents a proof of concept to assist developers in writing code with an improved quality. The chapter begins with a high-level system overview and technology stack summary, followed by the data model design. The backend implementation is described, covering the REST API, analysis pipeline orchestration, and security layer. The frontend implementation is then presented, followed by the deployment configuration.
 
 
 \section{System Overview}
 \label{sec:system-overview}
 
-\par The MSA Detector follows a client--server architecture with three main components: a Spring Boot backend that exposes a RESTful API \cite{Fielding2000}, an Angular\footnote{\url{https://angular.dev/}} single-page application (SPA) that provides the user interface, and a PostgreSQL\footnote{\url{https://www.postgresql.org/}} relational database for persistent storage. All components are containerized using Docker \cite{Merkel2014} and orchestrated via Docker Compose, as can be seen in figure~\ref{fig:architecture-overview}.
+\par The MSA Detector follows a client-server architecture with three main components: a Spring Boot backend that exposes a RESTful API \cite{Fielding2000}, an Angular\footnote{\hyperlink{Angular}{https://angular.dev/}} single-page application (SPA) that provides the user interface, and a PostgreSQL\footnote{\hyperlink{PostgreSQL}{https://www.postgresql.org/}} relational database for persistent storage. All components are containerized using Docker \cite{Merkel2014} and orchestrated via Docker Compose, as can be seen in figure~\ref{fig:architecture-overview}.
 
 \begin{figure}
     \centering
@@ -32,7 +32,7 @@ The system supports two modes of project ingestion: users can either upload a ZI
 \subsubsection{DesigniteJava}
 \label{subsec:designite-java}
 
-\par DesigniteJava is a command-line tool that performs design smell detection on Java projects \cite{Sharma2018}. It accepts a source directory as input and produces CSV files containing detected smells. In this dissertation, it is invoked as a Java subprocess with configurable timeout settings.
+ \par DesigniteJava is a command-line tool that performs design smell detection on Java projects \cite{Sharma2018}. It accepts a source directory as input and produces CSV files containing detected smells. In this dissertation, it is invoked as a Java subprocess with configurable timeout settings.
 
 Table~\ref{tab:tech-stack} summarizes the technologies used in each layer of the system.
 
@@ -58,7 +58,7 @@ Table~\ref{tab:tech-stack} summarizes the technologies used in each layer of the
         \cline{2-3}
         & Flyway                                            & Database schema migrations            \\
         \cline{2-3}
-        & Lombok 1.18.38                   & DTO mapping and boilerplate reduction \\
+        & Lombok 1.18.38                   & Boilerplate reduction \\
         \hline
         \multirow{2}{*}{Frontend}       & Angular 19                                        & Single-page application framework     \\
         \cline{2-3}
@@ -85,11 +85,11 @@ Table~\ref{tab:tech-stack} summarizes the technologies used in each layer of the
 \section{Data Model}
 \label{sec:data-model}
 
-\par The persistent data model consists of nine entities managed via JPA and stored in PostgreSQL. All entities extend a common \texttt{BaseEntity} superclass that provides an auto-generated primary key (\texttt{id}), a creation timestamp (\texttt{created\_at}) and a last-modified timestamp (\texttt{updated\_at}) via JPA auditing. The database schema is defined and versioned using Flyway migrations.
+ \par The persistent data model consists of nine entities managed via JPA and stored in PostgreSQL. All entities extend a common \texttt{BaseEntity} superclass that provides an auto-generated primary key (\texttt{id}), a creation timestamp (\texttt{created\_at}) and a last-modified timestamp (\texttt{updated\_at}) via JPA auditing. The database schema is defined and versioned using Flyway migrations.
 
 \begin{figure}
     \centering
-    \includegraphics[scale=0.1]{figures/images/chapter4/er-diagram.png}
+    \includegraphics[scale=0.1]{figures/images/chapter4/er-diagram-modified.png}
     \caption{Entity-relationship diagram of the persistent data model, showing the nine JPA entities and their associations.}
     \label{fig:er-diagram}
 \end{figure}
@@ -109,7 +109,7 @@ Table~\ref{tab:entities} provides an overview of each entity and its role in the
         \texttt{User}                & Registered user with name, email, hashed password, and optional GitHub token. Owns zero or more projects.                                                                                                                                                                                                                                                                                                                     \\
         \hline
         \texttt{Project}             & A microservice project with a name, source type (\texttt{GITHUB}, \texttt{GITLAB}, or \texttt{UPLOAD}), optional source URL and branch, and local filesystem path. Owned by a user. Contains zero or more microservices and analysis jobs.                                                                                                                                                                                    \\
-        \hline
+ \hline
         \texttt{Microservice}        & A detected microservice within a project. Stores the service name, relative path, lines of code, number of classes, number of endpoints, datasource configuration, detection confidence level (\texttt{HIGH}, \texttt{MEDIUM}, or \texttt{LOW}), and detection signal (e.g.\ \texttt{framework-entry-point}, \texttt{dockerfile}).                                                                                                                                                                                                                                                        \\
         \hline
         \texttt{Endpoint}            & A REST endpoint detected within a microservice. Stores the URL path, HTTP method, controller class, method name, and API versioning information.                                                                                                                                                                                                                                                                              \\
@@ -132,7 +132,7 @@ Table~\ref{tab:entities} provides an overview of each entity and its role in the
 \subsection{Entity Relationships}
 \label{subsec:entity-relationships}
 
-\par The entity relationships form a hierarchical structure with the \texttt{User} entity as root. A \texttt{User} owns multiple \texttt{Project} entities (one-to-many), with cascade delete removing all projects when a user is deleted. Each \texttt{Project} contains multiple detected \texttt{Microservice} entities and multiple \texttt{AnalysisJob} entities, both with cascade delete and orphan removal. A \texttt{Microservice} entity exposes zero or more \texttt{Endpoint} entities, maintains outgoing \texttt{ServiceDependency} edges to other microservices and contains \texttt{CodeSmell} records. Each \texttt{ServiceDependency} references both a source and a target \texttt{Microservice}, representing a directed edge in the dependency graph. Every completed \texttt{AnalysisJob} produces exactly one \texttt{A\-nal\-y\-sisResults} (one-to-one), which contains zero or more \texttt{DetectedAntiPattern} instances. A \texttt{DetectedAntiPattern} optionally references a primary \texttt{Micro\-service} for service-scoped anti-patterns such as Nano Service or God Service.
+ \par The entity relationships form a hierarchical structure with the \texttt{User} entity as root. A \texttt{User} owns multiple \texttt{Project} entities (one-to-many), with cascade delete removing all projects when a user is deleted. Each \texttt{Project} contains multiple detected \texttt{Microservice} entities and multiple \texttt{AnalysisJob} entities, both with cascade delete and orphan removal. A \texttt{Microservice} entity exposes zero or more \texttt{Endpoint} entities, maintains outgoing \texttt{ServiceDependency} edges to other microservices and contains \texttt{CodeSmell} records. Each \texttt{ServiceDependency} references both a source and a target \texttt{Microservice}, representing a directed edge in the dependency graph. Every completed \texttt{AnalysisJob} produces exactly one \texttt{A\-nal\-y\-sisResults} (one-to-one), which contains zero or more \texttt{DetectedAntiPattern} instances. A \texttt{DetectedAntiPattern} optionally references a primary \texttt{Micro\-service} for service-scoped anti-patterns such as Nano Service or God Service.
 
 All foreign key relationships use \texttt{ON DELETE CASCADE} at the database level, thus ensuring that deleting a project removes all associated microservices, endpoints, dependencies, code smells, analysis jobs, results and detected anti-patterns.
 
@@ -140,12 +140,12 @@ All foreign key relationships use \texttt{ON DELETE CASCADE} at the database lev
 \section{Backend Implementation}
 \label{sec:backend-impl}
 
-\par The backend is implemented as a Spring Boot application structured into the standard layers: controllers (REST API), services (business logic), repositories (data access), entities (domain model), DTOs (data transfer objects) and cross-cutting concerns (security, configuration, exception handling).
+ \par The backend is implemented as a Spring Boot application structured into the standard layers: controllers (REST API), services (business logic), repositories (data access), entities (domain model), DTOs (data transfer objects) and cross-cutting concerns (security, configuration, exception handling).
 
 \subsection{REST API Design}
 \label{subsec:rest-api}
 
-\par The backend exposes a RESTful API \cite{Fielding2000} under the \texttt{/api} prefix. The API is organized into three controller groups, summarized in Table~\ref{tab:api-endpoints}.
+ \par The backend exposes a RESTful API \cite{Fielding2000} under the \texttt{/api} prefix. The API is organized into three controller groups, summarized in Table~\ref{tab:api-endpoints}.
 
 \begin{table}[htbp]
     \centering
@@ -197,12 +197,27 @@ All foreign key relationships use \texttt{ON DELETE CASCADE} at the database lev
     \label{tab:api-endpoints}
 \end{table}
 
-All endpoints except \texttt{/api/auth/**}, Swagger UI, and the actuator health endpoint require JWT authentication. Request and response payloads use Java \texttt{record} DTOs serialized to JSON via Jackson, with null fields excluded from responses.
+All endpoints except \texttt{/api/**}, Swagger UI, and the actuator health endpoint require JWT authentication. Request and response payloads use Java \texttt{record} DTOs serialized to JSON via Jackson, with null fields excluded from responses.
 
 \subsection{Authentication and Security}
 \label{subsec:auth-security}
 
-\par The system uses stateless JWT based authentication \cite{RFC7519}. The security layer is built on Spring Security and consists of five components. The \texttt{SecurityConfig} class configures stateless session management, disables CSRF protection (the token-based API does not rely on cookies), and defines the authorization rules: public endpoints such as \texttt{/api/auth/**}, Swagger UI, and the actuator health check are exempted from authentication, while all other requests require a valid token. The \texttt{JwtTokenProvider} component generates and validates tokens using the HMAC-SHA algorithm \cite{RFC4634} - each token encodes the user ID and email as claims and carries a configurable expiration (default: 24 hours). Listing~\ref{lst:jwt-generate} illustrates the token generation logic.
+ \par The system uses stateless JWT based authentication \cite{RFC7519}. The security layer is built on Spring Security and consists of five components. The \texttt{SecurityConfig} class configures stateless session management, disables CSRF protection (the token-based API does not rely on cookies), and defines the authorization rules: public endpoints such as \texttt{/api/auth/**}, Swagger UI, and the actuator health check are exempted from authentication, while all other requests require a valid token. The \texttt{JwtTokenProvider} component generates and validates tokens using the HMAC-SHA algorithm \cite{RFC4634} - each token encodes the user ID and email as claims and carries a configurable expiration (default: 24 hours). Listing~\ref{lst:jwt-generate} illustrates the token generation logic.
+
+% \begin{figure}[htbp]
+% \begin{lstlisting}[style=intellijDarcula]
+% public String generateToken(Long userId, String email) {
+%     Date now = new Date();
+%     Date expiry = new Date(now.getTime() + expirationMs);
+%     return Jwts.builder()
+%             .subject(userId.toString())
+%             .claim("email", email)
+%             .issuedAt(now)
+%             .expiration(expiry)
+%             .signWith(key)
+%             .compact();
+% }
+% \end{lstlisting}
 
 \begin{figure}[htbp]
     \begin{minted}[
@@ -228,7 +243,7 @@ public String generateToken(Long userId, String email) {
     \label{lst:jwt-generate}
 \end{figure}
 
-On every incoming request, the \texttt{JwtAuthenticationFilter}, a \texttt{Once\-Per\-Re\-questFil\-ter}, extracts the JWT from the \texttt{Authorization: Bearer} header, delegates to the provider for validation, loads the corresponding user details via the \texttt{Cus\-tomU\-serDe\-tailsSer\-vice} and populates the Spring \texttt{ SecurityContext}. If no valid token is present, the \texttt{JwtAuthenticationEntryPoint} returns a \texttt{401 Un\-au\-thor\-ized} response. Passwords are hashed using BCrypt, and the authenticated user's identity is injected into controller methods via the \texttt{@Au\-then\-ti\-ca\-tionPrin\-ci\-pal} annotation, which provides a \texttt{UserPrincipal} object containing the user's ID, name, and email.
+On every incoming request, the \texttt{JwtAuthenticationFilter}, a \texttt{Once\-Per\-Re\-questFil\-ter}, extracts the JWT from the \texttt{Authorization: Bearer} header, delegates to the provider for validation, loads the corresponding user details via the \texttt{Cus\-tomU\-serDe\-tailsSer\-vice} and populates the Spring \texttt{ SecurityContext}. If no valid token is present, the \texttt{JwtAuthenticationEntryPoint} returns a \texttt{401 Un\-au\-thor\-ized} response. Passwords are hashed using BCrypt \cite{Provos1999}, and the authenticated user's identity is injected into controller methods via the \texttt{@Au\-then\-ti\-ca\-tionPrin\-ci\-pal} annotation, which provides a \texttt{UserPrincipal} object containing the user's ID, name, and email.
 
 \subsection{Project Ingestion}
 \label{subsec:project-ingestion}
@@ -244,7 +259,7 @@ Both methods create a \texttt{Project} entity and an \texttt{AnalysisJob} entity
 \subsection{Analysis Pipeline Orchestration}
 \label{subsec: analysis-pipeline}
 
-\par The analysis pipeline is orchestrated by the \texttt{AnalysisWorker} service, which executes asynchronously via Spring's \texttt{@Async} mechanism backed by a configurable thread pool (core size 2, maximum 5). The pipeline proceeds through five phases, each updating the job's status and progress for real-time tracking by the frontend. Listing~\ref{lst:analysis-worker} shows the top-level orchestration method.
+ \par The analysis pipeline is orchestrated by the \texttt{AnalysisWorker} service, which executes asynchronously via Spring's \texttt{@Async} mechanism backed by a configurable thread pool (core size 2, maximum 5). The pipeline proceeds through five phases, each updating the job's status and progress for real-time tracking by the frontend. Listing~\ref{lst:analysis-worker} shows the top-level orchestration method.
 
 \begin{figure}[htbp]
     \begin{minted}[
@@ -293,23 +308,23 @@ public void processJob(Long jobId) {
 \end{figure}
 
 
-In the first phase, Microservice Detection (\texttt{DETECTING\_MICROSERVICES}), the \texttt{MicroserviceDetector} identifies service boundaries using the deployability gate described in Chapter~\ref{chap:ch3}, Section~\ref{subsec:microservice-detection}. The detector first scans the project directory for build files (\texttt{pom.xml}, \texttt{build.gradle}, \texttt{build.gradle.kts}) to assemble a set of candidate modules, filtering out non-service directories (e.g.\ examples, tests, documentation, benchmarks, build support modules, and templates) using an exclusion keyword set matched against full directory names, as well as ancestor directory names. Root-level and nested aggregator modules that declare submodules are also excluded. Each surviving candidate is then evaluated against a three-signal deployability gate: framework entry point annotations such as \texttt{@SpringBootApplication} (HIGH confidence), Dockerfile presence (MEDIUM confidence), and a \texttt{public static void main()} method (LOW confidence). Only candidates that pass at least one signal are accepted as microservices; when all candidates are gated out, a fallback strategy retains the single candidate or the project root. For each detected microservice, a \texttt{Microservice} entity is created with the service name, relative path, lines of code count (computed by recursively walking all \texttt{.java} files), and the detection confidence level and signal that triggered inclusion.
+In the first phase, Microservice Detection (\texttt{DETECTING\_SERVICES}), the \texttt{MicroserviceDetector} identifies service boundaries using the deployability gate described in Chapter~\ref{chap:ch3}, Section~\ref{subsec:microservice-detection}. The detector first scans the project directory for build files (\texttt{pom.xml}, \texttt{build.gradle}, \texttt{build.gradle.kts}) to assemble a set of candidate modules, filtering out non-service directories (e.g.\ examples, tests, documentation, benchmarks, build support modules, and templates) using an exclusion keyword set matched against full directory names, as well as ancestor directory names. Root-level and nested aggregator modules that declare submodules are also excluded. Each surviving candidate is then evaluated against a three-signal deployability gate: framework entry point annotations such as \texttt{@SpringBootApplication} (HIGH confidence), Dockerfile presence (MEDIUM confidence), and a \texttt{public static void main()} method (LOW confidence). Only candidates that pass at least one signal are accepted as microservices; when all candidates are gated out, a fallback strategy retains the single candidate or the project root. For each detected microservice, a \texttt{Microservice} entity is created with the service name, relative path, lines of code count (computed by recursively walking all \texttt{.java} files), and the detection confidence level and signal that triggered inclusion.
 
 The second phase, Intra-Service Analysis (\texttt{ANALYZING\_SERVICES}), invokes DesigniteJava as a subprocess for each microservice when enabled. The service passes the microservice's source directory to DesigniteJava, which produces the following CSV output files: \texttt{DesignSmells.csv}, \texttt{ImplementationSmells.csv}, and \texttt{ArchitectureSmells.csv}.
-These files are parsed line by line and the detected smells are stored as \texttt{CodeSmell} entities with severity levels mapped from the smell type. The number of classes is extracted from the \texttt{TypeMetrics.csv} output. A configurable timeout (default: 1800 seconds) prevents runaway hanging subprocesses. Progress is reported per-service, allowing the frontend to display which service is currently being analyzed and what fraction is complete.
+These files are parsed line by line and the detected smells are stored as \texttt{CodeSmell} entities with severity levels mapped from the smell type. The number of classes is extracted from the \texttt{TypeMetrics.csv} output. A configurable timeout (default: 1800 seconds) prevents runaway hanging subprocesses. Progress is reported per-service, allowing the frontend to display which service is currrently being analyzed and what fraction is complete.
 
 During the third phase, Dependency Graph Construction (\texttt{BUILDING\_GRAPH}), the \texttt{DependencyGraphBuilder} scans each microservice's source code using the Spoon static analysis library \cite{Pawlak2016} to extract REST endpoints, parse datasource configuration from \texttt{application.yml} and \texttt{application.properties} and detect inter-service calls via \texttt{@FeignClient}, \texttt{RestTemplate}, and \texttt{WebClient}. The target resolution strategy, described in detail in Chapter~\ref{chap:ch3}, Section~\ref{subsec:graph-analysis}, uses the exact name matching, port-based matching and fuzzy substring matching to resolve call targets to actual microservices. The resulting \texttt{Endpoint} and \texttt{Ser\-viceDe\-pen\-den\-cy} entities are persisted to the database.
 
 The fourth phase, Anti-Pattern Detection (\texttt{DETECTING\_PATTERNS}), delegates to the \texttt{AntiPatternDetectorService}, which orchestrates all registered detectors (see Section~\ref{subsec:detector-architecture}). Each detector is invoked in sequence, receiving the project and the list of microservices, then returning a list of \texttt{DetectedAntiPattern} instances. Failed detectors are logged and skipped, ensuring that a failure in one does not abort the entire analysis.
 
-Finally, in the Result Assembly phase, summary statistics are computed (e.g. total lines of code, average service size, coupling coefficient (see Chapter ~\ref{chap:ch3}, Equation~\ref{eq:coupling-coefficient}), issue counts by severity) and the health score is calculated following the methodology described in Chapter~\ref{chap:ch3}, Section~\ref{subsec:health-score}. The dependency graph is serialized to a JSON structure containing nodes (services with metadata) and edges (dependencies with type and weight). The \texttt{AnalysisResult} entity is persisted, and the job status is set to \texttt{COMPLETED}.
+Finally, in the Result Assembly phase, summary statistics are computed (e.g. total lines of code, average service size, coupling coefficient (see Chapter ~\ref{chap:ch3}, Equation~\ref{eq:coupling-coefficient}), issue counts by severity) and the health score is calculated following the methodology described in Chapter~\ref{chap:ch3}, Section~\ref{subsec:health-score}. The dependency graph is serialized to a JSON structure containg nodes (services with metadata) and edges (dependencies with type and weight). The \texttt{AnalysisResult} entity is persisted, and the job status is set to \texttt{COMPLETED}.
 
-If any phase fails, the exception is caught, the job status is set \texttt{FAILED} with the error message and the failure is logged. Users may also cancel a running job via the API, which sets the status to \texttt{CANCELLED}. The \texttt{JobProgressUpdater} service provides atomic progress updates by executing each update in an independent transaction (\texttt{Propagation.REQUIRES\_NEW}), thus ensuring that progress changes are immediately visible to polling clients regardless of the outer analysis transaction.
+If any phase fails, the exception is caught, the job status is set \texttt{FAILED} with the error messsage and the failure is logged. Users may also cancel a running job via the API, which sets the status to \texttt{CANCELLED}. The \texttt{JobProgressUpdated} service provides atomic progress updates by executing each update in an independent transaction (\texttt{Propagation.REQUIRES\_NEW}), thus ensuring that progress changes are immediately visible to polling clients regardless of the outer analysis transaction.
 
 \subsection{Anti-Pattern Detector Architecture}
 \label{subsec:detector-architecture}
 
-\par The anti-pattern detection subsystem follows the Strategy design patterns \cite{Gamma1994}. All detectors implement the \texttt{AntiPatternDetector} interface, which defines a single method as shown in Listing~\ref{lst:detector-interface}.
+ \par The anti-pattern detection subsystem follows the Strategy design patterns \cite{Gamma1994}. All detectors implement the \texttt{AntiPatternDetector} interface, which defines a single method as shown in Listing~\ref{lst:detector-interface}.
 
 \begin{figure}[htbp]
     \begin{minted}[
@@ -369,7 +384,7 @@ Table~\ref{tab:detectors} lists all ten implemented detectors. The detection alg
 \subsection{Analysis Diff (Re-Analysis Comparison)}
 \label{subsec:analysis-diff}
 
-\par When a project is re-analyzed, the backend computes a diff between the current and previous analysis results, inspired by SonarQube's "Clean as You Code" concept \cite{SonQ}. The \texttt{AnalysisDiffService} compares two \texttt{AnalysisResult} instances and produces an \texttt{AnalysisDiffResponse} DTO.
+ \par When a project is re-analyzed, the backend computes a diff between the current and previous analysis results, inspired by SonarQube's "Clean as You Code" concept \cite{SonQ}. The \texttt{AnalysisDiffService} compares two \texttt{AnalysisResult} instances and produces an \texttt{AnalysisDiffResponse} DTO.
 
 The diff includes the health score delta, previous versus current score and letter grade, as well as per-metric deltas for all aggregate metrics: total anti-patterns, code smells, issues by severity, total lines of code, services analyzed, cycle count, dependency count and coupling coefficient. Anti-pattern changes are categorized in three groups: \textit{resolved} anti-patterns that were present in the previous analysis but absent in the current one, \textit{new} anti-patterns detected for the first time, and \textit{unchanged} anti-patterns that were still found in the later runs. The diff also computes per-category score deltas for each of the four health score categories (Anti-Patterns, Code Quality, Architecture, Service Sizing). Finally, a human-readable summary string is generated (e.g., ''Health improved from 52~(D)~$\to$~78~(C). 2~anti-patterns resolved, 1~new.''), providing a short assessment of the changes.
 
@@ -378,18 +393,18 @@ The diff is automatically embedded in the analysis results response and is also 
 \subsection{Exception Handling}
 \label{subsec:exception-handling}
 
-\par A global exception handler (\texttt{GlobalExceptionHandler}) annotated with Spring's \texttt{@RestControllerAdvice} provides a centralized error handling across all controllers. The handler translates domain exceptions into structured JSON error responses with a consistent format containing an error code, a human-readable message, and a timestamp. \texttt{ResourceNotFoundException} maps to \texttt{404 Not Found}; \texttt{InvalidFileException} and \texttt{IllegalArgumentException} map to \texttt{400 Bad Request}; \texttt{IllegalStateException} maps to \texttt{409 Conflict} for operations on resources in an invalid state (e.g., cancelling an already-completed job); \texttt{Bad\-Cre\-den\-tialsEx\-cep\-tion} maps to \texttt{401 Unauthorized}; and \texttt{Me\-thodAr\-gu\-mentNotVa\-lidEx\-ception} maps to \texttt{400 Bad Request} with per-field validation messages. A catch-all handler logs unexpected exceptions at error level and returns a generic \texttt{500 Internal Server Error} to avoid leaking stack traces.
+ \par A global exception handler (\texttt{GlobalExceptionHandler}) annotated with Spring's \texttt{@RestControllerAdvice} provides a centralized error handling across all controllers. The handler translated domain exceptions into structured JSON error responses with a consistent format containing an error code, a human-readable message, and a timestamp. \texttt{ResourceNotFoundException} maps to \texttt{404 Not Found}; \texttt{InvalidFileException} and \texttt{IllegalArgumentException} map to \texttt{400 Bad Request}; \texttt{IllegalStateException} maps to \texttt{409 Conflict} for operations on resources in an invalid state (e.g., cancelling an already-completed job); \texttt{Bad\-Cre\-den\-tialsEx\-cep\-tion} maps to \texttt{401 Unauthorized}; and \texttt{Me\-thodAr\-gu\-mentNotVa\-lidEx\-ception} maps to \texttt{400 Bad Request} with per-field validation messages. A catch-all handler logs unexpected exceptions at error level and returns a generic \texttt{500 Internal Server Error} to avoid leaking stack traces.
 
 
 \section{Frontend Implementation}
 \label{sec:frontend-impl}
 
-\par The frontend is implemented as an Angular single-page application (SPA) written in TypeScript. It communicates with the backend exclusively through the REST API described in Section~\ref{subsec:rest-api}. This section describes the application structure, key pages, reusable components and the authentication integration.
+ \par The frontend is implemented as an Angular single-page application (SPA) written in TypeScript. It communicates with the backend exclusively through the REST API described in Section~\ref{subsec:rest-api}. This section describes the application structure, key pages, reusable components and the authentication integration.
 
 \subsection{Application Structure and Routing}
 \label{subsec:frontend-structure}
 
-\par The frontend is built with Angular 19 and uses the framework's standalone component architecture - the application contains no \texttt{NgModule} declarations. Every component, page, interceptor and guard is defined as a standalone unit that declares its own imports, simplifying the dependency graph and enabling fine-grained tree-shaking at build time.
+ \par The frontend is built with Angular 19 and uses the framework's standalone component architecture - the application contains no \texttt{NgModule} declarations. Every component, page, interceptor and guard is defined as a standalone unit that declares its own imports, simplifying the dependency graph and enabling fine-grained tree-shaking at build time.
 
 The application is bootstrapped in \texttt{main.ts} using Angular's \texttt{bootstrapA\-ppli\-ca\-tion} function, which receives the root \texttt{AppComponent} and a providers array. The providers array registers the router (via \texttt{provideRouter}) and the HTTP client (via \texttt{pro\-vid\-eHttp\-Client} with \texttt{withInterceptors}), injecting both the authentication and error interceptors into the HTTP pipeline at bootstrap time.
 
@@ -424,9 +439,9 @@ Table~\ref{tab:frontend-routes} lists the route configuration. The empty path re
 \subsection{Authentication Integration}
 \label{subsec:frontend-auth}
 
-\par The frontend authentication layer consists of four cooperating pieces: a service that manages token storage and user state, two HTTP interceptors that transparently handle token attachment and session expiration, and a route guard that protects authenticated pages.
+ \par The frontend authentication layer consists of four cooperating pieces: a service that manages token storage and user state, two HTTP interceptors that transparently handle token attachment and session expiration, and a route guard that protects authenticated pages.
 
-The \texttt{AuthService} is a singleton service provided at the root level. It stores the JWT token and the serialized user object in the browser's \texttt{localStorage} under the keys \texttt{auth\_token} and \texttt{auth\_user}, respectively. On construction, the service attempts to load a previously stored user from \texttt{localStorage} and initializes \texttt{BehaviorSubject<UserResponse | null>}, which is exposed as the \texttt{cur\-rentUser\$} observable. This observable is consumed by the root \texttt{AppComponent} to reactively render the navigation bar. The service provides \texttt{login()} and \texttt{re\-gis\-ter()} methods that POST credentials to the backend's \texttt{/api/auth/login} and \texttt{/api/\-auth/\-re\-gis\-ter} endpoints, respectively; both methods pipe the response through a \texttt{tap} operator that persists the returned token and user object. The \texttt{logout()} method clears both \texttt{localStorage} entries and pushes \texttt{null} into the subject, which immediately updates all subscribed components. The \texttt{is\-Au\-then\-ti\-cated()} method performs a simple null check on the stored token and is used by both the route guard and the navigation bar.
+The \texttt{AuthService} is a singleton service provided at the root level. It stores the JWT token and the serialized user object in the browser's \texttt{localStorage} under the keys \texttt{auth\_token} and \texttt{auth\_user}, respectively. On construction, the service attempts to load a previously stored used from \texttt{localStorage} and initializes \texttt{BehaviorSubject<UserResponse | null>}, which is exposed as the \texttt{cur\-rentUser\$} observable. This observable is consumed by the root \texttt{AppComponent} to reactively render the navigation bar. The service provides \texttt{login()} and \texttt{re\-gis\-ter()} methods that POST credentials to the backend's \texttt{/api/auth/login} and \texttt{/api/\-auth/\-re\-gis\-ter} endpoints, respectively; both methods pipe the response through a \texttt{tap} operator that persists the returned token and user object. The \texttt{logout()} method clears both \texttt{localStorage} entries and pushes \texttt{null} into the subject, which immediately updates all subscribed components. The \texttt{is\-Au\-then\-ti\-cated()} method performs a simple null check on the stored token and is used by both the route guard and the navigation bar.
 
 The \texttt{authInterceptor} is implemented as a functional \texttt{HttpInterceptorFn}. For every outgoing HTTP request, it injects the \texttt{AuthService} via Angular's \texttt{in\-ject()} function and retrieves the current token. Requests to the \texttt{/auth/login} and \texttt{/auth/re\-gis\-ter} endpoints are passed through unmodified, since those endpoints are public. For all other requests, if a token is present, the interceptor clones the request with an \texttt{Authorization: Bearer <token>} header attached.
 
@@ -437,7 +452,7 @@ The \texttt{authGuard} is implemented as a functional \texttt{CanActivateFn}. It
 \subsection{Pages}
 \label{subsec:frontend-pages}
 
-\par The application contains five page components, each responsible for a distinct user workflow.
+ \par The application contains five page components, each responsible for a distinct user workflow.
 
 \begin{figure}[htbp]
     \centering
@@ -465,12 +480,12 @@ In Git clone mode, the page presents a repository URL input and an optional bran
 
 Both submission paths follow the same post-submission flow. Once the backend responds with a job ID, the page transitions to an analysis-in-progress state and embeds \texttt{ProgressTrackerComponent}. A polling loop, implemented with \texttt{setInterval} at a 2 second interval, repeatedly calls \texttt{ApiService.getJobSta\-tus()} to fetch the current job status and progress. When the job status changes to \texttt{COM\-PLE\-TED}, the polling is stopped and the router navigates to the results page. If the status is \texttt{FAILED} or \texttt{CANCELLED}, the polling stops and the error message is displayed. The polling interval is cleared in the component's \texttt{ngOnDestroy} lifecycle hook to prevent memory leaks on navigating away.
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[scale=0.3]{figures/images/chapter4/analysis_page.png}
-    \caption{Results page displaying the health score gauge, summary metrics, issues by severity, health score breakdown, detected anti-patterns, and dependency graph.}
-    \label{fig:results-page}
-\end{figure}
+ \begin{figure}[htbp]
+     \centering
+     \includegraphics[scale=0.3]{figures/images/chapter4/analysis_page.png}
+     \caption{Results page displaying the health score gauge, summary metrics, issues by severity, health score breakdown, detected anti-patterns, and dependency graph.}
+     \label{fig:results-page}
+ \end{figure}
 
 The \texttt{ResultsPageComponent} is the primary output of the application. It reads the \texttt{jobId} parameter from the route, calls \texttt{ApiService.getJobResults()} to load the \texttt{AnalysisResult}, and then chains two additional requests to retrieve the job metadata and the parent project.
 
@@ -482,12 +497,12 @@ Below the diff banner, a grid of summary cards is displayed. The first card cont
 
 Below the summary grid, the \texttt{HealthScoreBreakdownComponent} renders the per-category score breakdown as collapsible cards. Finally, a two-column details grid displays the \texttt{AntiPatternListComponent}, which is a list of detected anti-patterns that can be expanded to reveal descriptions, affected services, code evidence and remediation advice, alongside the \texttt{DependencyGraphComponent}, which is an interactive visualization of the service dependency graph.
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[scale=0.3]{figures/images/chapter4/history_page.png}
-    \caption{History page showing the projects list with an expanded project's analysis timeline and diff information.}
-    \label{fig:history-page}
-\end{figure}
+ \begin{figure}[htbp]
+     \centering
+     \includegraphics[scale=0.3]{figures/images/chapter4/history_page.png}
+     \caption{History page showing the projects list with an expanded project's analysis timeline and diff information.}
+     \label{fig:history-page}
+ \end{figure}
 
 The \texttt{HistoryPageComponent} provides an overview of all the user's projects and recent analysis jobs, organized into two tabs: \texttt{Projects} and \texttt{Jobs}.
 
@@ -498,7 +513,7 @@ The Jobs tab displays the 20 most recent analysis jobs, loaded via \texttt{ApiSe
 \subsection{Reusable Components}
 \label{subsec:frontend-components}
 
-\par The application defines seven standalone reusable components that are composed into pages via Angular's input and output bindings. This section describes each component's purpose and implementation.
+ \par The application defines seven standalone reusable components that are composed into pages via Angular's input and output bindings. This section describes each component's purpose and implementation.
 
 \par The (\texttt{HealthScoreComponent}) component accepts a numeric \texttt{score} (0 - 100) and an optional letter \texttt{grade} as inputs. It renders a circular gauge using an SVG circle with a \texttt{stroke-dashoffset} animation. The SVG consists of two overlapping circles with a radius of 45 units inside a 100$\times$100 viewBox: a background circle and a progress circle whose visible arc length is computed as \texttt{circumference $-$ (score / 100) $\times$ circumference}, where the circumference is $2\pi r \approx 283$ units. The score value is displayed numerically in the center of the circle. The component applies one of three CSS classes based on the score: ''good'' (score $\geq 80$), ''warning'' ($50 \leq$ score $< 80$), or ''danger'' (score $< 50$), which control the stroke and text color. Below the gauge, the letter grade is shown as a color-coded badge, and a textual description summarizes the score range.
 
@@ -517,12 +532,12 @@ The Jobs tab displays the 20 most recent analysis jobs, loaded via \texttt{ApiSe
 \section{Deployment}
 \label{sec:deployment}
 
-\par The application is containerized using Docker and orchestrated with Docker Compose. Two configurations are provided: a development configuration for local development and a production configuration for deployment on a productive environment.
+ \par The application is containerized using Docker and orchestrated with Docker Compose. Two configurations are provided: a development configuration for local development and a production configuration for deployment on a productive environment.
 
 \subsection{Docker Configuration}
 \label{subsec:docker-config}
 
-\par The backend is packaged using a multi-stage Dockerfile. The build stage uses an Eclipse Temurin JDK 25 Alpine image to compile the application with Maven. Docker's layer caching ensures dependency resolution is only re-executed when \texttt{pom.xml} changes by copying and resolving dependencies (\texttt{mvn dependency:go-offline}) before copying the source code. The runtime stage uses a minimal JRE 25 Alpine image, installs Git (required for repository cloning at runtime), creates a non-root user (\texttt{appuser}) for security and runs the application with container-aware JVM settings (\texttt{-XX:+UseContainerSupport}, \texttt{-XX:MaxRAMPercentage=75.0}) that allow the JVM to respect container memory limits. A health check endpoint (\texttt{/actuator/health}) is configured for container orchestration. Listing~\ref{lst:dockerfile-runtime} shows the runtime stage.
+ \par The backend is packaged using a multi-stage Dockerfile. The build stage uses an Eclipse Temurin JDK 25 Alpine image to compile the application with Maven. Docker's layer caching ensures dependency resolution is only re-executed when \texttt{pom.xml} changes by copying and resolving dependencies (\texttt{mvn dependency:go-offline}) before copying the source code. The runtime stage uses a minimal JRE 25 Alpine image, installs Git (required for repository cloning at runtime), creates a non-root user (\texttt{appuser}) for security and runs the application with container-aware JVM settings (\texttt{-XX:+UseContainerSupport}, \texttt{-XX:MaxRAMPercentage=75.0}) that allow the JVM to respect container memory limits. A health check endpoint (\texttt{/actuator/health}) is configured for container orchestration. Listing~\ref{lst:dockerfile-runtime} shows the runtime stage.
 
 \begin{figure}[htbp]
     \begin{minted}[
@@ -552,17 +567,17 @@ ENTRYPOINT ["java", "-XX:+UseContainerSupport", \
 \subsection{Docker Compose (Development)}
 \label{subsec:docker-dev}
 
-\par The development Docker Compose configuration defines four services on a shared bridge network. The PostgreSQL~16 (Alpine) container serves as the database, initialized via Flyway migration scripts \footnote{\href{https://github.com/flyway/flyway}{Flyway}} and exposed on port 5432 with a periodic health check (\texttt{pg\_isready}). The backend container is built from the Dockerfile described above, connected to the database via environment variables, and mounts the DesigniteJava JAR as a read-only volume. It is exposed on port 8080 and depends on the database being healthy before starting. The frontend container is built from the sibling \texttt{dissertation\_frontend} repository and served via Nginx on port 4200, with a startup dependency on the backend's health check. An optional pgAdmin container, enabled via the \texttt{tools} Docker Compose profile, provides a web-based database administration interface on port 5050 for development convenience. Named volumes (\texttt{postgres\_data}, \texttt{workspace\_data}) persist the database and analysis workspace across container restarts, so that uploaded projects and analysis results are not lost during container restarts.
+ \par The development Docker Compose configuration defines four services on a shared bridge network. The PostgreSQL~16 (Alpine) container serves as the database, initialized via Flyway migration scripts \footnote{\href{https://github.com/flyway/flyway}{Flyway}} and exposed on port 5432 with a periodic health check (\texttt{pg\_isready}). The backend container is built from the Dockerfile described above, connected to the database via environment variables, and mounts the DesigniteJava JAR as a read-only volume. It is exposed on port 8080 and depends on the database being healthy before starting. The frontend container is built from the sibling \texttt{dissertation\_frontend} repository and served via Nginx on port 4200, with a startup dependency on the backend's health check. An optional pgAdmin container, enabled via the \texttt{tools} Docker Compose profile, provides a web-based database administration interface on port 5050 for development convenience. Named volumes (\texttt{postgres\_data}, \texttt{workspace\_data}) persist the database and analysis workspace across container restarts, so that uploaded projects and analysis results are not lost during container restarts.
 
 \subsection{Docker Compose (Production)}
 \label{subsec:docker-prod}
 
-\par The production configuration introduces several differences for security and resource management. Sensitive configuration, i.e. the database password and JWT signing secret, is injected via required environment variables (using Docker Compose's \texttt{\$\{VAR:?error\}} syntax) rather than hardcoded defaults, which prevents accidental deployment with insecure credentials. The database port is not exposed to the host, instead, only the frontend container exposes port~80 (configurable via \texttt{FRONTEND\_PORT}), acting as the single entry point to the system. The frontend's Nginx configuration reverse-proxies API requests at the \texttt{/api} path to the backend container, which eliminates the need for CORS headers and ensures that all traffic enters through a single port. Resource limits are enforced via Docker's \texttt{deploy\-.resources\-.limits}: 1\,GB for PostgreSQL, 2\,GB for the backend, and 256\,MB for the frontend. The backend's health check start period is increased to 60 seconds to accommodate longer JVM startup times in memory-constrained environments.
+ \par The production configuration introduces several differences for security and resource management. Sensitive configuration, i.e. the database password and JWT signing secret, is injected via required environment variables (using Docker Compose's \texttt{\$\{VAR:?error\}} syntax) rather than hardcoded defaults, which prevents accidental deployment with insecure credentials. The database port is not exposed to the host, instead, only the frontend container exposes port~80 (configurable via \texttt{FRONTEND\_PORT}), acting as the single entry point to the system. The frontend's Nginx configuration reverse-proxies API requests at the \texttt{/api} path to the backend container, which eliminates the need for CORS headers and ensures that all traffic enters through a single port. Resource limits are enforced via Docker's \texttt{deploy\-.resources\-.limits}: 1\,GB for PostgreSQL, 2\,GB for the backend, and 256\,MB for the frontend. The backend's health check start period is increased to 60 seconds to accommodate longer JVM startup times in memory-constrained environments.
 
 \subsection{Configuration Management}
 \label{subsec:config-management}
 
-\par The application configuration is externalized via environment variables with sensible defaults for local development, following established practices for cloud-native applications \cite{Newman2015}. Spring Boot's property placeholder mechanism (\texttt{\$\{VAR:default\}}) in \texttt{application.yml} resolves environment variables at startup, with fallback values ensuring that the application runs out-of-the-box in a development environment without additional configuration. Table~\ref{tab:config-params} lists the key configurable parameters.
+ \par The application configuration is externalized via environment variables with sensible defaults for local development, following established practices for cloud-native applications \cite{Newman2015}. Spring Boot's property placeholder mechanism (\texttt{\$\{VAR:default\}}) in \texttt{application.yml} resolves environment variables at startup, with fallback values ensuring that the application runs out-of-the-box in a development environment without additional configuration. Table~\ref{tab:config-params} lists the key configurable parameters.
 
 \begin{table}[htbp]
     \centering
@@ -605,36 +620,36 @@ ENTRYPOINT ["java", "-XX:+UseContainerSupport", \
 \subsection{Production Deployment Considerations}
 \label{subsec:prod-deployment}
 
-\par While the Docker Compose configurations described above are sufficient for single-server deployments, deploying the system to a publicly accessible production environment introduces additional concerns around hosting infrastructure, data access patterns, persistent storage, network security, and operational maintenance.
+ \par While the Docker Compose configurations described above are sufficient for single-server deployments, deploying the system to a publicly accessible production environment introduces additional concerns around hosting infrastructure, data access patterns, persistent storage, network security, and operational maintenance.
 
 \subsubsection{Hosting Infrastructure}
 \label{subsubsec:hosting}
 
-\par The containerized architecture makes the application portable across any Docker capable hosting environment. A single virtual private server (VPS) from providers such as DigitalOcean, Hetzner or AWS EC2 with at least 4\,GB of RAM and 2 vCPUs can run all three containers (database, backend, frontend) via the production Docker Compose file. For higher availability, the containers could be deployed to a managed container orchestration platform such as AWS ECS, Google Cloud Run or a self-hosted Kubernetes cluster, though the current architecture does not require horizontal scaling of the backend, as analysis jobs are inherently sequential per-project. A managed PostgreSQL service (e.g., AWS RDS, DigitalOcean Managed Databases) could replace the containerized database to offload backup management, automatic failover and connection pooling to the cloud provider.
+ \par The containerized architecture makes the application portable across any Docker capable hosting environment. A single virtual private server (VPS) from providers such as DigitalOcean, Hetzner or AWS EC2 with at least 4\,GB of RAM and 2 vCPUs can run all three containers (database, backend, frontend) via the production Docker Compose file. For higher availability, the containers could be deployed to a managed container orchestration platform such as AWS ECS, Google Cloud Run or a self-hosted Kubernetes cluster, though the current architecture does not require horizontal scaling of the backend, as analysis jobs are inherently sequential per-project. A managed PostgreSQL service (e.g., AWS RDS, DigitalOcean Managed Databases) could replace the containerized database to offload backup management, automatic failover and connection pooling to the cloud provider.
 
 \subsubsection{Data Access and Code Snippet Storage}
 \label{subsubsec:data-access}
 
-\par A key architectural decision affects how the application can be deployed: all analysis evidence, including source code snippets shown to the user, is read from the cloned/uploaded source files \textit{during the analysis phase} and persisted as JSON text directly in the \texttt{detected\_anti\_patterns} database table (in the \texttt{code\_snippets} column). When a user later reviews results, the code snippets are served from the database via the API, not read from the filesystem at request time. This design has two important consequences for deployment. First, the application does not require the analyses source code to remain on disk after the analysis is completed, as the workspace volume serves as a temporary staging area that could be periodically cleaned to reclaim disk space. Second, all data required to show results, including the dependency graph JSON, anti-pattern descriptions, affected service lists, remediation advice and code snippets with line numbers, resides entirely in PostgreSQL. This means that the database is the only stateful component that requires backup, and results remain accessible even if the workspace volume is lost.
+ \par A key architectural decision affects how the application can be deployed: all analysis evidence, including source code snippets shown to the user, is read from the cloned/uploaded source files \textit{during the analysis phase} and persisted as JSON text directly in the \texttt{detected\_anti\_patterns} database table (in the \texttt{code\_snippets} column). When a user later reviews results, the code snippets are served from the database via the API, not read from the filesystem at request time. This design has two important consequences for deployment. First, the application does not require the analyses source code to remain on disk after the analysis is completed, as the workspace volume serves as a temporary staging area that could be periodically cleaned to reclaim disk space. Second, all data required to show results, including the dependency graph JSON, anti-pattern descriptions, affected service lists, remediation advice and code snippets with line numbers, resides entirely in PostgreSQL. This means that the database is the only stateful component that requires backup, and results remain accessible even if the workspace volume is lost.
 
 The same pattern applies to the dependency graph: the graph structure (nodes and edges with metadata) is serialized to JSON during the result assembly phase and stored in the \texttt{dependency\_graph\_json} column of the \texttt{analysis\_results} table. The frontend renders this JSON directly without querying the filesystem.
 
 \subsubsection{TLS Termination and Domain Configuration}
 \label{subsubsec:tls}
 
-\par The production Docker Compose configuration exposes only port~80 via the frontend's Nginx container. For a public deployment, HTTPS must be enabled to protect JWT tokens in transit. The recommended approach is to place a reverse proxy such as Nginx, Caddy or Traefik in front of the Docker Compose stack to handle TLS termination with certificates obtained from Let's Encrypt. Caddy is particularly suitable for simple deployments, as it automatically provisions and renews TLS certificates with zero configuration beyond specifying the domain name. Alternatively, if deployed behind a cloud load balancer (e.g. AWS ALB, Cloudflare), TLS termination can be handled at the load balancer level, with unencrypted traffic forwarded to the Nginx container over the internal network.
+ \par The production Docker Compose configuration exposes only port~80 via the frontend's Nginx container. For a public deployment, HTTPS must be enabled to protect JWT tokens in transit. The recommended approach is to place a reverse proxy such as Nginx, Caddy or Traefik in front of the Docker Compose stack to handle TLS termination with certificates obtained from Let's Encrypt. Caddy is particularly suitable for simple deployments, as it automatically provisions and renews TLS certificates with zero configuration beyond specifying the domain name. Alternatively, if deployed behind a cloud load balancer (e.g. AWS ALB, Cloudflare), TLS termination can be handled at the load balancer level, with unencrypted traffic forwarded to the Nginx container over the internal network.
 
 \subsubsection{Backup and Data Persistence}
 \label{subsubsec:backup}
 
-\par The PostgreSQL database is the primary stateful component and requires regular backups. The named Docker volume (\texttt{postgres\_data\_prod}) persists data across container restarts, but does not protect against host-level failures. For production, automated \texttt{pg\_dump} backups should be scheduled (e.g. via a cron job) and stored off-host in object storage such as AWS S3. The workspace volume (\texttt{workspace\_data\_prod}) stores cloned repositories and extracted ZIP archives. Its loss does not affect any existing results (as mentioned above). For Git-based projects, the workspace can always be reconstructed by re-cloning.
+ \par The PostgreSQL database is the primary stateful component and requires regular backups. The named Docker volume (\texttt{postgres\_data\_prod}) persists data across container restarts, but does not protect against host-level failures. For production, automated \texttt{pg\_dump} backups should be scheduled (e.g. via a cron job) and stored off-host in object storage such as AWS S3. The workspace volume (\texttt{workspace\_data\_prod}) stores cloned repositories and extracted ZIP archives. Its loss does not affect any existing results (as mentioned above). For Git-based projects, the workspace can always be reconstructed by re-cloning.
 
 \subsubsection{Resource Sizing and Scaling}
 \label{subsubsec:scaling}
 
-\par The backend's memory consumption is dominated by the Spoon AST analysis of large microservice projects, which can require significant heap space when parsing thousands of Java files. The 2\,GB memory limit defined in the production configuration is sufficient for most open-source projects, however, an increase to this limit might be required for very large enterprise codebases. The thread pool is configured with a maximum of 5 concurrent analysis workers. On a shared server, this should be reduced to match the available CPU cores to avoid contention. If multiple users submit analyses simultaneously, jobs are queued and processed in order. Horizontal scaling of the backend is possible but would require a shared filesystem or object storage for the workspace volume, as well as a mechanism to route job status polling requests to the instance processing each job (e.g. sticky sessions or a shared job queue via Redis).
+ \par The backend's memory consumption is dominated by the Spoon AST analysis of large microservice projects, which can require significant heap space when parsing thousands of Java files. The 2\,GB memory limit defined in the production configuration is sufficient for most open-source projects, however, an increase to this limit might be required for very large enterprise codebases. The thread pool is configured with a maximum of 5 concurrent analysis workers. On a shared server, this should be reduced to match the available CPU cores to avoid contention. If multiple users submit analyses simultaneously, jobs are queued and processed in order. Horizontal scaling of the backend is possible but would require a shared filesystem or object storage for the workspace volume, as well as a mechanism to route job status polling requests to the instance processing each job (e.g. sticky sessions or a shared job queue via Redis).
 
 \section{Summary}
 \label{sec:ch4-summary}
 
-\par This chapter presented the design and implementation of the MSA Detector application. The high-level architecture consists of an Angular frontend, a Spring Boot backend, and a PostgreSQL database, all containerized with Docker. The data model comprises nine entities capturing users, projects, microservices, endpoints, dependencies, code smells, analysis jobs, results, and detected anti-patterns. The backend implements a RESTful API \cite{Fielding2000} with JWT authentication \cite{RFC7519}, asynchronous analysis pipeline orchestration, a pluggable anti-pattern detector architecture based on the Strategy design pattern \cite{Gamma1994}, and a re-analysis diff feature inspired by SonarQube's \texttt{Clean As You Code} concept. Deployment is managed through Docker Compose with separate development and production configurations. The chapter concluded with a discussion of production deployment considerations, noting that all analysis evidence is persisted in the database during analysis, making PostgreSQL the sole stateful component required for serving results. The next chapter evaluates the system's detection accuracy and performance on real-world open-source microservice projects.
+ \par This chapter presented the design and implementation of the MSA Detector application. The high-level architecture consists of an Angular frontend, a Spring Boot backend, and a PostgreSQL database, all containerized with Docker. The data model comprises nine entities capturing users, projects, microservices, endpoints, dependencies, code smells, analysis jobs, results, and detected anti-patterns. The backend implements a RESTful API \cite{Fielding2000} with JWT authentication \cite{RFC7519}, asynchronous analysis pipeline orchestration, a pluggable anti-pattern detector architecture based on the Strategy design pattern \cite{Gamma1994}, and a re-analysis diff feature inspired by SonarQube's \texttt{Clean As You Code} concept. Deployment is managed through Docker Compose with separate development and production configurations. The chapter concluded with a discussion of production deployment considerations, noting that all analysis evidence is persisted in the database during analysis, making PostgreSQL the sole stateful component required for serving results. The next chapter evaluates the system's detection accuracy and performance on real-world open-source microservice projects.

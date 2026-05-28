@@ -156,12 +156,11 @@ A service not named "gateway" but acting as one (e.g. "edge-router", "reverse-pr
 
 ## Citation Gap Analysis — Applied
 
-**3 citations added to `references.bib` and `chapter4_slimmer.tex`:**
+**2 citations added to `references.bib` and `chapter4.tex`:**
 - Docker → `\cite{Merkel2014}` at system overview (line 18), tech stack table, and chapter summary
-- Twelve-Factor App → `\cite{TwelveFactor}` replacing `\cite{Newman2015}` at §4.5.4 config management paragraph; also in chapter summary
 - BCrypt → `\cite{Provos1999}` at §4.3.2 "Passwords are hashed using BCrypt" and chapter summary
 
-**7 footnotes added to `chapter4_slimmer.tex`:**
+**7 footnotes added to `chapter4.tex`:**
 - Angular → footnote at system overview (line 18) and tech stack table
 - PostgreSQL → footnote at system overview (line 18) and tech stack table
 - Flyway → footnote at §4.2 first mention (line 88); existing footnote in Docker Compose section removed to avoid duplication
@@ -192,11 +191,6 @@ Angular is used as the entire frontend framework but has no citation. Add:
 **3. Flyway — Ch.4 §4.2 (Data Model)**
 Flyway is mentioned for schema migrations (line 88, line 59 in tech table) but only has a footnote in Docker Compose section. Should have a proper citation or at least a consistent footnote. Currently there's a footnote at line 529 but not at line 88 where it's first mentioned.
 - *Where*: Ch.4 line 88 ("versioned using Flyway migrations")
-
-**4. Twelve-Factor App / Cloud-Native configuration — Ch.4 §4.5.4**
-Line 539 cites Newman2015 for "established practices for cloud-native applications" regarding environment variable configuration. A stronger citation would be:
-- Wiggins, A. (2017). "The Twelve-Factor App." https://12factor.net/ (accessed 2026-XX-XX).
-- *Where*: Ch.4 line 539, replace or supplement `\cite{Newman2015}` with a Twelve-Factor App citation, since the env-var externalization pattern originates from Factor III (Config).
 
 ### Nice to Have (strengthen existing mentions)
 
