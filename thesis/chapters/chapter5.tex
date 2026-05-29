@@ -127,13 +127,29 @@
 
 \par Table~\ref{tab:antipattern-distribution} presents the breakdown of detected anti-pattern instances by type across all evaluated projects.
 
+\newcommand{\projhead}[1]{%
+    \rotatebox[origin=c]{90}{\textbf{#1}}%
+}
+
 \begin{table}[htbp]
     \centering
     \footnotesize
     \setlength{\tabcolsep}{3pt}
-    \begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}X|*{9}{>{\centering\arraybackslash}p{0.6cm}|}>{\centering\arraybackslash}p{0.6cm}|}
+    \renewcommand{\arraystretch}{1.1}
+
+    \begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}X|*{10}{>{\centering\arraybackslash}p{0.7cm}|}}
         \hline
-        \textbf{Anti-Pattern} & \textbf{Micro Social} & \textbf{m-d-p} & \textbf{Site- Where} & \textbf{Train- Ticket} & \textbf{Net- Disk} & \textbf{m-r} & \textbf{FTGO} & \textbf{mall- swarm} & \textbf{RuoYi} & \textbf{Total} \\
+        \rule{0pt}{2.7cm}\textbf{Anti-Pattern}
+        & \projhead{MicroSocial}
+        & \projhead{m-d-p}
+        & \projhead{SiteWhere}
+        & \projhead{TrainTicket}
+        & \projhead{NetDisk}
+        & \projhead{m-r}
+        & \projhead{FTGO}
+        & \projhead{mall-swarm}
+        & \projhead{RuoYi}
+        & \projhead{Total} \\
         \hline\hline
         Shared Database & 1 & 0 & 0 & 1 & 0 & 0 & 0 & 1 & 0 & 3 \\
         \hline
@@ -158,6 +174,7 @@
         \textbf{Total} & \textbf{5} & \textbf{11} & \textbf{6} & \textbf{35} & \textbf{13} & \textbf{13} & \textbf{4} & \textbf{13} & \textbf{8} & \textbf{108} \\
         \hline
     \end{tabularx}
+
     \caption{Anti-pattern detection results by type across all evaluated datasets.}
     \label{tab:antipattern-distribution}
 \end{table}
