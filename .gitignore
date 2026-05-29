@@ -70,3 +70,5 @@ temp/
 dissertation_backend.iml
 lib/
 test_projects/
+
+node_modules/
