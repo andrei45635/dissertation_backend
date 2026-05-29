@@ -7,6 +7,7 @@ import com.msadetector.entity.AnalysisResult;
 import com.msadetector.entity.DetectedAntiPattern;
 import com.msadetector.enums.AntiPatternType;
 import com.msadetector.enums.Severity;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -39,6 +40,19 @@ public class HealthScoreCalculator {
             Severity.MEDIUM,   3,
             Severity.LOW,      1
     );
+
+    /**
+     * Smell density (smells per 1000 LOC) at which the Code Quality category incurs
+     * its full penalty. Scoring density rather than absolute count keeps large
+     * codebases from being penalised simply for their size. Configurable via
+     * {@code app.thresholds.code-smell-density-threshold} (default 70).
+     */
+    private final double smellDensityFullPenalty;
+
+    public HealthScoreCalculator(
+            @Value("${app.thresholds.code-smell-density-threshold:70}") double smellDensityFullPenalty) {
+        this.smellDensityFullPenalty = smellDensityFullPenalty;
+    }
 
     /**
      * Build a full breakdown from an already-persisted {@link AnalysisResult}.
@@ -104,11 +118,18 @@ public class HealthScoreCalculator {
         int totalPenalty = 0;
 
         int totalSmells = result.getTotalCodeSmells();
-        if (totalSmells > 0) {
-            int penalty = (int) Math.min(CODE_QUALITY_MAX, Math.round(Math.log1p(totalSmells) * 3.5));
+        int totalLoc = result.getTotalLinesOfCode() != null ? result.getTotalLinesOfCode() : 0;
+        if (totalSmells > 0 && totalLoc > 0) {
+            // Score smell *density* (smells per 1000 LOC) rather than absolute count,
+            // so a large codebase is not penalised simply for being large. The penalty
+            // scales linearly with density and reaches CODE_QUALITY_MAX at
+            // smellDensityFullPenalty smells/KLOC.
+            double density = totalSmells / (totalLoc / 1000.0);
+            int penalty = (int) Math.min(CODE_QUALITY_MAX,
+                    Math.round(CODE_QUALITY_MAX * density / smellDensityFullPenalty));
             totalPenalty += penalty;
             deductions.add(new Deduction(
-                    totalSmells + " code smell(s) detected",
+                    String.format("%d code smell(s), %.1f per KLOC", totalSmells, density),
                     totalSmells,
                     penalty
             ));
