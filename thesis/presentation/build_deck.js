@@ -688,12 +688,12 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
     }
 
     // ============================================================
-    // SLIDE 8 — WORKED EXAMPLE: Train-Ticket
+    // SLIDE 8 — WORKED EXAMPLE: microservice-recruit
     // ============================================================
     {
         const s = pres.addSlide();
         s.background = { color: C.bg };
-        addTitle(s, "Worked example: Train-Ticket (40 / F)");
+        addTitle(s, "Worked example: microservice-recruit (40 / F)");
 
         // Left: the math
         s.addText("Anti-Pattern findings", {
@@ -701,27 +701,29 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             fontSize: 13, fontFace: HEADER_FONT, color: C.navy, bold: true, margin: 0,
         });
         const findings = [
-            ["26×", "Hardcoded Endpoints", "−3 each = −78"],
-            ["4×",  "Chatty Service",      "−5 each = −20"],
-            ["1×",  "Shared Database",     "−5 each = −5"],
+            ["6×", "API Versioning Absence", "−3 each = −18"],
+            ["2×", "ESB Misuse",             "−5 each = −10"],
+            ["2×", "Wrong Cuts",             "−5 each = −10"],
+            ["1×", "Cyclic Dependency",      "−8 = −8"],
+            ["1×", "Hardcoded Endpoints",    "−3 = −3"],
         ];
         findings.forEach((row, i) => {
-            const y = 1.32 + i * 0.40;
+            const y = 1.18 + i * 0.345;
             s.addShape(pres.shapes.RECTANGLE, {
-                x: 0.5, y: y, w: 4.5, h: 0.36,
+                x: 0.5, y: y, w: 4.5, h: 0.31,
                 fill: { color: C.card }, line: { color: C.cardBorder, width: 0.5 },
             });
             s.addText(row[0], {
-                x: 0.55, y: y, w: 0.6, h: 0.36,
-                fontSize: 13, fontFace: HEADER_FONT, color: C.bad, bold: true,
+                x: 0.55, y: y, w: 0.6, h: 0.31,
+                fontSize: 12, fontFace: HEADER_FONT, color: C.bad, bold: true,
                 align: "center", valign: "middle", margin: 0,
             });
             s.addText(row[1], {
-                x: 1.2, y: y, w: 2.3, h: 0.36,
+                x: 1.2, y: y, w: 2.3, h: 0.31,
                 fontSize: 11, fontFace: BODY_FONT, color: C.text, valign: "middle", margin: 0,
             });
             s.addText(row[2], {
-                x: 3.5, y: y, w: 1.45, h: 0.36,
+                x: 3.5, y: y, w: 1.45, h: 0.31,
                 fontSize: 10, fontFace: BODY_FONT, color: C.muted, italic: true,
                 align: "right", valign: "middle", margin: 0,
             });
@@ -731,7 +733,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             x: 0.5, y: 2.95, w: 4.5, h: 0.45,
             fill: { color: C.navy }, line: { color: C.navy },
         });
-        s.addText("Total penalty: 103   →   AP clamped at 0", {
+        s.addText("Total penalty: 49   →   AP clamped at 0", {
             x: 0.5, y: 2.95, w: 4.5, h: 0.45,
             fontSize: 12, fontFace: BODY_FONT, color: "FFFFFF", bold: true,
             align: "center", valign: "middle", margin: 0,
@@ -745,9 +747,9 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
 
         const bars = [
             { label: "Anti-Patterns",   max: 40, got: 0,  color: C.bad },
-            { label: "Code Quality",    max: 20, got: 8,  color: C.warn },
-            { label: "Architecture",    max: 25, got: 25, color: C.deepBlue },
-            { label: "Service Sizing",  max: 15, got: 7,  color: C.teal },
+            { label: "Code Quality",    max: 20, got: 12, color: C.warn },
+            { label: "Architecture",    max: 25, got: 16, color: C.deepBlue },
+            { label: "Service Sizing",  max: 15, got: 12, color: C.teal },
         ];
         const barXLabel = 5.3, barX = 6.7, barW = 2.6, barH = 0.28;
         bars.forEach((b, i) => {
@@ -797,7 +799,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             fontSize: 14, fontFace: HEADER_FONT, color: C.navy, bold: true,
             align: "center", valign: "middle", margin: 0,
         });
-        s.addText("Score driven by anti-pattern deductions (26 Hardcoded Endpoints + 4 Chatty Services). Service Sizing loses 8 pts to nano services; Code Quality adds a density-based deduction (8 / 20).", {
+        s.addText("Deductions spread across all four categories: the anti-pattern load (penalty 49) clamps AP to 0; Architecture loses 9 to dependency-graph coupling; Code Quality 8 to smell density; Service Sizing 3 to one nano service.", {
             x: 0.5, y: 3.95, w: 4.5, h: 1.0,
             fontSize: 10, fontFace: BODY_FONT, color: C.muted, italic: true, margin: 0,
         });
@@ -807,13 +809,14 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
         s.addNotes(
             "Spend ~75 seconds. This slide makes the scoring reproducible.\n\n" +
             "Walk through it:\n" +
-            "• 'Take Train-Ticket — an academic benchmark with 41 microservices. In the anti-pattern category it has 26 hardcoded endpoints, 4 chatty services, and 1 shared database — total penalty 103, but the category caps at 40, so it clamps to zero.'\n" +
-            "• 'Its 4 nano services are scored under Service Sizing instead of the anti-pattern category, to avoid double counting — costing 8 points there.'\n" +
-            "• 'Code Quality now contributes a real deduction too: scored by smell density, its 1,565 code smells leave 8 of 20 points.'\n" +
-            "• 'The final composite is 40 — grade F. The decomposition shows the score is dominated by the anti-pattern load, chiefly the hardcoded URLs and chatty inter-service calls, with code-smell density a secondary contributor.'\n\n" +
+            "• 'Take microservice-recruit — a Spring Cloud recruitment platform. In the anti-pattern category it has 6 API versioning absences, 2 ESB misuse and 2 wrong-cuts findings, 1 cyclic dependency, and 1 hardcoded endpoint — total penalty 49, but the category caps at 40, so it clamps to zero.'\n" +
+            "• 'Its single nano service is scored under Service Sizing instead of the anti-pattern category, to avoid double counting — costing 3 points there, leaving 12 of 15.'\n" +
+            "• 'Architecture loses 9 points for the structural coupling of its dependency graph — leaving 16 of 25.'\n" +
+            "• 'Code Quality is scored by smell density: 260 smells over 8.3K LOC is 31.4 per KLOC, an 8-point deduction, leaving 12 of 20.'\n" +
+            "• 'The final composite is 0 + 12 + 16 + 12 = 40 — grade F. Unlike a project whose problems sit in one place, this one loses points in every dimension, which is exactly what the multi-level scoring is meant to surface.'\n\n" +
             "This demonstrates that the scoring is transparent and that the breakdown shows exactly what's wrong.\n\n" +
-            "EXPECT QUESTION: 'Only 8 points lost on Code Quality with 1,565 smells — why so little?'\n" +
-            "Answer: 'Code Quality is scored on smell density per 1000 LOC, not raw count, so a large codebase isn't punished just for its size. The category is deliberately bounded so that architectural anti-patterns remain the dominant signal in the overall score.'"
+            "EXPECT QUESTION: 'Only 8 points lost on Code Quality with 260 smells — why so little?'\n" +
+            "Answer: 'Code Quality is scored on smell density per 1000 LOC, not raw count, so a codebase isn't punished just for its size. The category is deliberately bounded so that architectural anti-patterns remain the dominant signal in the overall score.'"
         );
     }
 
@@ -829,7 +832,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
         s.addChart(pres.charts.BAR, [{
             name: "Health score",
             labels: ["MicroSocial", "ftgo", "Site-Where", "RuoYi", "design-pat.", "mall-swarm", "NetworkDisk", "Train-Ticket", "recruit"],
-            values: [83, 75, 69, 68, 60, 53, 52, 40, 39],
+            values: [83, 75, 69, 68, 60, 53, 52, 40, 40],
         }], {
             x: 0.4, y: 0.95, w: 5.9, h: 3.0,
             barDir: "col",
@@ -920,7 +923,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "Spend ~90 seconds.\n\n" +
             "Talking points:\n" +
             "• 'I evaluated on nine open-source Spring Boot projects, spanning from a 2k-LOC student project to mall-swarm at 86k LOC. 116 microservices, about 269k LOC total.'\n" +
-            "• 'Health scores ranged from 39 to 83 — the scoring mechanism produces meaningful spread.'\n" +
+            "• 'Health scores ranged from 40 to 83 — the scoring mechanism produces meaningful spread.'\n" +
             "• 'The dominant findings are configuration and sizing issues: 43 hardcoded endpoints, 31 API versioning absences, 15 nano services. Cyclic Dependency and Wrong Cuts were detected in microservice-recruit — adding it exercised detectors that previously produced zero results.'\n" +
             "• '108 total anti-pattern instances across 9 distinct types. Only Distributed Monolith was not detected — plausible given these projects' topologies.'\n\n" +
             "EXPECT: 'Only nine projects, is that enough?'\n" +

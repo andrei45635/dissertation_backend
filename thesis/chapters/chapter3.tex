@@ -36,7 +36,7 @@ The AST-based approach is more robust than regular expression-based scanning, as
 
 \par DesigniteJava is a static analysis tool that detects design smells, implementation smells and architecture smells in Java projects \cite{Sharma2018}. It analyzes Java source code and produces CSV reports categorizing detected smells by type, affected class and file location.
 
-In this dissertation, DesigniteJava is integrated as an external tool invoked as a subprocess. The analysis pipeline passes each detected microservice's source directory to DesigniteJava, parses the resulting CSV output files (\texttt{DesignSmells.csv}, \texttt{ImplementationSmells.csv}, \texttt{ArchitectureSmells.csv}), and stores the results in the application database. The God Class smell frequency per service is then used as a signal for god service detection (see Section~\ref{subsec:god-service}).
+In this dissertation, DesigniteJava is integrated as an external tool invoked as a subprocess. The analysis pipeline passes each detected microservice's source directory to DesigniteJava, parses the resulting CSV output files (\texttt{DesignSmells.csv}, \texttt{ImplementationSmells.csv}, \texttt{ArchitectureSmells.csv}), and stores the results in the application database. The God Class smell frequency per service is then used as a signal for god service detection (see Section~\ref{subsec:detect-god-service}).
 
 \begin{table}[htbp]
     \centering
@@ -220,7 +220,7 @@ Algorithm~\ref{alg:shared-database} summarises the detection procedure.
 
 The algorithm operates in $O(|V| + |E|)$ time. It performs a depth-first traversal of the graph, maintaining for each vertex $v$ two values: $\text{index}(v)$, the order in which $v$ was visited and $\text{lowlink}(v)$, the smallest index reachable from $v$ through the DFS subtree and back edges. A vertex $v$ is the root of an SCC when $\text{lowlink}(v) = \text{index}(v)$, at which point all vertices on the stack above $v$ (inclusive) form the SCC.
 
-Algorithm~\ref{alg:tarjan} presents the implementation of Tarjan's SCC algorithm as used in this work. The outer loop (lines 4--8) ensures all vertices are visited even in disconnected graphs.
+Algorithm~\ref{alg:tarjan} presents the implementation of Tarjan's SCC algorithm as used in this work. The outer loop (lines 4-8) ensures all vertices are visited even in disconnected graphs.
 
 \begin{algorithm}[htbp]
 \caption{Tarjan's SCC Algorithm for Cycle Detection}\label{alg:tarjan}
