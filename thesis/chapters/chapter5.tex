@@ -120,6 +120,37 @@
     \label{tab:results-overview}
 \end{table}
 
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+            ybar,
+            bar width=14pt,
+            width=\textwidth,
+            height=7cm,
+            ylabel={Health Score},
+            xtick={1,2,3,4,5,6,7,8,9},
+            xticklabels={m-r, TrainTicket, NetDisk, mall-swarm, m-d-p, RuoYi, SiteWhere, FTGO, MicroSocial},
+            x tick label style={rotate=35, anchor=east, font=\footnotesize},
+            ymin=0, ymax=100,
+            ytick={0,20,40,60,80,100},
+            nodes near coords,
+            nodes near coords style={font=\scriptsize},
+            enlarge x limits=0.08,
+            extra y ticks={50,65,80,90},
+            extra y tick labels={},
+            extra y tick style={grid=major, grid style={dashed, gray!50}},
+        ]
+        \addplot[fill=red!60, draw=black] coordinates {(1, 39) (2, 40)};
+        \addplot[fill=orange!60, draw=black] coordinates {(3, 52) (4, 53) (5, 60)};
+        \addplot[fill=yellow!60, draw=black] coordinates {(6, 68) (7, 69) (8, 75)};
+        \addplot[fill=green!50, draw=black] coordinates {(9, 83)};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Health scores of the nine evaluated projects sorted by score and color-coded by letter grade. Dashed lines indicate grade boundaries (F: $<$50, D: 50--64, C: 65--79, B: 80--89). No project achieved an A grade ($\geq$90).}
+    \label{fig:health-scores}
+\end{figure}
+
 % \par The evaluation results show substantial variation in architectural quality across the selected projects. Health scores ranged from 45 to 77, indicating that the detection pipeline was able to distinguish between projects with relatively few issues and those with a much higher concentration of anti-patterns. The most frequently observed anti-patterns were Hardcoded Endpoints, API Versioning Absence and Nano Service. Notably, ESB Misuse was detected in Site-Where and microservice-recruit, Chatty Service was detected in Train-Ticket, and Cyclic Dependency was detected in microservice-recruit. Wrong Cuts was also detected in microservice-recruit, and Shared Database was found in both MicroservicesSocial and Train-Ticket. Overall, the results suggest that the MSA Detector can highlight meaningful differences in architectural quality across projects of different size and structure.
 
 \subsection{Anti-Pattern Distribution}
@@ -179,6 +210,100 @@
     \label{tab:antipattern-distribution}
 \end{table}
 
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+            xbar,
+            bar width=10pt,
+            width=0.85\textwidth,
+            height=9cm,
+            xlabel={Number of Instances},
+            ytick={1,2,3,4,5,6,7,8,9,10},
+            yticklabels={Distr.\ Monolith, Cyclic Dep., Wrong Cuts, Shared DB, God Service, Chatty Service, ESB Misuse, Nano Service, API Versioning, Hardcoded Endp.},
+            y tick label style={font=\footnotesize},
+            xmin=0, xmax=50,
+            nodes near coords,
+            nodes near coords style={font=\scriptsize},
+            enlarge y limits=0.08,
+        ]
+        \addplot[fill=blue!50, draw=black] coordinates {
+            (0, 1)
+            (1, 2)
+            (2, 3)
+            (3, 4)
+            (4, 5)
+            (4, 6)
+            (5, 7)
+            (15, 8)
+            (31, 9)
+            (43, 10)
+        };
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Total anti-pattern instances by type across all nine evaluated projects. Hardcoded Endpoints and API Versioning Absence account for approximately 69\% of all detections.}
+    \label{fig:antipattern-frequency}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \footnotesize
+    \setlength{\tabcolsep}{3pt}
+    \renewcommand{\arraystretch}{1.4}
+    \begin{tabular}{l*{9}{c}}
+        \hline
+        & \rotatebox{90}{\textbf{MicroSocial}~}
+        & \rotatebox{90}{\textbf{m-d-p}~}
+        & \rotatebox{90}{\textbf{SiteWhere}~}
+        & \rotatebox{90}{\textbf{TrainTicket}~}
+        & \rotatebox{90}{\textbf{NetDisk}~}
+        & \rotatebox{90}{\textbf{m-r}~}
+        & \rotatebox{90}{\textbf{FTGO}~}
+        & \rotatebox{90}{\textbf{mall-swarm}~}
+        & \rotatebox{90}{\textbf{RuoYi}~} \\
+        \hline
+        Shared DB       & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 \\
+        Cyclic Dep.     & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
+        Nano Service    & \cellcolor{orange!30}2 & \cellcolor{orange!30}2 & \cellcolor{white}0 & \cellcolor{orange!60}4 & \cellcolor{orange!45}3 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{yellow!40}1 \\
+        God Service     & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{yellow!40}1 \\
+        Chatty Service  & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!60}4 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
+        Hardcoded Endp. & \cellcolor{yellow!40}1 & \cellcolor{orange!50}6 & \cellcolor{orange!30}2 & \cellcolor{red!60}26 & \cellcolor{orange!30}2 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{orange!60}4 & \cellcolor{yellow!40}1 \\
+        API Versioning  & \cellcolor{yellow!40}1 & \cellcolor{orange!45}3 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{red!40}8 & \cellcolor{orange!50}6 & \cellcolor{orange!60}4 & \cellcolor{orange!60}4 & \cellcolor{orange!50}5 \\
+        Wrong Cuts      & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
+        ESB Misuse      & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!45}3 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
+        \hline
+    \end{tabular}
+    \caption{Anti-pattern detection heatmap across projects. Darker cells indicate higher instance counts; white cells indicate no detection. Train-Ticket dominates Hardcoded Endpoints and Chatty Service detections, while API Versioning Absence is the most broadly distributed anti-pattern.}
+    \label{fig:antipattern-heatmap}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+            xbar stacked,
+            bar width=20pt,
+            width=0.85\textwidth,
+            height=3.5cm,
+            xlabel={Number of Instances},
+            ytick={1},
+            yticklabels={All Projects},
+            xmin=0, xmax=115,
+            legend style={at={(0.5,-0.4)}, anchor=north, legend columns=3, font=\footnotesize},
+            nodes near coords,
+            nodes near coords style={font=\scriptsize, color=black},
+            enlarge y limits=0.6,
+        ]
+        \addplot[fill=red!70, draw=black] coordinates {(1, 1)};
+        \addplot[fill=orange!60, draw=black] coordinates {(18, 1)};
+        \addplot[fill=yellow!50, draw=black] coordinates {(89, 1)};
+        \legend{Critical (1), High (18), Medium (89)}
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Distribution of the 108 detected anti-pattern instances by severity level. The majority (82\%) are classified as Medium severity (Nano Service, Hardcoded Endpoints, API Versioning Absence), while 17\% are High severity (Shared Database, God Service, Chatty Service, Wrong Cuts, ESB Misuse) and only 1\% (a single Cyclic Dependency) is Critical.}
+    \label{fig:severity-distribution}
+\end{figure}
+
 % --- Previous anti-pattern distribution table including Genie and Apollo-Config (retained, not removed) ---
 % \begin{table}[htbp]
 %     \centering
@@ -215,7 +340,7 @@
 % \end{table}
 
 
-\par The evaluation results show substantial variation in architectural quality across the selected projects. Health scores ranged from 39 to 83, indicating that the detection pipeline was able to distinguish between projects with relatively few issues and those with a much higher concentration of anti-patterns. Hardcoded Endpoints was the most frequently detected anti-pattern, with 43 instances across eight of the nine evaluated projects, of which 26 originated from Train-Ticket alone. API Versioning Absence was the second most common finding, with 31 instances across seven projects, with NetworkDisk contributing 8 and microservice-recruit contributing 6. Nano Service appeared 15 times across seven projects. Chatty Service (4 instances, all in Train-Ticket) and ESB Misuse (5 instances across Site-Where and micro\-service-recruit) appeared less frequently. God Service was detected in three projects (Site-Where, mall-swarm and RuoYi-Cloud, 4 instances total), and Shared Database was found in MicroservicesSocial, Train-Ticket and mall-swarm (3 instances total). Notably, the addition of NetworkDisk and microservice-recruit to the evaluation corpus activated detectors that had previously produced zero results: Cyclic Dependency was detected once in microservice-recruit, and Wrong Cuts was detected twice in the same project, demonstrating that a broader evaluation corpus can exercise a wider range of detection capabilities. No instances of Distributed Monolith were detected across the evaluated datasets. The absence of this anti-pattern is consistent with the communication topologies of the evaluated projects and aligns with the empirical observation by Taibi and Lenarduzzi that service-sizing and configuration-related issues are more prevalent than severe system-level coupling problems in practice \cite{Taibi2018}.
+\par The evaluation results show substantial variation in architectural quality across the selected projects. Health scores ranged from 39 to 83 (Figure~\ref{fig:health-scores}), indicating that the detection pipeline was able to distinguish between projects with relatively few issues and those with a much higher concentration of anti-patterns. As shown in Figure~\ref{fig:antipattern-frequency}, Hardcoded Endpoints was the most frequently detected anti-pattern, with 43 instances across eight of the nine evaluated projects, of which 26 originated from Train-Ticket alone (visually evident in the heatmap in Figure~\ref{fig:antipattern-heatmap}). API Versioning Absence was the second most common finding, with 31 instances across seven projects, with NetworkDisk contributing 8 and microservice-recruit contributing 6. Nano Service appeared 15 times across seven projects. Chatty Service (4 instances, all in Train-Ticket) and ESB Misuse (5 instances across Site-Where and micro\-service-recruit) appeared less frequently. God Service was detected in three projects (Site-Where, mall-swarm and RuoYi-Cloud, 4 instances total), and Shared Database was found in MicroservicesSocial, Train-Ticket and mall-swarm (3 instances total). Notably, the addition of NetworkDisk and microservice-recruit to the evaluation corpus activated detectors that had previously produced zero results: Cyclic Dependency was detected once in microservice-recruit, and Wrong Cuts was detected twice in the same project, demonstrating that a broader evaluation corpus can exercise a wider range of detection capabilities. In terms of severity (Figure~\ref{fig:severity-distribution}), the majority of detections (82\%) fall into the Medium category, with only a single Critical instance (Cyclic Dependency). No instances of Distributed Monolith were detected across the evaluated datasets. The absence of this anti-pattern is consistent with the communication topologies of the evaluated projects and aligns with the empirical observation by Taibi and Lenarduzzi that service-sizing and configuration-related issues are more prevalent than severe system-level coupling problems in practice \cite{Taibi2018}. Figure~\ref{fig:loc-vs-health} shows that project size (LOC) is not a reliable predictor of health score: small projects can score poorly while large ones can maintain moderate quality, suggesting that architectural decisions matter more than codebase scale.
 
 \par To illustrate how the composite health score accumulates deductions, consider Train-Ticket (final score~40, grade~F). Its Anti-Patterns budget is fully exhausted: the penalties for 4~Chatty Service instances ($4 \times 5 = 20$), 26~Hardcoded Endpoint instances ($26 \times 3 = 78$) and 1~Shared Database instance ($1 \times 5 = 5$) total~103, far exceeding the 40-point budget, so $S_{\mathrm{ap}} = \max(0,\; 40 - 103) = 0$ (Nano Service instances are charged to Service Sizing instead, to avoid double counting). The four Nano Services incur a Service Sizing penalty of $\min(8,\; 4 \times 3) = 8$, leaving $S_{\mathrm{sz}} = 7$ out of~15. With DesigniteJava enabled, the Code Quality category contributes a further deduction: scored by smell density, the project's 1\,565 code smells leave $S_{\mathrm{cq}} = 8$ out of~20. These deductions --- led by the 26 hardcoded endpoints and 4 chatty-service pairs in the anti-pattern category --- account for Train-Ticket's low composite of~40, with code-smell density a secondary but non-trivial contributor. The example illustrates the multi-level nature of the scoring, in which architectural anti-patterns and code-level smell density jointly shape the final result.
 
@@ -293,6 +418,48 @@
 % \label{subsec:threshold-sensitivity}
 
 % TODO - write 2-3 paragraphs about threshold sensitivity
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+            width=0.85\textwidth,
+            height=7cm,
+            xlabel={Lines of Code (thousands)},
+            ylabel={Health Score},
+            xmin=0, xmax=95,
+            ymin=30, ymax=90,
+            grid=major,
+            grid style={dashed, gray!30},
+            mark size=3pt,
+            every node near coord/.append style={font=\scriptsize, anchor=south west, xshift=2pt},
+            % Grade boundary lines
+            extra y ticks={50,65,80},
+            extra y tick labels={},
+            extra y tick style={grid=major, grid style={dashed, gray!50}},
+        ]
+        \addplot[
+            only marks,
+            mark=*,
+            mark options={fill=blue!60},
+            nodes near coords,
+            point meta=explicit symbolic,
+        ] coordinates {
+            (1.8, 83) [MicroSocial]
+            (6.7, 52) [NetDisk]
+            (8.3, 39) [m-r]
+            (10.5, 75) [FTGO]
+            (18.6, 60) [m-d-p]
+            (27.0, 68) [RuoYi]
+            (35.8, 40) [TrainTicket]
+            (73.9, 69) [SiteWhere]
+            (86.1, 53) [mall-swarm]
+        };
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Relationship between project size (lines of code) and health score. No strong correlation is evident: small projects can score poorly (microservice-recruit, 8.3K LOC, score~39) and large projects can score moderately well (SiteWhere, 73.9K LOC, score~69). This suggests that codebase size alone is not a reliable predictor of architectural quality.}
+    \label{fig:loc-vs-health}
+\end{figure}
 
 \subsection{Practical Implications}
 \label{subsec:practical-implications}
