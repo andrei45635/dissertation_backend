@@ -93,9 +93,6 @@ public class DesigniteService {
             return false;
         }
 
-        // DesigniteJava frequently writes valid CSV output while still returning a
-        // non-zero exit code, so we do NOT gate parsing on the exit value — we only
-        // require that the process actually completed. A non-zero code is logged.
         int exitCode = process.exitValue();
         if (exitCode != 0) {
             log.warn("DesigniteJava exited with code {} for input {}; will still attempt to parse any output produced",
@@ -107,54 +104,41 @@ public class DesigniteService {
     private List<CodeSmell> parseResults(Path outputDir, Microservice microservice) {
         List<CodeSmell> smells = new ArrayList<>();
 
-        smells.addAll(parseDesignSmells(outputDir.resolve("DesignSmells.csv"), microservice));
-        smells.addAll(parseImplementationSmells(outputDir.resolve("ImplementationSmells.csv"), microservice));
-        smells.addAll(parseArchitectureSmells(outputDir.resolve("ArchitectureSmells.csv"), microservice));
+        addSmells(smells, findCsv(outputDir, "design", "smell"), microservice, "Design");
+        addSmells(smells, findCsv(outputDir, "implementation", "smell"), microservice, "Implementation");
+        addSmells(smells, findCsv(outputDir, "architecture", "smell"), microservice, "Architecture");
 
         return smells;
     }
 
-    private List<CodeSmell> parseDesignSmells(Path csvFile, Microservice microservice) {
-        return parseCsvFile(csvFile, microservice, "Design");
-    }
-
-    private List<CodeSmell> parseImplementationSmells(Path csvFile, Microservice microservice) {
-        return parseCsvFile(csvFile, microservice, "Implementation");
-    }
-
-    private List<CodeSmell> parseArchitectureSmells(Path csvFile, Microservice microservice) {
-        return parseCsvFile(csvFile, microservice, "Architecture");
+    private void addSmells(List<CodeSmell> target, Path csvFile, Microservice microservice, String category) {
+        if (csvFile == null) {
+            log.debug("DesigniteJava: no {} smell report produced", category);
+            return;
+        }
+        target.addAll(parseCsvFile(csvFile, microservice, category));
     }
 
     private List<CodeSmell> parseCsvFile(Path csvFile, Microservice microservice, String category) {
         List<CodeSmell> smells = new ArrayList<>();
 
-        Path resolved = locateCsv(csvFile);
-        if (resolved == null) {
-            log.debug("DesigniteJava CSV not found: {}", csvFile.getFileName());
-            return smells;
-        }
-
         try {
-            List<String> lines = Files.readAllLines(resolved, java.nio.charset.StandardCharsets.ISO_8859_1);
+            List<String> lines = Files.readAllLines(csvFile, java.nio.charset.StandardCharsets.ISO_8859_1);
             if (lines.isEmpty()) {
                 return smells;
             }
 
-            // Column positions differ between the three reports (ImplementationSmells.csv
-            // has an extra "Method Name" column, ArchitectureSmells.csv has no "Type Name"),
-            // so we resolve them from the header rather than hard-coding indices.
             String[] header = parseCsvLine(lines.get(0));
             int smellIdx = indexOfSmellColumn(header);
             if (smellIdx < 0) {
                 log.warn("Could not locate a smell-type column in {} (header: {})",
-                        resolved.getFileName(), String.join(",", header));
+                        csvFile.getFileName(), String.join(",", header));
                 return smells;
             }
             int classIdx = indexOfColumn(header, "Type Name");
             int pkgIdx = indexOfColumn(header, "Package Name");
             if (classIdx < 0) {
-                classIdx = pkgIdx; // ArchitectureSmells.csv has no Type Name column
+                classIdx = pkgIdx;
             }
 
             for (int i = 1; i < lines.size(); i++) {
@@ -181,29 +165,37 @@ public class DesigniteService {
                 smells.add(smell);
             }
         } catch (IOException e) {
-            log.error("Failed to parse CSV file: {}", resolved, e);
+            log.error("Failed to parse CSV file: {}", csvFile, e);
         }
 
         return smells;
     }
 
     /**
-     * Resolves a DesigniteJava output CSV. Tries the expected path first, then falls
-     * back to a recursive search under the output directory, since some DesigniteJava
-     * versions nest the reports in a sub-folder.
+     * Finds the first regular {@code .csv} file under {@code dir} whose (lower-cased)
+     * filename contains all of the given keywords. DesigniteJava's report filenames
+     * differ across versions (e.g. {@code designCodeSmells.csv} vs {@code DesignSmells.csv}),
+     * so matching by keyword is more robust than relying on an exact name. The search
+     * is recursive in case a version nests the reports in a sub-folder.
      */
-    private Path locateCsv(Path expected) {
-        if (Files.exists(expected)) {
-            return expected;
-        }
-        Path dir = expected.getParent();
-        String name = expected.getFileName().toString();
+    private Path findCsv(Path dir, String... keywords) {
         if (dir == null || !Files.exists(dir)) {
             return null;
         }
         try (Stream<Path> walk = Files.walk(dir)) {
             return walk.filter(Files::isRegularFile)
-                    .filter(p -> p.getFileName().toString().equalsIgnoreCase(name))
+                    .filter(p -> {
+                        String name = p.getFileName().toString().toLowerCase();
+                        if (!name.endsWith(".csv")) {
+                            return false;
+                        }
+                        for (String kw : keywords) {
+                            if (!name.contains(kw.toLowerCase())) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    })
                     .findFirst()
                     .orElse(null);
         } catch (IOException e) {
@@ -262,7 +254,7 @@ public class DesigniteService {
     }
 
     private int countClasses(Path outputDir) {
-        Path typeMetrics = locateCsv(outputDir.resolve("TypeMetrics.csv"));
+        Path typeMetrics = findCsv(outputDir, "type", "metric");
         if (typeMetrics != null) {
             try {
                 return Math.max(0, (int) Files.lines(typeMetrics, java.nio.charset.StandardCharsets.ISO_8859_1).count() - 1);
