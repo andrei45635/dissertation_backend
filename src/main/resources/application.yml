@@ -53,7 +53,7 @@ app:
     hardcoded-endpoint-patterns: "http://,https://,localhost:,127.0.0.1"
     wrong-cuts-min-feature-envy: ${WRONG_CUTS_MIN_FEATURE_ENVY:3}
     esb-mediator-threshold: ${ESB_MEDIATOR_THRESHOLD:0.4}
-    code-smell-density-threshold: ${CODE_SMELL_DENSITY_THRESHOLD:70}
+    code-smell-density-threshold: ${CODE_SMELL_DENSITY_THRESHOLD:80}
 
 logging:
   level:

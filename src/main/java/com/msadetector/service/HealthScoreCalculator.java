@@ -45,12 +45,12 @@ public class HealthScoreCalculator {
      * Smell density (smells per 1000 LOC) at which the Code Quality category incurs
      * its full penalty. Scoring density rather than absolute count keeps large
      * codebases from being penalised simply for their size. Configurable via
-     * {@code app.thresholds.code-smell-density-threshold} (default 70).
+     * {@code app.thresholds.code-smell-density-threshold} (default 80).
      */
     private final double smellDensityFullPenalty;
 
     public HealthScoreCalculator(
-            @Value("${app.thresholds.code-smell-density-threshold:70}") double smellDensityFullPenalty) {
+            @Value("${app.thresholds.code-smell-density-threshold:80}") double smellDensityFullPenalty) {
         this.smellDensityFullPenalty = smellDensityFullPenalty;
     }
 
