@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: msa-detector-test
+
+  datasource:
+    url: jdbc:tc:postgresql:16:///testdb
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+
+  flyway:
+    enabled: false
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    open-in-view: false
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: 0
+
+app:
+  jwt:
+    secret: test-jwt-secret-key-for-unit-testing-only-not-production
+    expiration-ms: 3600000
+
+  analysis:
+    workspace-dir: ${java.io.tmpdir}/msa-detector-test/workspace
+    designite-jar-path: ${java.io.tmpdir}/DesigniteJava.jar
+    clone-timeout-seconds: 30
+    analysis-timeout-seconds: 60
+
+  thresholds:
+    nano-service-max-loc: 500
+    nano-service-max-endpoints: 2
+    god-service-min-god-classes: 1
+    chatty-service-min-calls: 10
+    hardcoded-endpoint-patterns: "http://,https://,localhost:,127.0.0.1"
+    wrong-cuts-min-feature-envy: 3
+    esb-mediator-threshold: 0.4
+    code-smell-density-threshold: 80
+
+logging:
+  level:
+    root: WARN
+    com.msadetector: DEBUG
+    org.testcontainers: INFO
+
