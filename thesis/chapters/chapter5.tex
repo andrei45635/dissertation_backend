@@ -131,9 +131,17 @@
 \begin{figure}[htbp]
     \centering
     \begin{tikzpicture}
+        \pgfplotsset{
+            colormap={grades}{
+                rgb255(0cm)=(220,60,60)    % F - red
+                rgb255(1cm)=(230,140,30)   % D - orange
+                rgb255(2cm)=(210,200,50)   % C - yellow
+                rgb255(3cm)=(80,180,80)    % B - green
+            }
+        }
         \begin{axis}[
             ybar,
-            bar width=14pt,
+            bar width=16pt,
             width=\textwidth,
             height=7cm,
             ylabel={Health Score},
@@ -143,16 +151,29 @@
             ymin=0, ymax=100,
             ytick={0,20,40,60,80,100},
             nodes near coords,
-            nodes near coords style={font=\scriptsize},
-            enlarge x limits=0.06,
+            nodes near coords style={font=\scriptsize, anchor=south},
+            enlarge x limits=0.08,
             extra y ticks={50,65,80,90},
             extra y tick labels={},
             extra y tick style={grid=major, grid style={dashed, gray!50}},
+            scatter, scatter src=explicit,
+            scatter/use mapped color={draw=black, fill=mapped color},
+            point meta min=0,
+            point meta max=3,
         ]
-        \addplot[fill=red!60, draw=black] coordinates {(1, 40) (2, 40)};
-        \addplot[fill=orange!60, draw=black] coordinates {(3, 51) (4, 52) (5, 53) (6, 60)};
-        \addplot[fill=yellow!60, draw=black] coordinates {(7, 68) (8, 69) (9, 71) (10, 75)};
-        \addplot[fill=green!50, draw=black] coordinates {(11, 83)};
+        \addplot coordinates {
+            (1, 40) [0]
+            (2, 40) [0]
+            (3, 51) [1]
+            (4, 52) [1]
+            (5, 53) [1]
+            (6, 60) [1]
+            (7, 68) [2]
+            (8, 69) [2]
+            (9, 71) [2]
+            (10, 75) [2]
+            (11, 83) [3]
+        };
         \end{axis}
     \end{tikzpicture}
     \caption{Health scores of the eleven evaluated projects sorted by score and color-coded by letter grade. Dashed lines indicate grade boundaries (F: $<$50, D: 50--64, C: 65--79, B: 80--89). No project achieved an A grade ($\geq$90).}
@@ -296,12 +317,12 @@
             xbar stacked,
             bar width=20pt,
             width=0.85\textwidth,
-            height=3.5cm,
+            height=4cm,
             xlabel={Number of Instances},
             ytick={1},
             yticklabels={All Projects},
             xmin=0, xmax=135,
-            legend style={at={(0.5,-0.4)}, anchor=north, legend columns=3, font=\footnotesize},
+            legend style={at={(0.98,0.98)}, anchor=north east, legend columns=3, font=\footnotesize},
             nodes near coords,
             nodes near coords style={font=\scriptsize, color=black},
             enlarge y limits=0.6,
