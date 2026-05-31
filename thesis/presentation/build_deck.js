@@ -169,6 +169,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
 
         s.addNotes(
             "Open: 'Good morning. My name is Andrei Iacob, and today I'll be defending my dissertation: MSA Detector — a tool for detecting architectural anti-patterns in Java-based microservice systems. My supervisor is Professor Simona Motogna.'\n\n" +
+            "You can add: 'The core idea is straightforward — as organisations adopt microservices, they often unknowingly introduce structural problems that erode the very benefits they were after. This tool helps catch those problems early, from a source code checkout, before they become production incidents.'\n\n" +
             "Keep this short — about 30 seconds. Don't introduce content yet; that's the next slide.\n\n" +
             "Breathe, slow down. The committee already knows your name from the schedule, so this is just orientation."
         );
@@ -253,6 +254,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "• Teams ship anti-patterns — shared DBs, cycles, services that are either too small or too big — and they only find out when deployment friction or cascading failures appear in production.\n" +
             "• Existing academic tools each handle a slice: Arcan does code-level cycles, MicroART visualises architecture, MSANose detects some microservice smells. None combine code-level smells with architectural-level analysis.\n" +
             "• Even when something IS detected, the output is usually an abstract warning. Developers don't act on warnings without code evidence and remediation guidance.\n\n" +
+            "You can mention a concrete example: 'For instance, a shared database between two services looks harmless at first — both teams just point at the same Postgres instance. But over time, schema changes in one service silently break the other, and you've lost independent deployability — arguably the single biggest reason to use microservices in the first place.'\n\n" +
             "Pivot to next slide: 'So the goal of this work was a tool that bridges both levels and outputs actionable findings.'"
         );
     }
@@ -298,6 +300,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "• 'Third, automated microservice boundary detection via a three-signal deployability gate — framework entry points, Dockerfiles, and main methods — with confidence levels. Most existing tools require manual configuration.'\n" +
             "• 'Fourth, a composite health score on 0–100, decomposed into four categories so you can see which dimension is dragging the score down.'\n" +
             "• 'Fifth, evidence-based reporting — every finding includes the actual code that triggered it.'\n\n" +
+            "Bridge to next slide: 'To give you a clearer picture of how these pieces fit together, let me walk you through the analysis pipeline — from the moment a project is uploaded to the final report.'\n\n" +
             "Don't dwell on each one. They'll see the details later. This slide sets expectations for the rest of the talk."
         );
     }
@@ -382,6 +385,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "• Then ten detectors run over that graph + the smells. Each is a Spring component implementing a common interface — Strategy pattern.\n" +
             "• Finally results are assembled, the health score is computed, the dependency graph is serialised to JSON, and everything is persisted.\n\n" +
             "If asked about why async: 'Analyses on large projects like Activiti take several minutes. Blocking the HTTP request would time out. The frontend polls for status.'\n\n" +
+            "Worth mentioning: 'The dependency graph construction is the most technically interesting part of this stage. Spoon parses the AST of every Java file and looks for inter-service communication annotations — @FeignClient declarations, RestTemplate.exchange calls, WebClient invocations — then resolves each target to a known service. The result is a directed weighted graph where edge weight represents the number of distinct call sites.'\n\n" +
             "Don't read the design-choices panel verbatim — mention one or two if you have time."
         );
     }
@@ -493,7 +497,8 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "• Right side: 'But what if DesigniteJava fails or is disabled? The detector falls back to its own Spoon-based analysis using six structural metrics. A class is flagged if it exceeds at least three.'\n" +
             "• On TCC: 'Tight Class Cohesion measures the fraction of method pairs that share an instance field access. Low TCC means the methods operate on disjoint state — a sign of unrelated responsibilities packed into one class.'\n\n" +
             "EXPECT THIS QUESTION: 'Why threshold = 1? One God Class shouldn't flag a service.'\n" +
-            "Answer: 'The default is intentionally sensitive. False positives are cheap to dismiss. False negatives — architectural debt growing undetected — are expensive. The threshold is configurable; teams in production would calibrate it. Even one God Class concentrates responsibilities enough to warrant a look.'"
+            "Answer: 'The default is intentionally sensitive. False positives are cheap to dismiss. False negatives — architectural debt growing undetected — are expensive. The threshold is configurable; teams in production would calibrate it. Even one God Class concentrates responsibilities enough to warrant a look.'\n\n" +
+            "You can also note: 'The dual-path approach — DesigniteJava primary, Spoon fallback — is a pattern I used across several detectors. It makes the tool resilient to external-tool failures and also lets us cross-validate results when both paths are available.'"
         );
     }
 
@@ -577,7 +582,9 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "• Distributed Monolith — composite rule on coupling coefficient, connected ratio, shared DB count\n" +
             "• API Versioning — regex /v\\d+[/.] on endpoint paths\n" +
             "• ESB Misuse — caller/callee ratios + volume-based mediator ratio\n" +
-            "• Wrong Cuts — Feature Envy count OR bidirectional edges"
+            "• Wrong Cuts — Feature Envy count OR bidirectional edges\n\n" +
+            "Worth saying aloud: 'The severity levels aren't arbitrary — they reflect how much damage the anti-pattern can cause. Cyclic Dependency and Distributed Monolith are critical because they undermine independent deployability entirely. Hardcoded Endpoints and API Versioning are medium because they're easier to fix and their impact is more localised.'\n\n" +
+            "Don't get defensive about limitations. Acknowledging them is more impressive than glossing over them."
         );
     }
 
@@ -683,7 +690,8 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "• 'Importantly, the breakdown is preserved in the UI. A developer doesn't just see 45/100 — they see WHICH category is dragging the score down, with itemised deductions.'\n" +
             "• 'The diff feature compares successive analyses, so a team that fixes a shared DB anti-pattern can see exactly how many points that bought them.'\n\n" +
             "EXPECT THIS QUESTION: 'Doesn't clamping at zero mean you lose discrimination between moderately bad and very bad projects?'\n" +
-            "Answer: 'Yes — that's a known limitation of the category-cap approach, which I note in the threats to validity. A team with 13 nano services and one with 50 would both see Anti-Patterns at zero. The Service Sizing breakdown still preserves the per-issue counts, so the full picture is still visible to the user. A scaled, density-style penalty in the AP category — similar to the Code Quality category — would address this in future work.'"
+            "Answer: 'Yes — that's a known limitation of the category-cap approach, which I note in the threats to validity. A team with 13 nano services and one with 50 would both see Anti-Patterns at zero. The Service Sizing breakdown still preserves the per-issue counts, so the full picture is still visible to the user. A scaled, density-style penalty in the AP category — similar to the Code Quality category — would address this in future work.'\n\n" +
+            "You can also add: 'The weights were informed by how other composite metrics work in the literature — SonarQube's maintainability rating, SQALE, and the ISO 25010 quality model. Anti-patterns get the largest budget because they represent architectural-level issues that are expensive to fix after deployment.'"
         );
     }
 
@@ -816,7 +824,8 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "• 'The final composite is 0 + 12 + 16 + 12 = 40 — grade F. Unlike a project whose problems sit in one place, this one loses points in every dimension, which is exactly what the multi-level scoring is meant to surface.'\n\n" +
             "This demonstrates that the scoring is transparent and that the breakdown shows exactly what's wrong.\n\n" +
             "EXPECT QUESTION: 'Only 8 points lost on Code Quality with 260 smells — why so little?'\n" +
-            "Answer: 'Code Quality is scored on smell density per 1000 LOC, not raw count, so a codebase isn't punished just for its size. The category is deliberately bounded so that architectural anti-patterns remain the dominant signal in the overall score.'"
+            "Answer: 'Code Quality is scored on smell density per 1000 LOC, not raw count, so a codebase isn't punished just for its size. The category is deliberately bounded so that architectural anti-patterns remain the dominant signal in the overall score.'\n\n" +
+            "If time allows, mention: 'What makes this example interesting is that the problems are spread across all four categories — it's not a project with one catastrophic issue, it's a project with consistent low-level neglect across every dimension. That's exactly the kind of systemic debt the multi-category decomposition is designed to surface.'"
         );
     }
 
@@ -928,6 +937,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "• 'Health scores ranged from 40 to 83 — the scoring mechanism produces meaningful spread.'\n" +
             "• 'The dominant findings are configuration and sizing issues: 43 hardcoded endpoints, 37 API versioning absences, 23 nano services. Cyclic Dependency and Wrong Cuts were detected in microservice-recruit. Adding PiggyMetrics and piomin broadened ESB Misuse and Nano Service coverage.'\n" +
             "• '126 total anti-pattern instances across 9 distinct types. Only Distributed Monolith was not detected — plausible given these projects' topologies.'\n\n" +
+            "You can add: 'The score range — 40 to 83 — shows that the metric has useful discriminating power. Projects known to be well-structured like MicroSocial score highest; projects known to have issues like Train-Ticket and microservice-recruit score lowest. If every project scored 70, the metric wouldn't be telling us much.'\n\n" +
             "EXPECT: 'Only eleven projects, is that enough?'\n" +
             "Answer: 'Not for a statistical claim. This evaluation is a feasibility demonstration across heterogeneous codebases. A full precision/recall study would need a labelled corpus, which doesn't exist for microservice anti-patterns — that's an open problem in the field. I note this in Threats to Validity.'"
         );
@@ -1102,6 +1112,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "• 'Static analysis trades precision for applicability. A distributed tracing approach would give exact runtime call counts but requires the system to be deployed and instrumented — which prevents the tool from running on a fresh checkout.'\n" +
             "• 'The health score weights aren't empirically validated. They're engineering judgement informed by the literature. Different teams might want different weightings.'\n" +
             "• 'Future work in priority order: multi-language support, then ML-based detection, then empirical calibration of thresholds.'\n\n" +
+            "You can add: 'The multi-language extension is actually partially designed already — Chapter 5 describes a roadmap where Docker Compose and Kubernetes manifests provide a language-agnostic dependency graph, and only the intra-service analysis needs per-language adapters. So the architecture is ready for it, even though the implementation is Java-only today.'\n\n" +
             "Don't get defensive about limitations. Acknowledging them is more impressive than glossing over them."
         );
     }
@@ -1158,6 +1169,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "Quick close — about 20 seconds.\n\n" +
             "Suggested wording:\n" +
             "'To recap: the MSA Detector is a multi-level static analysis tool for Java/Spring Boot microservices, with ten anti-pattern detectors, a composite health score, and evidence-based reporting. The full implementation, evaluation data, and dissertation are available. Thank you — I'm happy to take questions.'\n\n" +
+            "You can also say before 'thank you': 'If there's one thing I'd like you to take away, it's that the bridge between code-level evidence and architectural-level findings is what makes this tool different — it doesn't just say something is wrong, it shows you exactly where in the code the problem lives.'\n\n" +
             "Then SHUT UP. Don't fill the silence. Let the committee speak.\n\n" +
             "When the first question comes:\n" +
             "1. Listen to the whole question — don't start composing the answer mid-question.\n" +
