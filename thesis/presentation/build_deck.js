@@ -183,7 +183,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
         addTitle(s, "Why this matters");
 
         // Big stat-style opening
-        s.addText("Microservices adoption has outpaced tooling.", {
+        s.addText("Microservices adoption has outpaced tooling", {
             x: 0.5, y: 1.0, w: 9, h: 0.5,
             fontSize: 20, fontFace: BODY_FONT, color: C.text, italic: true, margin: 0,
         });
@@ -193,19 +193,19 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             {
                 x: 0.5,
                 title: "Architectural debt accumulates silently",
-                body: "Shared databases, cyclic dependencies, and ill-sized services erode the benefits microservices promise.",
+                body: "Shared databases, cyclic dependencies, and ill-sized services erode the benefits microservices promise",
                 icon: icWarn, color: C.bad,
             },
             {
                 x: 3.7,
                 title: "Existing tools are single-level",
-                body: "Arcan, MicroART, MSANose each cover a slice — code-level OR architectural-level, rarely both.",
+                body: "Arcan, MicroART, MSANose each cover a slice: code-level OR architectural-level, rarely both",
                 icon: icSearch, color: C.deepBlue,
             },
             {
                 x: 6.9,
                 title: "Findings without evidence don't help",
-                body: "Warnings without source snippets, affected services, or remediation guidance get ignored.",
+                body: "Warnings without source snippets, affected services, or remediation guidance get ignored",
                 icon: icCode, color: C.warn,
             },
         ];
@@ -239,7 +239,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             x: 0.5, y: 4.85, w: 9, h: 0.35,
             fill: { color: C.navy }, line: { color: C.navy },
         });
-        s.addText("Goal: actionable, evidence-based detection that bridges code and architecture levels.", {
+        s.addText("Goal: actionable, evidence-based detection that bridges code and architecture levels", {
             x: 0.5, y: 4.85, w: 9, h: 0.35,
             fontSize: 12, fontFace: BODY_FONT, color: "FFFFFF", bold: true, align: "center", valign: "middle", margin: 0,
         });
@@ -267,11 +267,11 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
 
         // Five contributions as icon rows
         const rows = [
-            { icon: icCogs,    color: C.deepBlue, title: "Multi-level analysis",        text: "Combines intra-service code smells (DesigniteJava) with inter-service dependency analysis (Spoon + graphs)." },
-            { icon: icSitemap, color: C.teal,     title: "Ten anti-patterns detected",  text: "Across four dimensions: service design, communication, data management, deployment & coupling." },
-            { icon: icSearch,  color: C.navy,     title: "Automated boundary detection",text: "Three-signal deployability gate (framework entry point, Dockerfile, main method) with confidence levels." },
-            { icon: icChart,   color: C.good,     title: "Composite health score",      text: "0–100 with letter grading; decomposes into four interpretable categories; tracks change over time." },
-            { icon: icFile,    color: C.warn,     title: "Evidence-based reporting",    text: "Every finding includes source snippets, affected services, and remediation guidance." },
+            { icon: icCogs,    color: C.deepBlue, title: "Multi-level analysis",        text: "Combines intra-service code smells (DesigniteJava) with inter-service dependency analysis (Spoon + graphs)" },
+            { icon: icSitemap, color: C.teal,     title: "Ten anti-patterns detected",  text: "Across four dimensions: service design, communication, data management, deployment & coupling" },
+            { icon: icSearch,  color: C.navy,     title: "Automated boundary detection",text: "Three-signal deployability gate (framework entry point, Dockerfile, main method) with confidence levels" },
+            { icon: icChart,   color: C.good,     title: "Composite health score",      text: "0–100 with letter grading; decomposes into four interpretable categories; tracks change over time" },
+            { icon: icFile,    color: C.warn,     title: "Evidence-based reporting",    text: "Every finding includes source snippets, affected services, and remediation guidance" },
         ];
         const startY = 1.05;
         const rowH   = 0.78;
@@ -363,11 +363,11 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             fontSize: 14, fontFace: HEADER_FONT, color: C.navy, bold: true, margin: 0,
         });
         s.addText([
-            { text: "Async pipeline — long analyses don't block the API. Spring @Async with TransactionSynchronization.afterCommit() ensures consistency.",
+            { text: "Async pipeline: long analyses don't block the API; Spring @Async with TransactionSynchronization.afterCommit() ensures consistency",
                 options: { bullet: true, fontSize: 11, color: C.text, breakLine: true } },
-            { text: "Each detector is a Spring @Component implementing AntiPatternDetector — adding a new detector means no orchestrator changes.",
+            { text: "Each detector is a Spring @Component implementing AntiPatternDetector; adding a new detector means no orchestrator changes",
                 options: { bullet: true, fontSize: 11, color: C.text, breakLine: true } },
-            { text: "Snippets are extracted and persisted as JSON during analysis, so results survive workspace cleanup.",
+            { text: "Snippets are extracted and persisted as JSON during analysis, so results survive workspace cleanup",
                 options: { bullet: true, fontSize: 11, color: C.text } },
         ], { x: 0.9, y: panelY + 0.48, w: 8.4, h: 1.3, fontFace: BODY_FONT, margin: 0, paraSpaceAfter: 2 });
 
@@ -472,13 +472,13 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             x: 5.1, y: 4.15, w: 4.4, h: 0.55,
             fill: { color: C.navy }, line: { color: C.navy },
         });
-        s.addText("Flag class as God Class if ≥ 3 of 6 thresholds exceeded.", {
+        s.addText("Flag class as God Class if ≥ 3 of 6 thresholds exceeded", {
             x: 5.1, y: 4.15, w: 4.4, h: 0.55,
             fontSize: 11, fontFace: BODY_FONT, color: "FFFFFF", align: "center", valign: "middle", italic: true, margin: 0,
         });
 
         // Caption under the diagram
-        s.addText("Code-level evidence → architectural-level finding.", {
+        s.addText("Code-level evidence → architectural-level finding", {
             x: 0.5, y: 4.15, w: 4.3, h: 0.55,
             fontSize: 11, fontFace: BODY_FONT, color: C.muted, italic: true, align: "center", valign: "middle", margin: 0,
         });
@@ -555,7 +555,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             x: 0.5, y: 4.95, w: 9, h: 0.35,
             fill: { color: C.navy }, line: { color: C.navy },
         });
-        s.addText("All detectors are pluggable Strategy components with configurable thresholds.", {
+        s.addText("All detectors are pluggable Strategy components with configurable thresholds", {
             x: 0.5, y: 4.95, w: 9, h: 0.35,
             fontSize: 11, fontFace: BODY_FONT, color: "FFFFFF", italic: true,
             align: "center", valign: "middle", margin: 0,
@@ -668,7 +668,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             x: 0.75, y: 4.35, w: 8.5, h: 0.3,
             fontSize: 12, fontFace: HEADER_FONT, color: C.navy, bold: true, margin: 0,
         });
-        s.addText("A single number tells teams whether quality is improving. Per-category breakdown tells them WHICH dimension needs attention. Both views are exposed via the analysis-diff feature for tracking over time.", {
+        s.addText("A single number tells teams whether quality is improving; per-category breakdown tells them WHICH dimension needs attention; both views are exposed via the analysis-diff feature for tracking over time", {
             x: 0.75, y: 4.62, w: 8.5, h: 0.5,
             fontSize: 10.5, fontFace: BODY_FONT, color: C.text, margin: 0,
         });
@@ -799,7 +799,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             fontSize: 14, fontFace: HEADER_FONT, color: C.navy, bold: true,
             align: "center", valign: "middle", margin: 0,
         });
-        s.addText("Deductions spread across all four categories: the anti-pattern load (penalty 49) clamps AP to 0; Architecture loses 9 to dependency-graph coupling; Code Quality 8 to smell density; Service Sizing 3 to one nano service.", {
+        s.addText("Deductions spread across all four categories: the anti-pattern load (penalty 49) clamps AP to 0; Architecture loses 9 to dependency-graph coupling; Code Quality 8 to smell density; Service Sizing 3 to one nano service", {
             x: 0.5, y: 3.95, w: 4.5, h: 1.0,
             fontSize: 10, fontFace: BODY_FONT, color: C.muted, italic: true, margin: 0,
         });
@@ -826,13 +826,13 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
     {
         const s = pres.addSlide();
         s.background = { color: C.bg };
-        addTitle(s, "Evaluation: nine open-source projects");
+        addTitle(s, "Evaluation: eleven open-source projects");
 
         // Top: results bar chart (project vs score)
         s.addChart(pres.charts.BAR, [{
             name: "Health score",
-            labels: ["MicroSocial", "ftgo", "Site-Where", "RuoYi", "design-pat.", "mall-swarm", "NetworkDisk", "Train-Ticket", "recruit"],
-            values: [83, 75, 69, 68, 60, 53, 52, 40, 40],
+            labels: ["MicroSocial", "ftgo", "PiggyMetrics", "Site-Where", "RuoYi", "design-pat.", "mall-swarm", "NetworkDisk", "piomin", "Train-Ticket", "recruit"],
+            values: [83, 75, 71, 69, 68, 60, 53, 52, 51, 40, 40],
         }], {
             x: 0.4, y: 0.95, w: 5.9, h: 3.0,
             barDir: "col",
@@ -840,7 +840,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             chartArea:   { fill: { color: C.bg } },
             catAxisLabelColor: C.muted,
             valAxisLabelColor: C.muted,
-            catAxisLabelFontSize: 8,
+            catAxisLabelFontSize: 7,
             valAxisLabelFontSize: 9,
             valAxisMinVal: 0, valAxisMaxVal: 100,
             valGridLine: { color: C.cardBorder, size: 0.5 },
@@ -868,30 +868,32 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             ["ftgo",          "7",  "11k"],
             ["mall-swarm",    "7",  "86k"],
             ["RuoYi",         "8",  "27k"],
-            ["Total",         "116", "269k"],
+            ["PiggyMetrics",  "8",  "4.5k"],
+            ["piomin",        "6",  "1.3k"],
+            ["Total",         "130", "274k"],
         ];
         rows.forEach((r, i) => {
-            const y = 1.30 + i * 0.28;
+            const y = 1.30 + i * 0.24;
             const isTotal = i === rows.length - 1;
             s.addShape(pres.shapes.RECTANGLE, {
-                x: tx, y: y, w: 3.0, h: 0.25,
+                x: tx, y: y, w: 3.0, h: 0.21,
                 fill: { color: isTotal ? C.navy : C.card },
                 line: { color: C.cardBorder, width: 0.5 },
             });
             s.addText(r[0], {
-                x: tx + 0.1, y: y, w: 1.4, h: 0.25,
-                fontSize: 9.5, fontFace: BODY_FONT,
+                x: tx + 0.1, y: y, w: 1.4, h: 0.21,
+                fontSize: 8.5, fontFace: BODY_FONT,
                 color: isTotal ? "FFFFFF" : C.text, bold: isTotal, valign: "middle", margin: 0,
             });
             s.addText(r[1], {
-                x: tx + 1.5, y: y, w: 0.5, h: 0.25,
-                fontSize: 9.5, fontFace: BODY_FONT,
+                x: tx + 1.5, y: y, w: 0.5, h: 0.21,
+                fontSize: 8.5, fontFace: BODY_FONT,
                 color: isTotal ? "FFFFFF" : C.text, bold: isTotal,
                 align: "center", valign: "middle", margin: 0,
             });
             s.addText(r[2], {
-                x: tx + 2.0, y: y, w: 0.95, h: 0.25,
-                fontSize: 9.5, fontFace: BODY_FONT,
+                x: tx + 2.0, y: y, w: 0.95, h: 0.21,
+                fontSize: 8.5, fontFace: BODY_FONT,
                 color: isTotal ? "FFFFFF" : C.text, bold: isTotal,
                 align: "right", valign: "middle", margin: 0,
             });
@@ -911,9 +913,9 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             fontSize: 12, fontFace: HEADER_FONT, color: C.navy, bold: true, margin: 0,
         });
         s.addText([
-            { text: "108 anti-pattern instances across 9 types. Hardcoded Endpoints (43) and API Versioning Absence (31) dominate.",
+            { text: "126 anti-pattern instances across 9 types; Hardcoded Endpoints (43) and API Versioning Absence (37) dominate",
                 options: { bullet: true, fontSize: 11, color: C.text, breakLine: true } },
-            { text: "Cyclic Dependency and Wrong Cuts detected in microservice-recruit — broader corpus exercises more detectors.",
+            { text: "PiggyMetrics and piomin broadened ESB Misuse and Nano Service coverage; Cyclic Dependency and Wrong Cuts detected in microservice-recruit",
                 options: { bullet: true, fontSize: 11, color: C.text } },
         ], { x: 0.8, y: 4.45, w: 8.7, h: 0.65, fontFace: BODY_FONT, margin: 0, paraSpaceAfter: 2 });
 
@@ -922,11 +924,11 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
         s.addNotes(
             "Spend ~90 seconds.\n\n" +
             "Talking points:\n" +
-            "• 'I evaluated on nine open-source Spring Boot projects, spanning from a 2k-LOC student project to mall-swarm at 86k LOC. 116 microservices, about 269k LOC total.'\n" +
+            "• 'I evaluated on eleven open-source Spring Boot projects, spanning from piomin at 1.3k LOC to mall-swarm at 86k LOC. 130 microservices, about 274k LOC total.'\n" +
             "• 'Health scores ranged from 40 to 83 — the scoring mechanism produces meaningful spread.'\n" +
-            "• 'The dominant findings are configuration and sizing issues: 43 hardcoded endpoints, 31 API versioning absences, 15 nano services. Cyclic Dependency and Wrong Cuts were detected in microservice-recruit — adding it exercised detectors that previously produced zero results.'\n" +
-            "• '108 total anti-pattern instances across 9 distinct types. Only Distributed Monolith was not detected — plausible given these projects' topologies.'\n\n" +
-            "EXPECT: 'Only nine projects, is that enough?'\n" +
+            "• 'The dominant findings are configuration and sizing issues: 43 hardcoded endpoints, 37 API versioning absences, 23 nano services. Cyclic Dependency and Wrong Cuts were detected in microservice-recruit. Adding PiggyMetrics and piomin broadened ESB Misuse and Nano Service coverage.'\n" +
+            "• '126 total anti-pattern instances across 9 distinct types. Only Distributed Monolith was not detected — plausible given these projects' topologies.'\n\n" +
+            "EXPECT: 'Only eleven projects, is that enough?'\n" +
             "Answer: 'Not for a statistical claim. This evaluation is a feasibility demonstration across heterogeneous codebases. A full precision/recall study would need a labelled corpus, which doesn't exist for microservice anti-patterns — that's an open problem in the field. I note this in Threats to Validity.'"
         );
     }
@@ -962,13 +964,13 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
 
         const steps = [
             { n: "1", title: "Clone a small repo",
-                sub: "Paste a public Git URL, submit, watch the pipeline progress." },
+                sub: "Paste a public Git URL, submit, watch the pipeline progress" },
             { n: "2", title: "Open the results dashboard",
-                sub: "Health score gauge, four-category breakdown, summary metrics." },
+                sub: "Health score gauge, four-category breakdown, summary metrics" },
             { n: "3", title: "Drill into a finding",
-                sub: "Expand an anti-pattern card to see source-code evidence and remediation." },
+                sub: "Expand an anti-pattern card to see source-code evidence and remediation" },
             { n: "4", title: "Explore the dependency graph",
-                sub: "Interactive Cytoscape view of inter-service edges." },
+                sub: "Interactive Cytoscape view of inter-service edges" },
         ];
 
         const stepY0 = 2.85;
@@ -1052,17 +1054,17 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             fontSize: 16, fontFace: HEADER_FONT, color: C.navy, bold: true, margin: 0,
         });
         s.addText([
-            { text: "Java / Spring Boot only; polyglot systems not supported.",
+            { text: "Java / Spring Boot only; polyglot systems not supported",
                 options: { bullet: true, fontSize: 11.5, color: C.text, breakLine: true } },
-            { text: "Static analysis only — no runtime call frequency data.",
+            { text: "Static analysis only; no runtime call frequency data",
                 options: { bullet: true, fontSize: 11.5, color: C.text, breakLine: true } },
-            { text: "Service detection deployability gate may miss services without framework annotations, Dockerfile, or main method.",
+            { text: "Service detection deployability gate may miss services without framework annotations, Dockerfile, or main method",
                 options: { bullet: true, fontSize: 11.5, color: C.text, breakLine: true } },
-            { text: "Dynamic URLs (e.g. Spring Cloud Config) are not resolved.",
+            { text: "Dynamic URLs (e.g. Spring Cloud Config) are not resolved",
                 options: { bullet: true, fontSize: 11.5, color: C.text, breakLine: true } },
-            { text: "Health score weights chosen by engineering judgement, not empirically calibrated.",
+            { text: "Health score weights chosen by engineering judgement, not empirically calibrated",
                 options: { bullet: true, fontSize: 11.5, color: C.text, breakLine: true } },
-            { text: "Evaluation on 9 open-source projects — not a statistical claim.",
+            { text: "Evaluation on 11 open-source projects; not a statistical claim",
                 options: { bullet: true, fontSize: 11.5, color: C.text } },
         ], { x: 0.8, y: 1.7, w: 4.0, h: 3.2, fontFace: BODY_FONT, margin: 0, paraSpaceAfter: 4 });
 
@@ -1081,13 +1083,13 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             fontSize: 16, fontFace: HEADER_FONT, color: C.navy, bold: true, margin: 0,
         });
         s.addText([
-            { text: "Multi-language support (Python, Go, .NET, Node.js) via language-agnostic dependency graphs from Docker Compose / Kubernetes manifests.",
+            { text: "Multi-language support (Python, Go, .NET, Node.js) via language-agnostic dependency graphs from Docker Compose / Kubernetes manifests",
                 options: { bullet: true, fontSize: 11.5, color: C.text, breakLine: true } },
-            { text: "Extend anti-pattern catalogue (timeout misconfiguration, missing API gateway).",
+            { text: "Extend anti-pattern catalogue (timeout misconfiguration, missing API gateway)",
                 options: { bullet: true, fontSize: 11.5, color: C.text, breakLine: true } },
-            { text: "ML-based detection: classifiers on labelled datasets or graph neural networks on the dependency graph.",
+            { text: "ML-based detection: classifiers on labelled datasets or graph neural networks on the dependency graph",
                 options: { bullet: true, fontSize: 11.5, color: C.text, breakLine: true } },
-            { text: "Empirical threshold calibration across an industrial corpus.",
+            { text: "Empirical threshold calibration across an industrial corpus",
                 options: { bullet: true, fontSize: 11.5, color: C.text } },
         ], { x: 5.4, y: 1.7, w: 4.0, h: 3.2, fontFace: BODY_FONT, margin: 0, paraSpaceAfter: 4 });
 
@@ -1136,13 +1138,13 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             fontSize: 14, fontFace: HEADER_FONT, color: C.ice, bold: true, margin: 0,
         });
         s.addText([
-            { text: "Multi-level static analysis combining code smells and architectural metrics.",
+            { text: "Multi-level static analysis combining code smells and architectural metrics",
                 options: { bullet: true, fontSize: 13, color: "FFFFFF", breakLine: true } },
-            { text: "Ten anti-patterns, configurable thresholds, evidence-based reporting.",
+            { text: "Ten anti-patterns, configurable thresholds, evidence-based reporting",
                 options: { bullet: true, fontSize: 13, color: "FFFFFF", breakLine: true } },
-            { text: "Composite health score with four-category decomposition and analysis diff.",
+            { text: "Composite health score with four-category decomposition and analysis diff",
                 options: { bullet: true, fontSize: 13, color: "FFFFFF", breakLine: true } },
-            { text: "Open-source web application, ready for CI/CD integration.",
+            { text: "Open-source web application, ready for CI/CD integration",
                 options: { bullet: true, fontSize: 13, color: "FFFFFF" } },
         ], { x: 1.2, y: 3.3, w: 8.0, h: 1.5, fontFace: BODY_FONT, margin: 0, paraSpaceAfter: 2 });
 
@@ -1164,7 +1166,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "4. Answer concisely. If you don't know, say 'I didn't investigate that — my best guess is X but I'd want to verify.'\n\n" +
             "Common questions to prepare for:\n" +
             "• 'Why God Service threshold = 1?' → false positives cheap, false negatives expensive; configurable.\n" +
-            "• 'Why only nine projects?' → feasibility demo not statistical claim; no labelled corpus exists.\n" +
+            "• 'Why only eleven projects?' → feasibility demo not statistical claim; no labelled corpus exists.\n" +
             "• 'Score compression at the bottom?' → known limitation, a scaled AP penalty would fix.\n" +
             "• 'Why static instead of dynamic?' → applicability over precision; no deployed system required.\n" +
             "• 'Why Spring Boot only?' → biggest Java microservice ecosystem; other frameworks future work."

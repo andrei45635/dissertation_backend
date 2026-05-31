@@ -13,26 +13,21 @@ import com.msadetector.security.JwtTokenProvider;
 import com.msadetector.security.UserPrincipal;
 import com.msadetector.service.JobService;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
-import javax.swing.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -41,8 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(value = JobController.class,
         excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
-                classes = {SecurityConfig.class, FlywayConfig.class}))
-@ExtendWith(SpringExtension.class)
+                classes = {FlywayConfig.class}))
+@Import(SecurityConfig.class)
 class JobControllerIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
@@ -52,15 +47,6 @@ class JobControllerIntegrationTest {
     @MockitoBean private CustomUserDetailsService customUserDetailsService;
     @MockitoBean private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     @MockitoBean private AuthenticationManager authenticationManager;
-
-    @TestConfiguration
-    static class SecurityOverride {
-        @Bean
-        SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-            http.csrf(c -> c.disable()).authorizeHttpRequests(a -> a.anyRequest().permitAll());
-            return http.build();
-        }
-    }
 
     private UserPrincipal principal() {
         User u = User.builder().name("Test").email("test@test.com").password("pass").build();
@@ -119,9 +105,7 @@ class JobControllerIntegrationTest {
 
     @Test
     void cancelJob_returnsOk() throws Exception {
-        mockMvc.perform(post("/api/jobs/100/cancel").with(user(principal())))
+        mockMvc.perform(post("/api/jobs/100/cancel").with(user(principal())).with(csrf()))
                 .andExpect(status().isOk());
     }
 }
-
-

@@ -13,15 +13,12 @@ import com.msadetector.config.SecurityConfig;
 import com.msadetector.service.AuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -33,25 +30,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(value = AuthController.class,
         excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
                 classes = {SecurityConfig.class, FlywayConfig.class}))
+@AutoConfigureMockMvc(addFilters = false)
 class AuthControllerIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @MockitoBean private AuthService authService;
     @MockitoBean private JwtTokenProvider jwtTokenProvider;
     @MockitoBean private CustomUserDetailsService customUserDetailsService;
     @MockitoBean private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     @MockitoBean private AuthenticationManager authenticationManager;
-
-    @TestConfiguration
-    static class SecurityOverride {
-        @Bean
-        SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-            http.csrf(c -> c.disable()).authorizeHttpRequests(a -> a.anyRequest().permitAll());
-            return http.build();
-        }
-    }
 
     @Test
     void register_returnsCreated() throws Exception {
@@ -114,5 +103,3 @@ class AuthControllerIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 }
-
-

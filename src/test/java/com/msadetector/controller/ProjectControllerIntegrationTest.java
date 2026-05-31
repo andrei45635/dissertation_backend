@@ -11,15 +11,12 @@ import com.msadetector.service.ProjectService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -29,17 +26,19 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(value = ProjectController.class,
         excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
-                classes = {SecurityConfig.class, FlywayConfig.class}))
+                classes = {FlywayConfig.class}))
+@Import(SecurityConfig.class)
 class ProjectControllerIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @MockitoBean private ProjectService projectService;
     @MockitoBean private JobService jobService;
@@ -47,15 +46,6 @@ class ProjectControllerIntegrationTest {
     @MockitoBean private CustomUserDetailsService customUserDetailsService;
     @MockitoBean private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     @MockitoBean private AuthenticationManager authenticationManager;
-
-    @TestConfiguration
-    static class SecurityOverride {
-        @Bean
-        SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-            http.csrf(c -> c.disable()).authorizeHttpRequests(a -> a.anyRequest().permitAll());
-            return http.build();
-        }
-    }
 
     private UserPrincipal principal() {
         User u = User.builder().name("Test").email("test@test.com").password("pass").build();
@@ -74,7 +64,8 @@ class ProjectControllerIntegrationTest {
         mockMvc.perform(multipart("/api/projects/upload")
                         .file(file)
                         .param("name", "my-project")
-                        .with(user(principal())))
+                        .with(user(principal()))
+                        .with(csrf()))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.projectId").value(10))
                 .andExpect(jsonPath("$.jobId").value(100));
@@ -91,7 +82,8 @@ class ProjectControllerIntegrationTest {
         mockMvc.perform(post("/api/projects/clone")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
-                        .with(user(principal())))
+                        .with(user(principal()))
+                        .with(csrf()))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.projectId").value(10));
     }
@@ -122,7 +114,7 @@ class ProjectControllerIntegrationTest {
 
     @Test
     void deleteProject_returnsNoContent() throws Exception {
-        mockMvc.perform(delete("/api/projects/10").with(user(principal())))
+        mockMvc.perform(delete("/api/projects/10").with(user(principal())).with(csrf()))
                 .andExpect(status().isNoContent());
 
         verify(projectService).deleteProjectForUser(10L, 1L);
@@ -145,7 +137,8 @@ class ProjectControllerIntegrationTest {
         mockMvc.perform(post("/api/projects/10/reanalyze")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}")
-                        .with(user(principal())))
+                        .with(user(principal()))
+                        .with(csrf()))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.jobId").value(101));
     }
@@ -160,10 +153,9 @@ class ProjectControllerIntegrationTest {
 
         mockMvc.perform(multipart("/api/projects/10/reupload")
                         .file(file)
-                        .with(user(principal())))
+                        .with(user(principal()))
+                        .with(csrf()))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.jobId").value(102));
     }
 }
-
-
