@@ -25,7 +25,7 @@
 \subsection{Selected Datasets}
 \label{subsec:selected-datasets}
 
-\par Based on the criteria described above, nine open-source microservice projects were selected for evaluation. Table~\ref{tab:datasets} summarizes the key characteristics of each project.
+\par Based on the criteria described above, eleven open-source microservice projects were selected for evaluation. Table~\ref{tab:datasets} summarizes the key characteristics of each project.
 
 \begin{table}[htbp]
     \centering
@@ -58,12 +58,16 @@
         \hline
         RuoYi-Cloud & 8 & 27012 & Spring Cloud Alibaba enterprise rapid-development framework \\
         \hline
+        PiggyMetrics & 8 & 4483 & Personal finance management demo built on Spring Cloud \\
+        \hline
+        piomin & 6 & 1330 & Sample Spring Cloud microservices demonstration project \\
+        \hline
     \end{tabular}
     \caption{Summary of the open-source microservice projects selected for evaluation.}
     \label{tab:datasets}
 \end{table}
 
-\par At the smaller end of the scale, two projects serve as lightweight baselines. MicroservicesSocial\footnote{\url{https://github.com/sarbudragos/MicroserviceSocial}} is a mock social media application developed as a university course assignment, comprising 4 microservices and 1\,811 LOC. Despite its modest scope, it is useful as a minimal test case for detecting intra-service and configuration-related anti-patterns. NetworkDisk\footnote{\url{https://github.com/quhailong/NetworkDisk_Storage}} is a cloud storage system built on Spring Boot and Spring Cloud, consisting of 10 microservices with approximately 6\,729 LOC. It implements file upload, download and sharing functionality through a gateway-based architecture and is particularly relevant for exercising the API Versioning Absence and Nano Service detectors.
+\par At the smaller end of the scale, four projects serve as lightweight baselines. MicroservicesSocial\footnote{\url{https://github.com/sarbudragos/MicroserviceSocial}} is a mock social media application developed as a university course assignment, comprising 4 microservices and 1\,811 LOC. Despite its modest scope, it is useful as a minimal test case for detecting intra-service and configuration-related anti-patterns. NetworkDisk\footnote{\url{https://github.com/quhailong/NetworkDisk_Storage}} is a cloud storage system built on Spring Boot and Spring Cloud, consisting of 10 microservices with approximately 6\,729 LOC. It implements file upload, download and sharing functionality through a gateway-based architecture and is particularly relevant for exercising the API Versioning Absence and Nano Service detectors. PiggyMetrics\footnote{\url{https://github.com/sqshq/piggymetrics}} is a widely referenced personal finance management application built on Spring Cloud, comprising 8 microservices and approximately 4\,483 LOC. Organized around a gateway, a service registry and a centralized configuration server with several fine-grained domain services, it is a representative showcase of the canonical Spring Cloud reference architecture and exercises the ESB Misuse, API Versioning Absence and Nano Service detectors. piomin\footnote{\url{https://github.com/piomin/sample-spring-microservices-new}} is a compact sample Spring Cloud microservices project by Piotr Mi\'nkowski, consisting of 6 services and only approximately 1\,330 LOC. As the smallest codebase in the evaluation, it illustrates service discovery and gateway routing with minimal business logic, making it a useful stress test for the service-sizing and mediation-related detectors.
 
 \par Four additional projects of medium scale were included to broaden the anti-pattern coverage. microservices-design-patterns\footnote{\url{https://github.com/rodrigorodrigues/microservices-design-patterns}} is a reference repository demonstrating common microservice design patterns, containing 16 Java-based microservices (out of a polyglot codebase also including JavaScript, Ruby and C\#) with approximately 18\,635 LOC. The project includes an API Gateway, making it a relevant candidate for versioning detection. A similar project, microservice-recruit\footnote{\url{https://github.com/stalary/microservice-recruit}}, is an intelligent recruitment platform built on Spring Cloud, comprising 8 microservices and 8\,280 LOC. It employs inter-service communication via Feign clients and a centralized gateway, making it a suitable candidate for detecting communication-related anti-patterns such as ESB Misuse, Cyclic Dependency and Wrong Cuts. Both NetworkDisk and microservice-recruit were also used as evaluation subjects in the cross-service code clone study by Zhao et~al.~\cite{10.1145/3524610.3527925}. The third medium-scale project, ftgo-application\footnote{\url{https://github.com/microservices-patterns/ftgo-application}}, is the reference microservices application accompanying Richardson's \textit{Microservices Patterns}~\cite{Richardson2018}, comprising 7 Spring Boot services and approximately 10\,508 LOC. Built around the Saga and CQRS patterns, it serves as a clean, well-engineered baseline against which the detection pipeline can be calibrated. The fourth medium-scale project, RuoYi-Cloud\footnote{\url{https://github.com/yangzongzhuan/RuoYi-Cloud}}, is a widely adopted Spring Cloud Alibaba enterprise rapid-development framework, comprising 8 microservices and approximately 27\,012 LOC. With a centralized gateway and Feign-based inter-service calls, it is representative of the enterprise scaffolding used in production by many development teams.
 
@@ -115,6 +119,10 @@
         \hline
         RuoYi-Cloud & 68 & C & API Versioning Absence, Hardcoded Endpoints, Nano Service, God Service \\
         \hline
+        PiggyMetrics & 71 & C & Nano Service, API Versioning Absence, ESB Misuse \\
+        \hline
+        piomin & 51 & D & ESB Misuse, API Versioning Absence, Nano Service \\
+        \hline
     \end{tabularx}
     \caption{Summary of detection results across all evaluated datasets.}
     \label{tab:results-overview}
@@ -129,25 +137,25 @@
             width=\textwidth,
             height=7cm,
             ylabel={Health Score},
-            xtick={1,2,3,4,5,6,7,8,9},
-            xticklabels={m-r, TrainTicket, NetDisk, mall-swarm, m-d-p, RuoYi, SiteWhere, FTGO, MicroSocial},
+            xtick={1,2,3,4,5,6,7,8,9,10,11},
+            xticklabels={m-r, TrainTicket, piomin, NetDisk, mall-swarm, m-d-p, RuoYi, SiteWhere, PiggyM, FTGO, MicroSocial},
             x tick label style={rotate=35, anchor=east, font=\footnotesize},
             ymin=0, ymax=100,
             ytick={0,20,40,60,80,100},
             nodes near coords,
             nodes near coords style={font=\scriptsize},
-            enlarge x limits=0.08,
+            enlarge x limits=0.06,
             extra y ticks={50,65,80,90},
             extra y tick labels={},
             extra y tick style={grid=major, grid style={dashed, gray!50}},
         ]
         \addplot[fill=red!60, draw=black] coordinates {(1, 40) (2, 40)};
-        \addplot[fill=orange!60, draw=black] coordinates {(3, 52) (4, 53) (5, 60)};
-        \addplot[fill=yellow!60, draw=black] coordinates {(6, 68) (7, 69) (8, 75)};
-        \addplot[fill=green!50, draw=black] coordinates {(9, 83)};
+        \addplot[fill=orange!60, draw=black] coordinates {(3, 51) (4, 52) (5, 53) (6, 60)};
+        \addplot[fill=yellow!60, draw=black] coordinates {(7, 68) (8, 69) (9, 71) (10, 75)};
+        \addplot[fill=green!50, draw=black] coordinates {(11, 83)};
         \end{axis}
     \end{tikzpicture}
-    \caption{Health scores of the nine evaluated projects sorted by score and color-coded by letter grade. Dashed lines indicate grade boundaries (F: $<$50, D: 50--64, C: 65--79, B: 80--89). No project achieved an A grade ($\geq$90).}
+    \caption{Health scores of the eleven evaluated projects sorted by score and color-coded by letter grade. Dashed lines indicate grade boundaries (F: $<$50, D: 50--64, C: 65--79, B: 80--89). No project achieved an A grade ($\geq$90).}
     \label{fig:health-scores}
 \end{figure}
 
@@ -168,7 +176,7 @@
     \setlength{\tabcolsep}{3pt}
     \renewcommand{\arraystretch}{1.1}
 
-    \begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}X|*{10}{>{\centering\arraybackslash}p{0.7cm}|}}
+    \begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}X|*{12}{>{\centering\arraybackslash}p{0.5cm}|}}
         \hline
         \rule{0pt}{2.7cm}\textbf{Anti-Pattern}
         & \projhead{MicroSocial}
@@ -180,29 +188,31 @@
         & \projhead{FTGO}
         & \projhead{mall-swarm}
         & \projhead{RuoYi}
+        & \projhead{PiggyM}
+        & \projhead{piomin}
         & \projhead{Total} \\
         \hline\hline
-        Shared Database & 1 & 0 & 0 & 1 & 0 & 0 & 0 & 1 & 0 & 3 \\
+        Shared Database & 1 & 0 & 0 & 1 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 3 \\
         \hline
-        Cyclic Dependency & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 1 \\
+        Cyclic Dependency & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 1 \\
         \hline
-        Nano Service & 2 & 2 & 0 & 4 & 3 & 1 & 0 & 2 & 1 & 15 \\
+        Nano Service & 2 & 2 & 0 & 4 & 3 & 1 & 0 & 2 & 1 & 5 & 3 & 23 \\
         \hline
-        God Service & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 2 & 1 & 4 \\
+        God Service & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 2 & 1 & 0 & 0 & 4 \\
         \hline
-        Chatty Service & 0 & 0 & 0 & 4 & 0 & 0 & 0 & 0 & 0 & 4 \\
+        Chatty Service & 0 & 0 & 0 & 4 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 4 \\
         \hline
-        Hardcoded Endpoints & 1 & 6 & 2 & 26 & 2 & 1 & 0 & 4 & 1 & 43 \\
+        Hardcoded Endpoints & 1 & 6 & 2 & 26 & 2 & 1 & 0 & 4 & 1 & 0 & 0 & 43 \\
         \hline
-        Distributed Monolith & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+        Distributed Monolith & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
         \hline
-        API Versioning Absence & 1 & 3 & 0 & 0 & 8 & 6 & 4 & 4 & 5 & 31 \\
+        API Versioning Absence & 1 & 3 & 0 & 0 & 8 & 6 & 4 & 4 & 5 & 3 & 3 & 37 \\
         \hline
-        Wrong Cuts & 0 & 0 & 0 & 0 & 0 & 2 & 0 & 0 & 0 & 2 \\
+        Wrong Cuts & 0 & 0 & 0 & 0 & 0 & 2 & 0 & 0 & 0 & 0 & 0 & 2 \\
         \hline
-        ESB Misuse & 0 & 0 & 3 & 0 & 0 & 2 & 0 & 0 & 0 & 5 \\
+        ESB Misuse & 0 & 0 & 3 & 0 & 0 & 2 & 0 & 0 & 0 & 1 & 3 & 9 \\
         \hline
-        \textbf{Total} & \textbf{5} & \textbf{11} & \textbf{6} & \textbf{35} & \textbf{13} & \textbf{13} & \textbf{4} & \textbf{13} & \textbf{8} & \textbf{108} \\
+        \textbf{Total} & \textbf{5} & \textbf{11} & \textbf{6} & \textbf{35} & \textbf{13} & \textbf{13} & \textbf{4} & \textbf{13} & \textbf{8} & \textbf{9} & \textbf{9} & \textbf{126} \\
         \hline
     \end{tabularx}
 
@@ -234,14 +244,14 @@
             (3, 4)
             (4, 5)
             (4, 6)
-            (5, 7)
-            (15, 8)
-            (31, 9)
+            (9, 7)
+            (23, 8)
+            (37, 9)
             (43, 10)
         };
         \end{axis}
     \end{tikzpicture}
-    \caption{Total anti-pattern instances by type across all nine evaluated projects. Hardcoded Endpoints and API Versioning Absence account for approximately 69\% of all detections.}
+    \caption{Total anti-pattern instances by type across all eleven evaluated projects. Hardcoded Endpoints and API Versioning Absence account for approximately 63\% of all detections.}
     \label{fig:antipattern-frequency}
 \end{figure}
 
@@ -250,7 +260,7 @@
     \footnotesize
     \setlength{\tabcolsep}{3pt}
     \renewcommand{\arraystretch}{1.4}
-    \begin{tabular}{l*{9}{c}}
+    \begin{tabular}{l*{11}{c}}
         \hline
         & \rotatebox{90}{\textbf{MicroSocial}~}
         & \rotatebox{90}{\textbf{m-d-p}~}
@@ -260,17 +270,19 @@
         & \rotatebox{90}{\textbf{m-r}~}
         & \rotatebox{90}{\textbf{FTGO}~}
         & \rotatebox{90}{\textbf{mall-swarm}~}
-        & \rotatebox{90}{\textbf{RuoYi}~} \\
+        & \rotatebox{90}{\textbf{RuoYi}~}
+        & \rotatebox{90}{\textbf{PiggyM}~}
+        & \rotatebox{90}{\textbf{piomin}~} \\
         \hline
-        Shared DB       & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 \\
-        Cyclic Dep.     & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
-        Nano Service    & \cellcolor{orange!30}2 & \cellcolor{orange!30}2 & \cellcolor{white}0 & \cellcolor{orange!60}4 & \cellcolor{orange!45}3 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{yellow!40}1 \\
-        God Service     & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{yellow!40}1 \\
-        Chatty Service  & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!60}4 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
-        Hardcoded Endp. & \cellcolor{yellow!40}1 & \cellcolor{orange!50}6 & \cellcolor{orange!30}2 & \cellcolor{red!60}26 & \cellcolor{orange!30}2 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{orange!60}4 & \cellcolor{yellow!40}1 \\
-        API Versioning  & \cellcolor{yellow!40}1 & \cellcolor{orange!45}3 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{red!40}8 & \cellcolor{orange!50}6 & \cellcolor{orange!60}4 & \cellcolor{orange!60}4 & \cellcolor{orange!50}5 \\
-        Wrong Cuts      & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
-        ESB Misuse      & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!45}3 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
+        Shared DB       & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
+        Cyclic Dep.     & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
+        Nano Service    & \cellcolor{orange!30}2 & \cellcolor{orange!30}2 & \cellcolor{white}0 & \cellcolor{orange!60}4 & \cellcolor{orange!45}3 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{yellow!40}1 & \cellcolor{orange!50}5 & \cellcolor{orange!45}3 \\
+        God Service     & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 \\
+        Chatty Service  & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!60}4 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
+        Hardcoded Endp. & \cellcolor{yellow!40}1 & \cellcolor{orange!50}6 & \cellcolor{orange!30}2 & \cellcolor{red!60}26 & \cellcolor{orange!30}2 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{orange!60}4 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 \\
+        API Versioning  & \cellcolor{yellow!40}1 & \cellcolor{orange!45}3 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{red!40}8 & \cellcolor{orange!50}6 & \cellcolor{orange!60}4 & \cellcolor{orange!60}4 & \cellcolor{orange!50}5 & \cellcolor{orange!45}3 & \cellcolor{orange!45}3 \\
+        Wrong Cuts      & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
+        ESB Misuse      & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!45}3 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{orange!45}3 \\
         \hline
     \end{tabular}
     \caption{Anti-pattern detection heatmap across projects. Darker cells indicate higher instance counts; white cells indicate no detection. Train-Ticket dominates Hardcoded Endpoints and Chatty Service detections, while API Versioning Absence is the most broadly distributed anti-pattern.}
@@ -288,19 +300,19 @@
             xlabel={Number of Instances},
             ytick={1},
             yticklabels={All Projects},
-            xmin=0, xmax=115,
+            xmin=0, xmax=135,
             legend style={at={(0.5,-0.4)}, anchor=north, legend columns=3, font=\footnotesize},
             nodes near coords,
             nodes near coords style={font=\scriptsize, color=black},
             enlarge y limits=0.6,
         ]
         \addplot[fill=red!70, draw=black] coordinates {(1, 1)};
-        \addplot[fill=orange!60, draw=black] coordinates {(18, 1)};
-        \addplot[fill=yellow!50, draw=black] coordinates {(89, 1)};
-        \legend{Critical (1), High (18), Medium (89)}
+        \addplot[fill=orange!60, draw=black] coordinates {(22, 1)};
+        \addplot[fill=yellow!50, draw=black] coordinates {(103, 1)};
+        \legend{Critical (1), High (22), Medium (103)}
         \end{axis}
     \end{tikzpicture}
-    \caption{Distribution of the 108 detected anti-pattern instances by severity level. The majority (82\%) are classified as Medium severity (Nano Service, Hardcoded Endpoints, API Versioning Absence), while 17\% are High severity (Shared Database, God Service, Chatty Service, Wrong Cuts, ESB Misuse) and only 1\% (a single Cyclic Dependency) is Critical.}
+    \caption{Distribution of the 126 detected anti-pattern instances by severity level. The majority (82\%) are classified as Medium severity (Nano Service, Hardcoded Endpoints, API Versioning Absence), while 17\% are High severity (Shared Database, God Service, Chatty Service, Wrong Cuts, ESB Misuse) and only 1\% (a single Cyclic Dependency) is Critical.}
     \label{fig:severity-distribution}
 \end{figure}
 
@@ -340,21 +352,19 @@
 % \end{table}
 
 
-\par The evaluation results show substantial variation in architectural quality across the selected projects. Health scores ranged from 40 to 83 (Figure~\ref{fig:health-scores}), indicating that the detection pipeline was able to distinguish between projects with relatively few issues and those with a much higher concentration of anti-patterns. As shown in Figure~\ref{fig:antipattern-frequency}, Hardcoded Endpoints was the most frequently detected anti-pattern, with 43 instances across eight of the nine evaluated projects, of which 26 originated from Train-Ticket alone (visually evident in the heatmap in Figure~\ref{fig:antipattern-heatmap}). API Versioning Absence was the second most common finding, with 31 instances across seven projects, with NetworkDisk contributing 8 and microservice-recruit contributing 6. Nano Service appeared 15 times across seven projects. Chatty Service (4 instances, all in Train-Ticket) and ESB Misuse (5 instances across Site-Where and micro\-service-recruit) appeared less frequently. God Service was detected in three projects (Site-Where, mall-swarm and RuoYi-Cloud, 4 instances total), and Shared Database was found in MicroservicesSocial, Train-Ticket and mall-swarm (3 instances total). Notably, the addition of NetworkDisk and microservice-recruit to the evaluation corpus activated detectors that had previously produced zero results: Cyclic Dependency was detected once in microservice-recruit, and Wrong Cuts was detected twice in the same project, demonstrating that a broader evaluation corpus can exercise a wider range of detection capabilities. In terms of severity (Figure~\ref{fig:severity-distribution}), the majority of detections (82\%) fall into the Medium category, with only a single Critical instance (Cyclic Dependency). No instances of Distributed Monolith were detected across the evaluated datasets. The absence of this anti-pattern is consistent with the communication topologies of the evaluated projects and aligns with the empirical observation by Taibi and Lenarduzzi that service-sizing and configuration-related issues are more prevalent than severe system-level coupling problems in practice \cite{Taibi2018}. Figure~\ref{fig:loc-vs-health} shows that project size (LOC) is not a reliable predictor of health score: small projects can score poorly while large ones can maintain moderate quality, suggesting that architectural decisions matter more than codebase scale.
-
-\par To illustrate how the composite health score accumulates deductions across all four categories, consider microservice-recruit (final score~40, grade~F). Its Anti-Patterns budget is fully exhausted: the penalties for 1~Cyclic Dependency instance (critical, $1 \times 8 = 8$), 2~ESB Misuse and 2~Wrong Cuts instances (high, $4 \times 5 = 20$), 6~API Versioning Absence instances ($6 \times 3 = 18$) and 1~Hardcoded Endpoint instance ($1 \times 3 = 3$) total~49, exceeding the 40-point budget, so $S_{\mathrm{ap}} = \max(0,\; 40 - 49) = 0$ (the single Nano Service is charged to Service Sizing instead, to avoid double counting). The Code Quality category is scored by smell density: the project's 260 code smells over 8\,280 LOC give 31.4 smells/KLOC, a penalty of $\min(20,\; \lfloor 20 \times 31.4 / 80 \rceil) = 8$, leaving $S_{\mathrm{cq}} = 12$ out of~20. The Architecture category incurs a 9-point penalty reflecting the structural coupling of its dependency graph, leaving $S_{\mathrm{arch}} = 16$ out of~25. Finally, the one Nano Service incurs a Service Sizing penalty of $\min(8,\; 1 \times 3) = 3$, leaving $S_{\mathrm{sz}} = 12$ out of~15. The composite is therefore $0 + 12 + 16 + 12 = 40$. Unlike a project whose deductions concentrate in a single category, microservice-recruit loses points in every dimension, which illustrates the multi-level nature of the scoring: architectural anti-patterns, structural coupling and code-level smell density jointly shape the final result.
+\par The evaluation results show substantial variation in architectural quality across the selected projects. Health scores ranged from 40 to 83 (Figure~\ref{fig:health-scores}), indicating that the detection pipeline was able to distinguish between projects with relatively few issues and those with a much higher concentration of anti-patterns. As shown in Figure~\ref{fig:antipattern-frequency}, Hardcoded Endpoints was the most frequently detected anti-pattern, with 43 instances across eight of the eleven evaluated projects, of which 26 originated from Train-Ticket alone (visually evident in the heatmap in Figure~\ref{fig:antipattern-heatmap}). API Versioning Absence was the second most common finding, with 37 instances across nine projects, with NetworkDisk contributing 8 and microservice-recruit contributing 6. Nano Service appeared 23 times across nine projects. Chatty Service (4 instances, all in Train-Ticket) and ESB Misuse (9 instances across Site-Where, microservice-recruit, PiggyMetrics and piomin) appeared less frequently. God Service was detected in three projects (Site-Where, mall-swarm and RuoYi-Cloud, 4 instances total), and Shared Database was found in MicroservicesSocial, Train-Ticket and mall-swarm (3 instances total). Notably, the addition of NetworkDisk and microservice-recruit to the evaluation corpus activated detectors that had previously produced zero results: Cyclic Dependency was detected once in microservice-recruit, and Wrong Cuts was detected twice in the same project, demonstrating that a broader evaluation corpus can exercise a wider range of detection capabilities. In terms of severity (Figure~\ref{fig:severity-distribution}), the majority of detections (82\%) fall into the Medium category, with only a single Critical instance (Cyclic Dependency). No instances of Distributed Monolith were detected across the evaluated datasets. The absence of this anti-pattern is consistent with the communication topologies of the evaluated projects and aligns with the empirical observation by Taibi and Lenarduzzi that service-sizing and configuration-related issues are more prevalent than severe system-level coupling problems in practice \cite{Taibi2018}. Figure~\ref{fig:loc-vs-health} shows that project size (LOC) is not a reliable predictor of health score: small projects can score poorly while large ones can maintain moderate quality, suggesting that architectural decisions matter more than codebase scale.
 
 \subsection{Results Discussion}
 \label{subsec:discussion-results}
 
-\par This section presents the detailed detection results for an evaluated project, e.g. MicroservicesSocial, including the detected microservices, anti-pattern evidence, and the health score breakdown.
+\par This section presents the detailed detection results for a representative evaluated project, microservice-recruit, including the detected microservices, anti-pattern evidence, and the health score breakdown.
 
-\subsubsection{MicroservicesSocial}
-\label{subsubsec:results-microservicessocial}
+\subsubsection{microservice-recruit}
+\label{subsubsec:results-microservice-recruit}
 
-\par MicroservicesSocial is the smallest project in the evaluation (4 services, 1\,811 LOC), developed as a university course assignment modeling a simplified social media platform. Despite its modest size, the MSA Detector identified five anti-pattern instances across four types: one Shared Database (two services configured with identical PostgreSQL datasource URLs), two Nano Services (services below both LOC and endpoint thresholds), one Hardcoded Endpoint (a \texttt{RestTemplate} call using a literal URL), and one API Versioning Absence. No cyclic dependencies, chatty services, god services or distributed monolith indicators were detected, consistent with the project's simple communication topology.
+\par microservice-recruit is an intelligent recruitment platform built on Spring Cloud, comprising 8 microservices and approximately 8\,280 LOC, with inter-service communication carried out through Feign clients routed via a centralized gateway. Relative to its modest size, it is the most anti-pattern-dense project in the evaluation: the MSA Detector identified 13 anti-pattern instances across six distinct types. The communication- and coupling-related detectors were the most active. Two ESB Misuse instances were flagged for services acting as central mediators with disproportionately high betweenness centrality in the dependency graph, and two Wrong Cuts instances corresponded to services exhibiting cross-boundary Feature Envy and bidirectional dependencies. A single Cyclic Dependency was detected, a closed loop in the inter-service call graph verified by manual inspection of the Feign client declarations. In addition, six API Versioning Absence instances were identified for controllers exposing REST endpoints without any version prefix in the URL path, alongside one Hardcoded Endpoint (a literal URL used in place of a discovery-resolved service name) and one Nano Service (a service below both the LOC and endpoint thresholds). Notably, microservice-recruit was the only project in the entire corpus to trigger the Cyclic Dependency and Wrong Cuts detectors, which makes it the single most valuable subject for exercising the structural-coupling detectors.
 
-\par The health score was 83/100 (grade B), with deductions concentrated in the anti-patterns category. The issues are largely attributable to the project's educational nature: externalizing database configuration per service, introducing a service registry and adding API version prefixes would raise the score significantly with modest effort.
+\par The final health score of 40 (grade~F) illustrates how the composite score accumulates deductions across all four categories. The Anti-Patterns budget is fully exhausted: the penalties for 1~Cyclic Dependency instance (critical, $1 \times 8 = 8$), 2~ESB Misuse and 2~Wrong Cuts instances (high, $4 \times 5 = 20$), 6~API Versioning Absence instances ($6 \times 3 = 18$) and 1~Hardcoded Endpoint instance ($1 \times 3 = 3$) total~49, exceeding the 40-point budget, so $S_{\mathrm{ap}} = \max(0,\; 40 - 49) = 0$ (the single Nano Service is charged to Service Sizing instead, to avoid double counting). The Code Quality category is scored by smell density: the project's 260 code smells over 8\,280 LOC give 31.4 smells/KLOC, a penalty of $\min(20,\; \lfloor 20 \times 31.4 / 80 \rceil) = 8$, leaving $S_{\mathrm{cq}} = 12$ out of~20. The Architecture category incurs a 9-point penalty reflecting the structural coupling of its dependency graph, leaving $S_{\mathrm{arch}} = 16$ out of~25. Finally, the one Nano Service incurs a Service Sizing penalty of $\min(8,\; 1 \times 3) = 3$, leaving $S_{\mathrm{sz}} = 12$ out of~15. The composite is therefore $0 + 12 + 16 + 12 = 40$. Unlike a project whose deductions concentrate in a single category, microservice-recruit loses points in every dimension, which illustrates the multi-level nature of the scoring: architectural anti-patterns, structural coupling and code-level smell density jointly shape the final result.
 
 % \par MicroservicesSocial is the smallest project in the evaluation, consisting of four microservices with a combined codebase of only 1\,811 lines of code. The project was developed as part of a university course assignment by a colleague and models a simplified social media platform. Its four services, a user service, a notification service, a post service and an API gateway, communicate via REST calls using \texttt{RestTemplate}. Because the project was built as a learning exercise rather than a production system, it provides a useful baseline for examining how the detection pipeline behaves on a small, structurally simple codebase. Despite its modest size, the MSA Detector identified five anti-pattern instances across four distinct anti-pattern types, which demonstrates that even small systems can exhibit a meaningful number of architectural issues.
 
@@ -366,7 +376,7 @@
 \subsection{Manual Validation of Results}
 \label{sec:manual-validation}
 
-\par The majority of the 108 detected anti-pattern instances were confirmed as genuine issues upon manual inspection. The three Shared Database instances (in MicroservicesSocial, Train-Ticket and mall-swarm) were verified by confirming that the affected services declared identical datasource URLs in their configuration files. The Hardcoded Endpoints instances corresponded to actual literal URL strings embedded in \texttt{RestTemplate} or \texttt{WebClient} calls rather than service names resolved through a discovery mechanism; Train-Ticket accounted for 26 of these, consistent with its architecture of many services communicating via direct HTTP calls. The API Versioning Absence instances were confirmed by inspecting the controller classes and verifying that none of their request mappings included a version prefix such as \texttt{/api/v1/}. The God Service detections were consistent with manual observation: the flagged services contained DesigniteJava-detected God Classes or exceeded multiple structural thresholds in the Spoon-based fallback analysis, indicating excessive responsibility concentration. The four Chatty Service instances in Train-Ticket corresponded to service pairs with call counts exceeding the configured threshold, reflecting the system's fine-grained inter-service communication patterns. ESB Misuse was detected in Site-Where (3 instances) and microservice-recruit (2 instances), identifying services acting as central mediators with high betweenness centrality in the dependency graph. The Cyclic Dependency instance in microservice-recruit was verified by inspecting the inter-service call graph, and the two Wrong Cuts instances in the same project corresponded to services exhibiting cross-boundary Feature Envy or bidirectional dependencies.
+\par The majority of the 126 detected anti-pattern instances were confirmed as genuine issues upon manual inspection. The three Shared Database instances (in MicroservicesSocial, Train-Ticket and mall-swarm) were verified by confirming that the affected services declared identical datasource URLs in their configuration files. The Hardcoded Endpoints instances corresponded to actual literal URL strings embedded in \texttt{RestTemplate} or \texttt{WebClient} calls rather than service names resolved through a discovery mechanism; Train-Ticket accounted for 26 of these, consistent with its architecture of many services communicating via direct HTTP calls. The API Versioning Absence instances were confirmed by inspecting the controller classes and verifying that none of their request mappings included a version prefix such as \texttt{/api/v1/}. The God Service detections were consistent with manual observation: the flagged services contained DesigniteJava-detected God Classes or exceeded multiple structural thresholds in the Spoon-based fallback analysis, indicating excessive responsibility concentration. The four Chatty Service instances in Train-Ticket corresponded to service pairs with call counts exceeding the configured threshold, reflecting the system's fine-grained inter-service communication patterns. ESB Misuse was detected in Site-Where (3 instances), microservice-recruit (2 instances), PiggyMetrics (1 instance) and piomin (3 instances), identifying services acting as central mediators with high betweenness centrality in the dependency graph. The Cyclic Dependency instance in microservice-recruit was verified by inspecting the inter-service call graph, and the two Wrong Cuts instances in the same project corresponded to services exhibiting cross-boundary Feature Envy or bidirectional dependencies.
 
 \par The Nano Service detections presented the most nuanced cases. While all instances satisfied the configured thresholds (fewer than 500 lines of code and no more than 2 endpoints), some flagged modules may be internal utility or shared library modules that were detected as microservices by the build-file heuristic but are not independently deployable services. These cases represent a limitation of the automated service boundary detection rather than a flaw in the Nano Service detector itself. Distributed Monolith was the only anti-pattern type not detected across the evaluated datasets. Given the communication topologies of the evaluated projects, the absence of this anti-pattern is plausible rather than indicative of false negatives, although the possibility of missed detections due to unresolvable dynamic URLs or insufficient inter-service coupling cannot be ruled out.
 
@@ -445,7 +455,9 @@
             nodes near coords,
             point meta=explicit symbolic,
         ] coordinates {
+            (1.3, 51) [piomin]
             (1.8, 83) [MicroSocial]
+            (4.5, 71) [PiggyM]
             (6.7, 52) [NetDisk]
             (8.3, 40) [m-r]
             (10.5, 75) [FTGO]
@@ -522,7 +534,7 @@
 
 \par This chapter presented the evaluation of the MSA Detector system on a set of open-source Java-based microservice projects. The evaluation aimed to assess the tool's effectiveness in detecting architectural anti-patterns and providing actionable insights to improve microservice design quality.
 
-\par Nine projects were selected for evaluation, meeting the criteria of being Java Spring Boot applications with multiple microservices. The selected projects included a total of 116 detected microservices across approximately 269\,000 lines of code, and represented various domains including IoT platforms, ticket booking, cloud storage, e-commerce, intelligent recruitment, food-delivery, enterprise application development and learning projects. The detection pipeline identified 108 anti-pattern instances across nine distinct anti-pattern types, with varying implications for architectural quality.
+\par Eleven projects were selected for evaluation, meeting the criteria of being Java Spring Boot applications with multiple microservices. The selected projects included a total of 130 detected microservices across approximately 274\,000 lines of code, and represented various domains including IoT platforms, ticket booking, cloud storage, e-commerce, intelligent recruitment, food-delivery, personal finance management, enterprise application development and learning projects. The detection pipeline identified 126 anti-pattern instances across nine distinct anti-pattern types, with varying implications for architectural quality.
 
 \par The results showed that the MSA Detector could effectively identify common microservice anti-patterns such as shared databases, API versioning absences, and nano services. The health scores provided a useful summary metric for assessing the overall architectural quality, with detailed breakdowns available for deeper analysis.
 
