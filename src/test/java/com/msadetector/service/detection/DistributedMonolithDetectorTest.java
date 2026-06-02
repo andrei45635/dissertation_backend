@@ -79,8 +79,6 @@ class DistributedMonolithDetectorTest {
         Microservice b = createMs(2L, "b", null);
         Microservice c = createMs(3L, "c", null);
 
-        // 3 services, max edges = 3*2 = 6
-        // All 6 edges present → coupling = 1.0 > 0.5
         when(dependencyRepository.findByProjectWithServices(project))
                 .thenReturn(List.of(
                         createDep(a, b), createDep(a, c),
@@ -122,8 +120,6 @@ class DistributedMonolithDetectorTest {
         Microservice b = createMs(2L, "b", sharedDb);
         Microservice c = createMs(3L, "c", null);
 
-        // connectedRatio > 0.8 and sharedDbCount > 0
-        // 3 services, 3 edges, all 3 connected → 100%
         when(dependencyRepository.findByProjectWithServices(project))
                 .thenReturn(List.of(createDep(a, b), createDep(b, c), createDep(c, a)));
 

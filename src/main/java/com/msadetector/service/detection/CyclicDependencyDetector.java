@@ -64,22 +64,30 @@ public class CyclicDependencyDetector extends BaseDetector {
                 String cycleDescription = String.join(" -> ", cycleServiceNames)
                         + " -> " + cycleServiceNames.getFirst();
 
-                // Collect code snippets for each edge in the cycle
+                // Collect code snippets from the actual dependency edges among the
+                // cycle's services (an SCC is not an ordered path, so we iterate real
+                // edges between SCC members rather than consecutive list elements).
                 List<Map<String, Object>> snippets = new ArrayList<>();
-                for (int i = 0; i < scc.size() && snippets.size() < 5; i++) {
-                    Long from = scc.get(i);
-                    Long to = scc.get((i + 1) % scc.size());
-                    ServiceDependency dep = depByEdge.get(from + "->" + to);
-                    if (dep != null && dep.getEvidenceFile() != null) {
-                        Map<String, Object> snippet;
-                        if (dep.getEvidenceLine() != null && dep.getEvidenceLine() > 0) {
-                            snippet = readSnippet(projectRoot.resolve(dep.getEvidenceFile()), dep.getEvidenceLine());
-                        } else {
-                            snippet = buildSnippet(dep.getEvidenceFile(),
-                                    dep.getEvidenceLine() != null ? dep.getEvidenceLine() : 0,
-                                    dep.getEvidenceCode());
+                Set<Long> sccSet = new HashSet<>(scc);
+                outer:
+                for (Long from : scc) {
+                    for (Long to : adjacency.getOrDefault(from, Set.of())) {
+                        if (!sccSet.contains(to)) continue;
+                        ServiceDependency dep = depByEdge.get(from + "->" + to);
+                        if (dep != null && dep.getEvidenceFile() != null) {
+                            Map<String, Object> snippet;
+                            if (dep.getEvidenceLine() != null && dep.getEvidenceLine() > 0) {
+                                snippet = readSnippet(projectRoot.resolve(dep.getEvidenceFile()), dep.getEvidenceLine());
+                            } else {
+                                snippet = buildSnippet(dep.getEvidenceFile(),
+                                        dep.getEvidenceLine() != null ? dep.getEvidenceLine() : 0,
+                                        dep.getEvidenceCode());
+                            }
+                            if (snippet != null) {
+                                snippets.add(snippet);
+                                if (snippets.size() >= 5) break outer;
+                            }
                         }
-                        if (snippet != null) snippets.add(snippet);
                     }
                 }
 

@@ -65,7 +65,6 @@ class CyclicDependencyDetectorTest {
         Microservice a = createMs(1L, "service-a");
         Microservice b = createMs(2L, "service-b");
 
-        // A -> B (no cycle)
         when(dependencyRepository.findByProjectWithServices(project))
                 .thenReturn(List.of(createDep(a, b)));
 
@@ -80,7 +79,6 @@ class CyclicDependencyDetectorTest {
         Microservice a = createMs(1L, "service-a");
         Microservice b = createMs(2L, "service-b");
 
-        // A -> B -> A (cycle)
         when(dependencyRepository.findByProjectWithServices(project))
                 .thenReturn(List.of(createDep(a, b), createDep(b, a)));
 
@@ -101,7 +99,6 @@ class CyclicDependencyDetectorTest {
         Microservice b = createMs(2L, "svc-b");
         Microservice c = createMs(3L, "svc-c");
 
-        // A -> B -> C -> A
         when(dependencyRepository.findByProjectWithServices(project))
                 .thenReturn(List.of(createDep(a, b), createDep(b, c), createDep(c, a)));
 
@@ -132,7 +129,6 @@ class CyclicDependencyDetectorTest {
         Microservice c = createMs(3L, "c");
         Microservice d = createMs(4L, "d");
 
-        // Cycle 1: A <-> B, Cycle 2: C <-> D
         when(dependencyRepository.findByProjectWithServices(project))
                 .thenReturn(List.of(
                         createDep(a, b), createDep(b, a),
@@ -164,7 +160,6 @@ class CyclicDependencyDetectorTest {
         List<DetectedAntiPattern> results = detector.detect(project, List.of(a, b));
 
         assertEquals(1, results.size());
-        // Snippets are built from evidence code (files don't exist on disk)
         assertNotNull(results.getFirst().getCodeSnippetsJson());
     }
 }

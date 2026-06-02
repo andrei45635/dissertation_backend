@@ -82,10 +82,6 @@ class JobControllerIntegrationTest {
         AnalysisResultResponse response = new AnalysisResultResponse(
                 200L, 100L, 85, 3, 1, 5, 0, 1, 0, 0,
                 10000, 3333.0, 0, List.of(), null, null, null);
-        // 17 args matches the record: id, jobId, healthScore, servicesAnalyzed,
-        // totalAntiPatterns, totalCodeSmells, criticalIssues, highIssues, mediumIssues,
-        // lowIssues, totalLinesOfCode, averageServiceSize, cycleCount, antiPatterns,
-        // dependencyGraph, healthScoreBreakdown, diff
 
         when(jobService.getJobResults(eq(100L), eq(1L))).thenReturn(response);
 

@@ -141,14 +141,12 @@ class HardcodedEndpointDetectorTest {
         List<DetectedAntiPattern> results = detector.detect(project, List.of(createMs("svc")));
 
         assertEquals(1, results.size());
-        // Description should mention 3 hardcoded URLs
         assertTrue(results.getFirst().getDescription().contains("3 hardcoded"));
     }
 
     @Test
     void detect_noSrcDir_returnsEmpty() {
         Project project = createProject();
-        // Service dir exists but no src/main/java
         List<DetectedAntiPattern> results = detector.detect(project, List.of(createMs("no-src")));
 
         assertTrue(results.isEmpty());

@@ -35,7 +35,6 @@ class WrongCutsDetectorTest {
 
     @BeforeEach
     void setUp() {
-        // minFeatureEnvySmells = 3
         detector = new WrongCutsDetector(new ObjectMapper(), codeSmellRepository, dependencyRepository, 3);
     }
 

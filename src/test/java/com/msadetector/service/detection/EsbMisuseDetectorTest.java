@@ -31,7 +31,6 @@ class EsbMisuseDetectorTest {
 
     @BeforeEach
     void setUp() {
-        // mediatorThreshold = 0.4
         detector = new EsbMisuseDetector(new ObjectMapper(), dependencyRepository, 0.4);
     }
 
@@ -94,7 +93,6 @@ class EsbMisuseDetectorTest {
         Microservice c = createMs(4L, "svc-c");
         Microservice d = createMs(5L, "svc-d");
 
-        // Hub receives from all and calls all → high caller/callee ratios
         List<ServiceDependency> deps = List.of(
                 createDep(a, hub), createDep(b, hub), createDep(c, hub), createDep(d, hub),
                 createDep(hub, a), createDep(hub, b), createDep(hub, c), createDep(hub, d)
@@ -128,7 +126,6 @@ class EsbMisuseDetectorTest {
 
         List<DetectedAntiPattern> results = detector.detect(project, List.of(gateway, a, b, c));
 
-        // Gateway should be skipped
         assertTrue(results.stream().noneMatch(p -> p.getDescription().contains("api-gateway")));
     }
 

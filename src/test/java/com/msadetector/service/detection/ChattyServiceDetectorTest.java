@@ -36,7 +36,6 @@ class ChattyServiceDetectorTest {
 
     @BeforeEach
     void setUp() {
-        // minCalls = 10
         detector = new ChattyServiceDetector(new ObjectMapper(), dependencyRepository, 10);
     }
 

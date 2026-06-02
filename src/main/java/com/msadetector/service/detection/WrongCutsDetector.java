@@ -69,12 +69,7 @@ public class WrongCutsDetector extends BaseDetector {
 
                 List<Map<String, Object>> snippets = featureEnvySmells.stream()
                         .limit(5)
-                        .map(smell -> {
-                            if (smell.getFilePath() != null && smell.getLineNumber() != null) {
-                                return readSnippet(projectRoot.resolve(smell.getFilePath()), smell.getLineNumber());
-                            }
-                            return buildSnippet(smell.getClassName(), 0, smell.getDescription());
-                        })
+                        .map(smell -> resolveSmellSnippet(smell, projectRoot, ms))
                         .toList();
 
                 DetectedAntiPattern pattern = DetectedAntiPattern.builder()

@@ -360,7 +360,7 @@ The source-based approach applies three false-positive prevention mechanisms: co
 \par The Hardcoded Endpoint detector scans Java code files for URL literals that indicate services are not using a service discovery mechanism \cite{Taibi2020}. The detection algorithm performs a line-by-line scan of all \texttt{.java} files within each service's \texttt{/src/main/java} directory.
 
 The detector uses a configurable set of URL patterns to identify hardcoded endpoints. By default, the patterns include  \texttt{http://}, \texttt{https://}, \texttt{localhost:}, and \texttt{127.0.0.1}.
-For each line that matches one of these patterns, the detector verifies the match occurs within a string literal (i.e., enclosed in quotes) and extracts the full URL using the regular expression \texttt{(https?://[\textbackslash w.\textbackslash-:]+[/\textbackslash w.\textbackslash-?=\&amp;\#\%])}. Several categories of lines are excluded from the scan to reduce false positives: comment lines (starting with \texttt{//}, \texttt{}, or \texttt{/*}), import statements (\texttt{import...}), package declarations (\texttt{package...}), and test files (paths containing \texttt{test} or \texttt{Test}).
+For each line that matches one of these patterns, the detector verifies the match occurs within a string literal (i.e., enclosed in quotes) and extracts the full URL using the regular expression \texttt{(https?://[\textbackslash w.\textbackslash-:]+[/\textbackslash w.\textbackslash-?=\&\#\%]*)}. Several categories of lines are excluded from the scan to reduce false positives: comment lines (starting with \texttt{//}, \texttt{}, or \texttt{/*}), import statements (\texttt{import...}), package declarations (\texttt{package...}), and test files (paths containing \texttt{test} or \texttt{Test}).
 
 For each detected hardcoded URL, the detector records the file path, line number, the offending line of code and the extracted URL. Code snippets with surrounding context are read from the source file to provide evidence. The number of evidence snippets is capped at five per service to avoid excessively large payloads.
 
@@ -473,10 +473,10 @@ The third signal is \textit{betweenness centrality}, a graph-theoretic measure o
     \label{eq:betweenness-centrality}
 \end{equation}
 
-\noindent where $\sigma_{st}$ is the total number of shortest paths from $s$ to $t$, and $\sigma_{st}(v)$ is the number of those paths that pass through $v$. To enable threshold comparison across graphs of different sizes, the raw score is normalised by the maximum possible value:
+\noindent where $\sigma_{st}$ is the total number of shortest paths from $s$ to $t$, and $\sigma_{st}(v)$ is the number of those paths that pass through $v$. To enable threshold comparison across graphs of different sizes, the raw score is normalised by the maximum possible value, which for a directed graph over the full set of $|V|$ services is $(|V|-1)(|V|-2)$:
 
 \begin{equation}
-    BC_{\mathit{norm}}(v) = \frac{BC(v)}{(n-1)(n-2)}
+    BC_{\mathit{norm}}(v) = \frac{BC(v)}{(|V|-1)(|V|-2)}
     \label{eq:betweenness-norm}
 \end{equation}
 

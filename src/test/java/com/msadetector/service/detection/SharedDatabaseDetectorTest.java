@@ -145,7 +145,6 @@ class SharedDatabaseDetectorTest {
         Project project = createProject();
         String sharedUrl = "jdbc:postgresql://localhost/shared";
 
-        // Create service directory structure with application.yml
         Path svcADir = tempDir.resolve("svc-a/src/main/resources");
         Files.createDirectories(svcADir);
         Files.writeString(svcADir.resolve("application.yml"),

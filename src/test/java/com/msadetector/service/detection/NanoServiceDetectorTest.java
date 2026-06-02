@@ -25,7 +25,6 @@ class NanoServiceDetectorTest {
 
     @BeforeEach
     void setUp() {
-        // maxLoc=500, maxEndpoints=2
         detector = new NanoServiceDetector(new ObjectMapper(), 500, 2);
     }
 
@@ -83,8 +82,6 @@ class NanoServiceDetectorTest {
 
     @Test
     void detect_serviceExactlyAtThresholds_notFlagged() {
-        // LOC < 500 AND endpoints <= 2 is the condition
-        // LOC=500 should NOT be flagged (needs < 500)
         Project project = createProject();
         List<Microservice> services = List.of(createMs("boundary-svc", 500, 2));
 
@@ -129,7 +126,6 @@ class NanoServiceDetectorTest {
 
     @Test
     void detect_customThresholds() {
-        // Use stricter thresholds
         NanoServiceDetector strictDetector = new NanoServiceDetector(new ObjectMapper(), 1000, 5);
         Project project = createProject();
         List<Microservice> services = List.of(createMs("medium-svc", 800, 3));

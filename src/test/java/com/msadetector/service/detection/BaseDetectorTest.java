@@ -28,7 +28,6 @@ class BaseDetectorTest {
         detector = new TestDetector(new ObjectMapper());
     }
 
-    /** Concrete subclass to test protected methods */
     static class TestDetector extends BaseDetector {
         TestDetector(ObjectMapper objectMapper) {
             super(objectMapper);
@@ -39,7 +38,6 @@ class BaseDetectorTest {
             return List.of();
         }
 
-        // Expose protected methods for testing
         public String publicToJson(Object obj) { return toJson(obj); }
         public String publicTruncate(String str, int max) { return truncate(str, max); }
         public Map<String, Object> publicReadSnippet(Path p, int line, int ctx) { return readSnippet(p, line, ctx); }
@@ -55,7 +53,6 @@ class BaseDetectorTest {
 
     @Test
     void toJson_onError_returnsEmptyArray() {
-        // Pass something that causes serialization to fail
         TestDetector badDetector = new TestDetector(new ObjectMapper() {
             @Override
             public String writeValueAsString(Object value) throws com.fasterxml.jackson.core.JsonProcessingException {

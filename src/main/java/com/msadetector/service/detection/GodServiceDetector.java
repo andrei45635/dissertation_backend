@@ -388,41 +388,6 @@ public class GodServiceDetector extends BaseDetector {
         return totalPairs > 0 ? (double) connectedPairs / totalPairs : -1;
     }
 
-    /**
-     * Resolves a code snippet for a God Class smell. DesigniteJava stores the
-     * package name in filePath (not an actual file path), so we attempt to
-     * resolve the class name to a file within the service's source directory.
-     */
-    private Map<String, Object> resolveSmellSnippet(CodeSmell smell, Path projectRoot, Microservice ms) {
-        if (smell.getFilePath() != null) {
-            Path directPath = projectRoot.resolve(smell.getFilePath());
-            if (Files.exists(directPath)) {
-                int line = smell.getLineNumber() != null ? smell.getLineNumber() : 1;
-                return readSnippet(directPath, line, 5);
-            }
-        }
-
-        if (smell.getClassName() != null) {
-            Path serviceSrc = projectRoot.resolve(ms.getRelativePath()).resolve(SRC_MAIN_JAVA);
-            String classFile = smell.getClassName().replace('.', '/') + ".java";
-            Path resolved = serviceSrc.resolve(classFile);
-            if (Files.exists(resolved)) {
-                return readSnippet(resolved, 1, 10);
-            }
-            if (smell.getFilePath() != null && !smell.getClassName().contains(".")) {
-                String qualifiedPath = smell.getFilePath().replace('.', '/')
-                        + "/" + smell.getClassName() + ".java";
-                resolved = serviceSrc.resolve(qualifiedPath);
-                if (Files.exists(resolved)) {
-                    return readSnippet(resolved, 1, 10);
-                }
-            }
-        }
-
-        return buildSnippet(smell.getClassName(), 0, smell.getDescription());
-    }
-
-
     private record GodClassEvidence(
             String className,
             String filePath,

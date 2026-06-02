@@ -121,7 +121,6 @@ class GodServiceDetectorTest {
 
         when(codeSmellRepository.findByMicroservice(ms)).thenReturn(List.of(featureEnvy));
 
-        // No src/main/java dir exists so Spoon won't find anything either
         List<DetectedAntiPattern> results = detector.detect(project, List.of(ms));
 
         assertTrue(results.isEmpty());
@@ -129,18 +128,15 @@ class GodServiceDetectorTest {
 
     @Test
     void detect_minGodClassesThreshold_respected() {
-        // Require at least 3 god classes
         GodServiceDetector strictDetector = new GodServiceDetector(
                 new ObjectMapper(), codeSmellRepository, 3);
 
         Project project = createProject();
         Microservice ms = createMs("svc");
 
-        // Only 2 god classes — below threshold of 3
         when(codeSmellRepository.findByMicroservice(ms))
                 .thenReturn(List.of(createGodClassSmell(ms), createGodClassSmell(ms)));
 
-        // No src dir, so Spoon fallback won't detect anything
         List<DetectedAntiPattern> results = strictDetector.detect(project, List.of(ms));
 
         assertTrue(results.isEmpty());

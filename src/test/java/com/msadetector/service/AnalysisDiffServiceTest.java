@@ -130,8 +130,6 @@ class AnalysisDiffServiceTest {
         assertEquals(3, diff.analysisNumber());
     }
 
-    // ─── Helpers ───────────────────────────────────────────────
-
     private void mockBreakdown(int prevScore, String prevGrade, int currScore, String currGrade) {
         List<ScoreCategory> cats = List.of(
                 new ScoreCategory("Anti-Patterns", "", 30, 40, List.of()),

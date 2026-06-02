@@ -1,6 +1,8 @@
 package com.msadetector.service.detection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.msadetector.entity.CodeSmell;
+import com.msadetector.entity.Microservice;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,6 +101,50 @@ public abstract class BaseDetector implements AntiPatternDetector {
                 "highlightLine", lineNumber,
                 "snippet", code
         );
+    }
+
+    /** Source root used to resolve a code smell's class to an on-disk file. */
+    private static final String SRC_MAIN_JAVA = "src/main/java";
+
+    /**
+     * Resolves a code snippet for a DesigniteJava code smell. DesigniteJava reports
+     * the package name (not an actual file path) and no line number, so this attempts,
+     * in order: a direct path, the class name resolved as a path under the service's
+     * source root, and finally the package name combined with the simple class name.
+     * Falls back to a description-only snippet when the source file cannot be located.
+     *
+     * @param smell       the code smell to resolve
+     * @param projectRoot the project root path
+     * @param ms          the microservice the smell belongs to
+     * @return a snippet map suitable for JSON serialization
+     */
+    protected Map<String, Object> resolveSmellSnippet(CodeSmell smell, Path projectRoot, Microservice ms) {
+        if (smell.getFilePath() != null) {
+            Path directPath = projectRoot.resolve(smell.getFilePath());
+            if (Files.exists(directPath)) {
+                int line = smell.getLineNumber() != null ? smell.getLineNumber() : 1;
+                return readSnippet(directPath, line, 5);
+            }
+        }
+
+        if (smell.getClassName() != null) {
+            Path serviceSrc = projectRoot.resolve(ms.getRelativePath()).resolve(SRC_MAIN_JAVA);
+            String classFile = smell.getClassName().replace('.', '/') + ".java";
+            Path resolved = serviceSrc.resolve(classFile);
+            if (Files.exists(resolved)) {
+                return readSnippet(resolved, 1, 10);
+            }
+            if (smell.getFilePath() != null && !smell.getClassName().contains(".")) {
+                String qualifiedPath = smell.getFilePath().replace('.', '/')
+                        + "/" + smell.getClassName() + ".java";
+                resolved = serviceSrc.resolve(qualifiedPath);
+                if (Files.exists(resolved)) {
+                    return readSnippet(resolved, 1, 10);
+                }
+            }
+        }
+
+        return buildSnippet(smell.getClassName(), 0, smell.getDescription());
     }
 
     /**

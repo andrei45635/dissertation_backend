@@ -9,7 +9,6 @@ class JwtTokenProviderTest {
 
     private JwtTokenProvider tokenProvider;
 
-    // 64-character secret for HMAC-SHA512
     private static final String SECRET = "a]kG9Rd2!Fp7sXe3Qw8#Yl5Bn6Hm4Jt1Cv0Zx_AoUiIkNrTfDhMbWqPjSyLzEg";
     private static final long EXPIRATION_MS = 86400000L; // 24h
 
@@ -54,11 +53,9 @@ class JwtTokenProviderTest {
 
     @Test
     void validateToken_expiredToken_returnsFalse() {
-        // Token with 0ms expiration
         JwtTokenProvider expiredProvider = new JwtTokenProvider(SECRET, 0L);
         String token = expiredProvider.generateToken(1L, "user@example.com");
 
-        // Token is immediately expired
         assertFalse(expiredProvider.validateToken(token));
     }
 

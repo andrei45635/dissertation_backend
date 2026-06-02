@@ -22,8 +22,6 @@ class MicroserviceDetectorTest {
         detector = new MicroserviceDetector();
     }
 
-    // ── Signal 1: Framework entry point ──────────────────────────
-
     @Test
     void detectsSpringBootApplication(@TempDir Path root) throws IOException {
         Path module = createModule(root, "user-service");
@@ -76,26 +74,21 @@ class MicroserviceDetectorTest {
 
         List<DetectedService> result = detector.detectServicesWithConfidence(root);
 
-        // No framework entry point → should fall back (single candidate)
         assertEquals(1, result.size());
         assertEquals(DetectionConfidence.LOW, result.get(0).confidence());
         assertEquals("single-module-fallback", result.get(0).signal());
     }
 
-    // ── Signal 2: Dockerfile ─────────────────────────────────────
-
     @Test
     void detectsDockerfile(@TempDir Path root) throws IOException {
         Path module = createModule(root, "api-gateway");
         Files.writeString(module.resolve("Dockerfile"), "FROM openjdk:17\nCOPY target/*.jar app.jar\n");
-        // No @SpringBootApplication, no main() — just a Dockerfile
         writeJavaFile(module, "com/example", "Config.java",
                 """
                 package com.example;
                 public class Config { }
                 """);
 
-        // Need a second module so we don't trigger single-module fallback
         Path module2 = createModule(root, "web-service");
         writeJavaFile(module2, "com/example", "WebApp.java",
                 """
@@ -118,7 +111,6 @@ class MicroserviceDetectorTest {
         Path module = createModule(root, "svc");
         Files.writeString(module.resolve("service.Dockerfile"), "FROM openjdk:17\n");
 
-        // Second module to avoid single-module fallback
         Path module2 = createModule(root, "web");
         writeJavaFile(module2, "com/example", "Web.java",
                 "package com.example;\n@SpringBootApplication\npublic class Web {}");
@@ -130,8 +122,6 @@ class MicroserviceDetectorTest {
                 .findFirst().orElseThrow();
         assertEquals(DetectionConfidence.MEDIUM, svc.confidence());
     }
-
-    // ── Signal 3: main() method ──────────────────────────────────
 
     @Test
     void detectsMainMethod(@TempDir Path root) throws IOException {
@@ -146,7 +136,6 @@ class MicroserviceDetectorTest {
                 }
                 """);
 
-        // Second module to avoid fallback
         Path module2 = createModule(root, "api");
         writeJavaFile(module2, "com/example", "Api.java",
                 "package com.example;\n@SpringBootApplication\npublic class Api {}");
@@ -160,16 +149,13 @@ class MicroserviceDetectorTest {
         assertEquals("main-method", batch.signal());
     }
 
-    // ── Exclusion: shared library (no signal) ────────────────────
 
     @Test
     void excludesSharedLibrary(@TempDir Path root) throws IOException {
-        // Real service
         Path service = createModule(root, "user-service");
         writeJavaFile(service, "com/example", "UserApp.java",
                 "package com.example;\n@SpringBootApplication\npublic class UserApp {}");
 
-        // Shared library — has src/ and .java but no entry point, no Dockerfile, no main()
         Path lib = createModule(root, "common-lib");
         writeJavaFile(lib, "com/example/common", "Utils.java",
                 "package com.example.common;\npublic class Utils { public static String format(String s) { return s; } }");
@@ -180,11 +166,8 @@ class MicroserviceDetectorTest {
         assertEquals("user-service", result.get(0).path().getFileName().toString());
     }
 
-    // ── Exclusion: aggregator POM ────────────────────────────────
-
     @Test
     void excludesRootAggregatorPom(@TempDir Path root) throws IOException {
-        // Root is an aggregator
         Files.writeString(root.resolve("pom.xml"),
                 "<project><modules><module>svc-a</module></modules></project>");
 
@@ -200,22 +183,18 @@ class MicroserviceDetectorTest {
 
     @Test
     void excludesNestedAggregatorPom(@TempDir Path root) throws IOException {
-        // Root aggregator
         Files.writeString(root.resolve("pom.xml"),
                 "<project><modules><module>services</module><module>app</module></modules></project>");
 
-        // "services" is a nested aggregator (has <modules> but no src/)
         Path services = root.resolve("services");
         Files.createDirectories(services);
         Files.writeString(services.resolve("pom.xml"),
                 "<project><modules><module>user-service</module></modules></project>");
 
-        // Real service under the aggregator
         Path userSvc = createModule(services, "user-service");
         writeJavaFile(userSvc, "com/example", "UserApp.java",
                 "package com.example;\n@SpringBootApplication\npublic class UserApp {}");
 
-        // Another real service at root level
         Path app = createModule(root, "app");
         writeJavaFile(app, "com/example", "App.java",
                 "package com.example;\n@SpringBootApplication\npublic class App {}");
@@ -226,11 +205,8 @@ class MicroserviceDetectorTest {
         assertEquals(List.of("app", "user-service"), names);
     }
 
-    // ── Exclusion keyword: "payment-processor" should NOT be excluded ──
-
     @Test
     void doesNotExcludePaymentProcessor(@TempDir Path root) throws IOException {
-        // "processor" was removed from exclusion keywords
         Path svc = createModule(root, "payment-processor");
         writeJavaFile(svc, "com/example", "PaymentApp.java",
                 "package com.example;\n@SpringBootApplication\npublic class PaymentApp {}");
@@ -273,8 +249,6 @@ class MicroserviceDetectorTest {
         assertEquals("api-service", result.get(0).path().getFileName().toString());
     }
 
-    // ── Exclusion keyword: test modules still excluded ───────────
-
     @Test
     void excludesTestModuleByKeyword(@TempDir Path root) throws IOException {
         Path svc = createModule(root, "api-service");
@@ -291,11 +265,8 @@ class MicroserviceDetectorTest {
         assertEquals("api-service", result.get(0).path().getFileName().toString());
     }
 
-    // ── Fallback scenarios ───────────────────────────────────────
-
     @Test
     void singleModuleFallback(@TempDir Path root) throws IOException {
-        // Single module with no signals → should still be kept
         Path module = createModule(root, "mystery-app");
         writeJavaFile(module, "com/example", "Config.java",
                 "package com.example;\npublic class Config {}");
@@ -309,7 +280,6 @@ class MicroserviceDetectorTest {
 
     @Test
     void allGatedFallback(@TempDir Path root) throws IOException {
-        // Multiple modules, none with signals → falls back to root
         Path lib1 = createModule(root, "common-api");
         writeJavaFile(lib1, "com/example", "Api.java",
                 "package com.example;\npublic interface Api {}");
@@ -327,15 +297,12 @@ class MicroserviceDetectorTest {
 
     @Test
     void noCandidatesFallback(@TempDir Path root) throws IOException {
-        // Empty project — no build files at all
         List<DetectedService> result = detector.detectServicesWithConfidence(root);
 
         assertEquals(1, result.size());
         assertEquals(root, result.get(0).path());
         assertEquals("no-candidates-fallback", result.get(0).signal());
     }
-
-    // ── Signal priority: framework > Dockerfile > main() ─────────
 
     @Test
     void frameworkTakesPriorityOverDockerfile(@TempDir Path root) throws IOException {
@@ -351,11 +318,6 @@ class MicroserviceDetectorTest {
         assertEquals("framework-entry-point", result.get(0).signal());
     }
 
-    // ── Helpers ──────────────────────────────────────────────────
-
-    /**
-     * Creates a module directory with a pom.xml (non-aggregator) and src/main/java.
-     */
     private Path createModule(Path root, String name) throws IOException {
         Path module = root.resolve(name);
         Files.createDirectories(module.resolve("src/main/java"));
@@ -364,9 +326,6 @@ class MicroserviceDetectorTest {
         return module;
     }
 
-    /**
-     * Writes a .java file under src/main/java/{pkg}/{filename}.
-     */
     private void writeJavaFile(Path module, String pkg, String filename, String content) throws IOException {
         Path dir = module.resolve("src/main/java").resolve(pkg);
         Files.createDirectories(dir);

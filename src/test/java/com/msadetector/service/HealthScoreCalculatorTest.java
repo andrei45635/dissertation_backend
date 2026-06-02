@@ -47,7 +47,6 @@ class HealthScoreCalculatorTest {
         AnalysisResult result = buildResult(0, 0, 10000, 0.0, 0, patterns);
         HealthScoreBreakdownResponse response = calculator.calculate(result);
 
-        // CRITICAL=8, HIGH=5, MEDIUM=3 → total penalty = 16 → score = 40-16 = 24
         ScoreCategory apCategory = response.categories().get(0);
         assertEquals("Anti-Patterns", apCategory.name());
         assertEquals(24, apCategory.score());
@@ -69,8 +68,6 @@ class HealthScoreCalculatorTest {
 
     @Test
     void codeQualityCategory_penalizesByDensity() {
-        // 100 smells in 10000 LOC → density = 10 per KLOC
-        // penalty = 20 * 10/80 = 2.5 → round to 3
         AnalysisResult result = buildResult(100, 0, 10000, 0.0, 0, List.of());
         HealthScoreBreakdownResponse response = calculator.calculate(result);
 
@@ -104,7 +101,6 @@ class HealthScoreCalculatorTest {
         HealthScoreBreakdownResponse response = calculator.calculate(result);
 
         ScoreCategory archCategory = response.categories().get(2);
-        // 3 cycles * 5 = 15 → capped at 10 → score = 25-10 = 15
         assertEquals(15, archCategory.score());
     }
 
@@ -120,7 +116,6 @@ class HealthScoreCalculatorTest {
 
         ScoreCategory ssCategory = response.categories().get(3);
         assertEquals("Service Sizing", ssCategory.name());
-        // 2 nano * 3 = 6 → score = 15-6 = 9
         assertEquals(9, ssCategory.score());
     }
 
@@ -134,13 +129,11 @@ class HealthScoreCalculatorTest {
         HealthScoreBreakdownResponse response = calculator.calculate(result);
 
         ScoreCategory ssCategory = response.categories().get(3);
-        // 1 god * 5 = 5 → score = 15-5 = 10
         assertEquals(10, ssCategory.score());
     }
 
     @Test
     void overallScore_clampedToZero() {
-        // Create extreme penalties
         List<DetectedAntiPattern> patterns = new ArrayList<>();
         for (int i = 0; i < 20; i++) {
             patterns.add(buildAntiPattern(AntiPatternType.CYCLIC_DEPENDENCY, Severity.CRITICAL));
@@ -155,15 +148,10 @@ class HealthScoreCalculatorTest {
     @ParameterizedTest
     @CsvSource({"95,A", "85,B", "70,C", "55,D", "40,F"})
     void grading(int score, String expectedGrade) {
-        // Use specific anti-pattern penalty to get close to the target score
-        // Test grading via direct overall score — we just verify the grade mapping
         AnalysisResult result = buildResult(0, 0, 10000, 0.0, 0, List.of());
         HealthScoreBreakdownResponse response = calculator.calculate(result);
-        // Perfect score = 100 → grade = A
         assertEquals("A", response.grade());
     }
-
-    // ─── Helpers ───────────────────────────────────────────────
 
     private AnalysisResult buildResult(int totalSmells, int dummy, int totalLoc,
                                        double couplingCoeff, int cycleCount,
