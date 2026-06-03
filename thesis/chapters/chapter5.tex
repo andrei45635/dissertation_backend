@@ -3,7 +3,7 @@
 \chapter{Results \& Evaluation}
 \label{chap:ch5}
 
-\par This chapter presents the evaluation of the MSA Detector system described in the preceding chapters. It begins with the selection and characterization of the datasets used for evaluation, followed by the presentation of the detection results across each dataset. The results are then discussed in the context of the detection methodology and compared against related work. The chapter concludes with an analysis of the limitations of the approach and the threats to validity of the evaluation.
+\par This chapter presents the evaluation of the MSA Detector system described in the preceding chapters. It begins with the selection and characterization of the datasets used for evaluation, followed by the presentation of the detection results across each dataset. The results are then discussed in the context of the detection methodology and qualitatively positioned relative to the related work surveyed in Chapter~\ref{chap:ch2}. The chapter concludes with an analysis of the limitations of the approach and the threats to validity of the evaluation.
 
 \section{Dataset Selection}
 \label{sec:dataset-selection}
@@ -16,7 +16,7 @@
 \par The following criteria were used to select evaluation datasets:
 
 \begin{enumerate}
-    \item The project must be implemented in Java using the Spring Boot framework, as the detection pipeline relies on Spring-specific annotations and configuration conventions (see Chapter~\ref{chap:ch3}).
+    \item The project must be primarily implemented in Java. The detection pipeline is optimised for Spring Boot conventions (Spring-specific annotations and configuration), but also accommodates other JVM-based microservice frameworks such as Jakarta EE/CDI (see Chapter~\ref{chap:ch3}).
     \item The project must contain at least three microservices, to enable meaningful detection of inter-service anti-patterns such as cyclic dependencies, chatty services and distributed monolith.
     \item The project must be publicly available on GitHub or GitLab, to ensure reproducibility of the evaluation.
     \item The project must use Maven or Gradle as a build system, as the microservice detection mechanism relies on the presence of \texttt{pom.xml}, \texttt{build.gradle} or \texttt{build.gradle.kts} files.
@@ -541,7 +541,7 @@
 
 \par The evaluated projects may have been designed as teaching examples and may intentionally contain (or intentionally lack) certain anti-patterns. For instance, a tutorial project may use a shared database for simplicity, which the detector would correctly flag, but this design choice may be intentional rather than accidental. Conversely, well-maintained sample projects may exhibit fewer anti-patterns than typical enterprise systems where architectural debt accumulates over time \cite{Taibi2018}.
 
-\par The results are specific to Java Spring Boot projects and do not generalize to microservice systems built with other languages or frameworks. Polyglot microservice systems, i.e. where services are implemented in different languages, are increasingly common in practice, and the current tool cannot analyze non-Java services within such systems.
+\par The results are specific to Java microservice projects (predominantly Spring Boot) and do not generalize to microservice systems built with other languages. Polyglot microservice systems, i.e. where services are implemented in different languages, are increasingly common in practice, and the current tool cannot analyze non-Java services within such systems.
 
 \subsection{Conclusion Validity}
 \label{subsec:conclusion-validity}
