@@ -276,66 +276,68 @@
     \label{fig:antipattern-frequency}
 \end{figure}
 
-\begin{figure}[htbp]
-    \centering
-    \footnotesize
-    \setlength{\tabcolsep}{3pt}
-    \renewcommand{\arraystretch}{1.4}
-    \begin{tabular}{l*{11}{c}}
-        \hline
-        & \rotatebox{90}{\textbf{MicroSocial}~}
-        & \rotatebox{90}{\textbf{m-d-p}~}
-        & \rotatebox{90}{\textbf{SiteWhere}~}
-        & \rotatebox{90}{\textbf{TrainTicket}~}
-        & \rotatebox{90}{\textbf{NetDisk}~}
-        & \rotatebox{90}{\textbf{m-r}~}
-        & \rotatebox{90}{\textbf{FTGO}~}
-        & \rotatebox{90}{\textbf{mall-swarm}~}
-        & \rotatebox{90}{\textbf{RuoYi}~}
-        & \rotatebox{90}{\textbf{PiggyM}~}
-        & \rotatebox{90}{\textbf{piomin}~} \\
-        \hline
-        Shared DB       & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
-        Cyclic Dep.     & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
-        Nano Service    & \cellcolor{orange!30}2 & \cellcolor{orange!30}2 & \cellcolor{white}0 & \cellcolor{orange!60}4 & \cellcolor{orange!45}3 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{yellow!40}1 & \cellcolor{orange!50}5 & \cellcolor{orange!45}3 \\
-        God Service     & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 \\
-        Chatty Service  & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!60}4 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
-        Hardcoded Endp. & \cellcolor{yellow!40}1 & \cellcolor{orange!50}6 & \cellcolor{orange!30}2 & \cellcolor{red!60}26 & \cellcolor{orange!30}2 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{orange!60}4 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 \\
-        API Versioning  & \cellcolor{yellow!40}1 & \cellcolor{orange!45}3 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{red!40}8 & \cellcolor{orange!50}6 & \cellcolor{orange!60}4 & \cellcolor{orange!60}4 & \cellcolor{orange!50}5 & \cellcolor{orange!45}3 & \cellcolor{orange!45}3 \\
-        Wrong Cuts      & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
-        ESB Misuse      & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!45}3 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{orange!45}3 \\
-        \hline
-    \end{tabular}
-    \caption{Anti-pattern detection heatmap across projects. Darker cells indicate higher instance counts; white cells indicate no detection. Train-Ticket dominates Hardcoded Endpoints and Chatty Service detections, while API Versioning Absence is the most broadly distributed anti-pattern.}
-    \label{fig:antipattern-heatmap}
-\end{figure}
+% --- Anti-pattern heatmap commented out: redundant with Table~\ref{tab:antipattern-distribution}
+% --- (same per-project counts, just colour-coded). Retained here for reference, not removed.
+% \begin{figure}[htbp]
+%     \centering
+%     \footnotesize
+%     \setlength{\tabcolsep}{3pt}
+%     \renewcommand{\arraystretch}{1.4}
+%     \begin{tabular}{l*{11}{c}}
+%         \hline
+%         & \rotatebox{90}{\textbf{MicroSocial}~}
+%         & \rotatebox{90}{\textbf{m-d-p}~}
+%         & \rotatebox{90}{\textbf{SiteWhere}~}
+%         & \rotatebox{90}{\textbf{TrainTicket}~}
+%         & \rotatebox{90}{\textbf{NetDisk}~}
+%         & \rotatebox{90}{\textbf{m-r}~}
+%         & \rotatebox{90}{\textbf{FTGO}~}
+%         & \rotatebox{90}{\textbf{mall-swarm}~}
+%         & \rotatebox{90}{\textbf{RuoYi}~}
+%         & \rotatebox{90}{\textbf{PiggyM}~}
+%         & \rotatebox{90}{\textbf{piomin}~} \\
+%         \hline
+%         Shared DB       & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
+%         Cyclic Dep.     & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
+%         Nano Service    & \cellcolor{orange!30}2 & \cellcolor{orange!30}2 & \cellcolor{white}0 & \cellcolor{orange!60}4 & \cellcolor{orange!45}3 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{yellow!40}1 & \cellcolor{orange!50}5 & \cellcolor{orange!45}3 \\
+%         God Service     & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 \\
+%         Chatty Service  & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!60}4 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
+%         Hardcoded Endp. & \cellcolor{yellow!40}1 & \cellcolor{orange!50}6 & \cellcolor{orange!30}2 & \cellcolor{red!60}26 & \cellcolor{orange!30}2 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{orange!60}4 & \cellcolor{yellow!40}1 & \cellcolor{white}0 & \cellcolor{white}0 \\
+%         API Versioning  & \cellcolor{yellow!40}1 & \cellcolor{orange!45}3 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{red!40}8 & \cellcolor{orange!50}6 & \cellcolor{orange!60}4 & \cellcolor{orange!60}4 & \cellcolor{orange!50}5 & \cellcolor{orange!45}3 & \cellcolor{orange!45}3 \\
+%         Wrong Cuts      & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 \\
+%         ESB Misuse      & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!45}3 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{orange!30}2 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{white}0 & \cellcolor{yellow!40}1 & \cellcolor{orange!45}3 \\
+%         \hline
+%     \end{tabular}
+%     \caption{Anti-pattern detection heatmap across projects. Darker cells indicate higher instance counts; white cells indicate no detection. Train-Ticket dominates Hardcoded Endpoints and Chatty Service detections, while API Versioning Absence is the most broadly distributed anti-pattern.}
+%     \label{fig:antipattern-heatmap}
+% \end{figure}
 
-\begin{figure}[htbp]
-    \centering
-    \begin{tikzpicture}
-        \begin{axis}[
-            xbar stacked,
-            bar width=20pt,
-            width=0.85\textwidth,
-            height=4cm,
-            xlabel={Number of Instances},
-            ytick={1},
-            yticklabels={All Projects},
-            xmin=0, xmax=135,
-            legend style={at={(0.98,0.98)}, anchor=north east, legend columns=3, font=\footnotesize},
-            nodes near coords,
-            nodes near coords style={font=\scriptsize, color=black},
-            enlarge y limits=0.6,
-        ]
-        \addplot[fill=red!70, draw=black] coordinates {(1, 1)};
-        \addplot[fill=orange!60, draw=black] coordinates {(22, 1)};
-        \addplot[fill=yellow!50, draw=black] coordinates {(103, 1)};
-        \legend{Critical (1), High (22), Medium (103)}
-        \end{axis}
-    \end{tikzpicture}
-    \caption{Distribution of the 126 detected anti-pattern instances by severity level. The majority (82\%) are classified as Medium severity (Nano Service, Hardcoded Endpoints, API Versioning Absence), while 17\% are High severity (Shared Database, God Service, Chatty Service, Wrong Cuts, ESB Misuse) and only 1\% (a single Cyclic Dependency) is Critical.}
-    \label{fig:severity-distribution}
-\end{figure}
+% \begin{figure}[htbp]
+%     \centering
+%     \begin{tikzpicture}
+%         \begin{axis}[
+%             xbar stacked,
+%             bar width=20pt,
+%             width=0.85\textwidth,
+%             height=4cm,
+%             xlabel={Number of Instances},
+%             ytick={1},
+%             yticklabels={All Projects},
+%             xmin=0, xmax=135,
+%             legend style={at={(0.98,0.98)}, anchor=north east, legend columns=3, font=\footnotesize},
+%             nodes near coords,
+%             nodes near coords style={font=\scriptsize, color=black},
+%             enlarge y limits=0.6,
+%         ]
+%         \addplot[fill=red!70, draw=black] coordinates {(1, 1)};
+%         \addplot[fill=orange!60, draw=black] coordinates {(22, 1)};
+%         \addplot[fill=yellow!50, draw=black] coordinates {(103, 1)};
+%         \legend{Critical (1), High (22), Medium (103)}
+%         \end{axis}
+%     \end{tikzpicture}
+%     \caption{Distribution of the 126 detected anti-pattern instances by severity level. The majority (82\%) are classified as Medium severity (Nano Service, Hardcoded Endpoints, API Versioning Absence), while 17\% are High severity (Shared Database, God Service, Chatty Service, Wrong Cuts, ESB Misuse) and only 1\% (a single Cyclic Dependency) is Critical.}
+%     \label{fig:severity-distribution}
+% \end{figure}
 
 % --- Previous anti-pattern distribution table including Genie and Apollo-Config (retained, not removed) ---
 % \begin{table}[htbp]
@@ -373,7 +375,7 @@
 % \end{table}
 
 
-\par The evaluation results show substantial variation in architectural quality across the selected projects. Health scores ranged from 40 to 83 (Figure~\ref{fig:health-scores}), indicating that the detection pipeline was able to distinguish between projects with relatively few issues and those with a much higher concentration of anti-patterns. As shown in Figure~\ref{fig:antipattern-frequency}, Hardcoded Endpoints was the most frequently detected anti-pattern, with 43 instances across eight of the eleven evaluated projects, of which 26 originated from Train-Ticket alone (visually evident in the heatmap in Figure~\ref{fig:antipattern-heatmap}). API Versioning Absence was the second most common finding, with 37 instances across nine projects, with NetworkDisk contributing 8 and microservice-recruit contributing 6. Nano Service appeared 23 times across nine projects. Chatty Service (4 instances, all in Train-Ticket) and ESB Misuse (9 instances across Site-Where, microservice-recruit, PiggyMetrics and piomin) appeared less frequently. God Service was detected in three projects (Site-Where, mall-swarm and RuoYi-Cloud, 4 instances total), and Shared Database was found in MicroservicesSocial, Train-Ticket and mall-swarm (3 instances total). Notably, the addition of NetworkDisk and microservice-recruit to the evaluation corpus activated detectors that had previously produced zero results: Cyclic Dependency was detected once in microservice-recruit, and Wrong Cuts was detected twice in the same project, demonstrating that a broader evaluation corpus can exercise a wider range of detection capabilities. In terms of severity (Figure~\ref{fig:severity-distribution}), the majority of detections (82\%) fall into the Medium category, with only a single Critical instance (Cyclic Dependency). No instances of Distributed Monolith were detected across the evaluated datasets. The absence of this anti-pattern is consistent with the communication topologies of the evaluated projects and aligns with the empirical observation by Taibi and Lenarduzzi that service-sizing and configuration-related issues are more prevalent than severe system-level coupling problems in practice \cite{Taibi2018}. Figure~\ref{fig:loc-vs-health} shows that project size (LOC) is not a reliable predictor of health score: small projects can score poorly while large ones can maintain moderate quality, suggesting that architectural decisions matter more than codebase scale.
+\par The evaluation results show substantial variation in architectural quality across the selected projects. Health scores ranged from 40 to 83 (Figure~\ref{fig:health-scores}), indicating that the detection pipeline was able to distinguish between projects with relatively few issues and those with a much higher concentration of anti-patterns. As shown in Figure~\ref{fig:antipattern-frequency}, Hardcoded Endpoints was the most frequently detected anti-pattern, with 43 instances across eight of the eleven evaluated projects, of which 26 originated from Train-Ticket alone (as shown in the per-project breakdown in Table~\ref{tab:antipattern-distribution}). API Versioning Absence was the second most common finding, with 37 instances across nine projects, with NetworkDisk contributing 8 and microservice-recruit contributing 6. Nano Service appeared 23 times across nine projects. Chatty Service (4 instances, all in Train-Ticket) and ESB Misuse (9 instances across Site-Where, microservice-recruit, PiggyMetrics and piomin) appeared less frequently. God Service was detected in three projects (Site-Where, mall-swarm and RuoYi-Cloud, 4 instances total), and Shared Database was found in MicroservicesSocial, Train-Ticket and mall-swarm (3 instances total). Notably, the addition of NetworkDisk and microservice-recruit to the evaluation corpus activated detectors that had previously produced zero results: Cyclic Dependency was detected once in microservice-recruit, and Wrong Cuts was detected twice in the same project, demonstrating that a broader evaluation corpus can exercise a wider range of detection capabilities. In terms of severity, the majority of detections (82\%) fall into the Medium category, with only a single Critical instance (Cyclic Dependency). No instances of Distributed Monolith were detected across the evaluated datasets. The absence of this anti-pattern is consistent with the communication topologies of the evaluated projects and aligns with the empirical observation by Taibi and Lenarduzzi that service-sizing and configuration-related issues are more prevalent than severe system-level coupling problems in practice \cite{Taibi2018}. Figure~\ref{fig:loc-vs-health} shows that project size (LOC) is not a reliable predictor of health score: small projects can score poorly while large ones can maintain moderate quality, suggesting that architectural decisions matter more than codebase scale.
 
 \subsection{Results Discussion}
 \label{subsec:discussion-results}
