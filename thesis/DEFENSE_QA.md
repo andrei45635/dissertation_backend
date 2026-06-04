@@ -137,7 +137,7 @@
 > It's Java/Spring-only; it can't resolve dynamically-configured URLs (e.g. Spring Cloud Config); and the boundary heuristic can misclassify a shared library as a nano service. I document all of these in the thesis.
 
 **Q: Why was no Distributed Monolith detected?**
-> It's consistent with the evaluated projects' topologies, and it matches Taibi & Lenarduzzi's empirical finding that service-sizing and configuration issues are far more common than severe system-wide coupling.
+> It's consistent with the evaluated projects' topologies — they show moderate coupling, not the pervasive coupling a distributed monolith requires. None crossed the thresholds (C > 0.5, or R > 0.8 combined with shared databases or moderately high coupling).
 
 **Q: How did you validate the results?**
 > Manual inspection of the 126 instances — checking datasource URLs for Shared Database, controller mappings for API versioning, the call graph for cycles, etc. I note in Conclusion Validity that a single reviewer (me) is a bias.
