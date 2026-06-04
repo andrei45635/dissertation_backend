@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class JobService {
@@ -208,7 +209,21 @@ public class JobService {
 
     private AnalysisDiffResponse buildDiffIfAvailable(AnalysisResult current, AnalysisJob job) {
         Project project = job.getProject();
-        return resultRepository.findPreviousResultForProject(project, current.getId())
+
+        Optional<AnalysisResult> previousResult = Optional.empty();
+        if (job.getAnalysisNumber() != null) {
+            previousResult = resultRepository.findPreviousResultsByAnalysisNumber(
+                            project, job.getAnalysisNumber(), PageRequest.of(0, 1))
+                    .stream()
+                    .findFirst();
+        } else if (current.getCreatedAt() != null) {
+            previousResult = resultRepository.findPreviousResultsByCreatedAt(
+                            project, current.getCreatedAt(), PageRequest.of(0, 1))
+                    .stream()
+                    .findFirst();
+        }
+
+        return previousResult
                 .map(previous -> {
                     int analysisNum = job.getAnalysisNumber() != null ? job.getAnalysisNumber() : 1;
                     return analysisDiffService.buildDiff(current, previous, analysisNum);

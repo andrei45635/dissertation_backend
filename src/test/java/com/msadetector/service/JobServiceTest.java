@@ -108,7 +108,8 @@ class JobServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(jobRepository.findByIdAndOwnerWithResult(100L, user)).thenReturn(Optional.of(job));
         when(resultRepository.findByAnalysisJobWithAntiPatterns(job)).thenReturn(Optional.of(result));
-        when(resultRepository.findPreviousResultForProject(project, 200L)).thenReturn(Optional.empty());
+        when(resultRepository.findPreviousResultsByAnalysisNumber(
+                eq(project), eq(job.getAnalysisNumber()), any(Pageable.class))).thenReturn(List.of());
         mockHealthScore();
 
         AnalysisResultResponse response = jobService.getJobResults(100L, 1L);
@@ -154,7 +155,8 @@ class JobServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(jobRepository.findByIdAndOwnerWithResult(100L, user)).thenReturn(Optional.of(job));
         when(resultRepository.findByAnalysisJobWithAntiPatterns(job)).thenReturn(Optional.of(result));
-        when(resultRepository.findPreviousResultForProject(project, 200L)).thenReturn(Optional.empty());
+        when(resultRepository.findPreviousResultsByAnalysisNumber(
+                eq(project), eq(job.getAnalysisNumber()), any(Pageable.class))).thenReturn(List.of());
 
         assertThrows(ResourceNotFoundException.class, () -> jobService.getDiff(100L, 1L));
     }
@@ -176,4 +178,3 @@ class JobServiceTest {
                 .thenReturn(new HealthScoreBreakdownResponse(85, "B", List.of()));
     }
 }
-

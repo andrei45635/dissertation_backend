@@ -7,6 +7,7 @@ import com.msadetector.dto.HealthScoreBreakdownResponse.ScoreCategory;
 import com.msadetector.entity.AnalysisJob;
 import com.msadetector.entity.AnalysisResult;
 import com.msadetector.entity.DetectedAntiPattern;
+import com.msadetector.entity.Microservice;
 import com.msadetector.enums.AntiPatternType;
 import com.msadetector.enums.Severity;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -130,6 +131,24 @@ class AnalysisDiffServiceTest {
         assertEquals(3, diff.analysisNumber());
     }
 
+    @Test
+    void buildDiff_sameTypeDifferentService_isResolvedAndNew() {
+        AnalysisResult prev = buildResult(1, 5, 5000, 1, 0, 0, 1, 0, 0.1, 3,
+                List.of(buildAP(AntiPatternType.API_VERSIONING_ABSENCE, Severity.MEDIUM, "svc-a")));
+        AnalysisResult curr = buildResult(1, 5, 5000, 1, 0, 0, 1, 0, 0.1, 3,
+                List.of(buildAP(AntiPatternType.API_VERSIONING_ABSENCE, Severity.MEDIUM, "svc-b")));
+
+        mockBreakdown(80, "B", 80, "B");
+
+        AnalysisDiffResponse diff = diffService.buildDiff(curr, prev, 2);
+
+        assertEquals(1, diff.resolvedAntiPatterns().size());
+        assertEquals(1, diff.newAntiPatterns().size());
+        assertEquals(0, diff.unchangedAntiPatterns().size());
+        assertEquals(List.of("svc-a"), diff.resolvedAntiPatterns().getFirst().affectedServices());
+        assertEquals(List.of("svc-b"), diff.newAntiPatterns().getFirst().affectedServices());
+    }
+
     private void mockBreakdown(int prevScore, String prevGrade, int currScore, String currGrade) {
         List<ScoreCategory> cats = List.of(
                 new ScoreCategory("Anti-Patterns", "", 30, 40, List.of()),
@@ -176,6 +195,17 @@ class AnalysisDiffServiceTest {
                 .severity(severity)
                 .description("Test: " + type.getDisplayName())
                 .affectedServicesJson("[\"svc-a\",\"svc-b\"]")
+                .build();
+    }
+
+    private DetectedAntiPattern buildAP(AntiPatternType type, Severity severity, String serviceName) {
+        Microservice service = Microservice.builder().name(serviceName).build();
+        return DetectedAntiPattern.builder()
+                .patternType(type)
+                .severity(severity)
+                .description("Test: " + type.getDisplayName())
+                .affectedServicesJson("[\"" + serviceName + "\"]")
+                .primaryService(service)
                 .build();
     }
 }

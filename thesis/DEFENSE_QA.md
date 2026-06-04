@@ -17,7 +17,7 @@
 **One-line summary of the whole thesis (say if asked "what did you do?"):**
 *"I built a static-analysis tool that detects ten microservice anti-patterns in Java/Spring projects by combining code-level smell detection with inter-service dependency analysis, and summarizes architectural quality as a 0–100 health score. I evaluated it on eleven open-source projects."*
 
-**Key numbers to know:** 10 anti-patterns · 4 architectural dimensions · 11 projects · 130 services · ~274,000 LOC · 126 anti-pattern instances · 9 distinct types detected.
+**Key numbers to know:** 10 anti-patterns · 4 architectural dimensions · 11 projects · 130 services · ~274,000 LOC · 98 anti-pattern instances · 9 distinct types detected.
 
 ---
 
@@ -140,7 +140,7 @@
 > It's consistent with the evaluated projects' topologies — they show moderate coupling, not the pervasive coupling a distributed monolith requires. None crossed the thresholds (C > 0.5, or R > 0.8 combined with shared databases or moderately high coupling).
 
 **Q: How did you validate the results?**
-> Manual inspection of the 126 instances — checking datasource URLs for Shared Database, controller mappings for API versioning, the call graph for cycles, etc. I note in Conclusion Validity that a single reviewer (me) is a bias.
+> Manual inspection of the 98 instances — checking datasource URLs for Shared Database, controller mappings for API versioning, the call graph for cycles, etc. I note in Conclusion Validity that a single reviewer (me) is a bias.
 
 ---
 

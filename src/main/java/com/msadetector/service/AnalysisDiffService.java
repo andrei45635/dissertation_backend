@@ -46,49 +46,25 @@ public class AnalysisDiffService {
         int previousScore = previousBreakdown.overallScore();
         int delta = currentScore - previousScore;
 
-        Map<AntiPatternType, List<DetectedAntiPattern>> prevByType =
-                previous.getDetectedAntiPatterns().stream()
-                        .collect(Collectors.groupingBy(DetectedAntiPattern::getPatternType));
-        Map<AntiPatternType, List<DetectedAntiPattern>> currByType =
-                current.getDetectedAntiPatterns().stream()
-                        .collect(Collectors.groupingBy(DetectedAntiPattern::getPatternType));
-
-        Set<AntiPatternType> allTypes = new HashSet<>();
-        allTypes.addAll(prevByType.keySet());
-        allTypes.addAll(currByType.keySet());
-
         List<AntiPatternChange> resolved = new ArrayList<>();
         List<AntiPatternChange> newOnes = new ArrayList<>();
         List<AntiPatternChange> unchanged = new ArrayList<>();
 
-        for (AntiPatternType type : allTypes) {
-            List<DetectedAntiPattern> prevList = prevByType.getOrDefault(type, Collections.emptyList());
-            List<DetectedAntiPattern> currList = currByType.getOrDefault(type, Collections.emptyList());
-
-            if (!prevList.isEmpty() && currList.isEmpty()) {
-                for (DetectedAntiPattern ap : prevList) {
-                    resolved.add(toChange(ap));
-                }
-            } else if (prevList.isEmpty() && !currList.isEmpty()) {
-                for (DetectedAntiPattern ap : currList) {
-                    newOnes.add(toChange(ap));
-                }
+        Map<String, Deque<DetectedAntiPattern>> previousByIssue = indexByIssueKey(previous);
+        for (DetectedAntiPattern currentPattern : safePatterns(current)) {
+            Deque<DetectedAntiPattern> matchingPrevious =
+                    previousByIssue.get(issueKey(currentPattern));
+            if (matchingPrevious != null && !matchingPrevious.isEmpty()) {
+                matchingPrevious.removeFirst();
+                unchanged.add(toChange(currentPattern));
             } else {
-                int prevCount = prevList.size();
-                int currCount = currList.size();
-
-                int commonCount = Math.min(prevCount, currCount);
-                for (int i = 0; i < commonCount; i++) {
-                    unchanged.add(toChange(currList.get(i)));
-                }
-                for (int i = commonCount; i < currCount; i++) {
-                    newOnes.add(toChange(currList.get(i)));
-                }
-                for (int i = commonCount; i < prevCount; i++) {
-                    resolved.add(toChange(prevList.get(i)));
-                }
+                newOnes.add(toChange(currentPattern));
             }
         }
+        previousByIssue.values().stream()
+                .flatMap(Collection::stream)
+                .map(this::toChange)
+                .forEach(resolved::add);
 
         List<CategoryDelta> categoryDeltas = buildCategoryDeltas(previousBreakdown, currentBreakdown);
 
@@ -139,6 +115,114 @@ public class AnalysisDiffService {
                 ap.getDescription(),
                 services
         );
+    }
+
+    private Map<String, Deque<DetectedAntiPattern>> indexByIssueKey(AnalysisResult result) {
+        Map<String, Deque<DetectedAntiPattern>> byKey = new LinkedHashMap<>();
+        for (DetectedAntiPattern pattern : safePatterns(result)) {
+            byKey.computeIfAbsent(issueKey(pattern), _ -> new ArrayDeque<>()).add(pattern);
+        }
+        return byKey;
+    }
+
+    private List<DetectedAntiPattern> safePatterns(AnalysisResult result) {
+        if (result.getDetectedAntiPatterns() == null) {
+            return Collections.emptyList();
+        }
+        return result.getDetectedAntiPatterns();
+    }
+
+    private String issueKey(DetectedAntiPattern ap) {
+        AntiPatternType type = ap.getPatternType();
+        return type.name()
+                + "|primary=" + normalize(primaryServiceName(ap))
+                + "|affected=" + canonicalList(parseJsonList(ap.getAffectedServicesJson()))
+                + "|signature=" + issueSignature(ap);
+    }
+
+    private String issueSignature(DetectedAntiPattern ap) {
+        return switch (ap.getPatternType()) {
+            case HARDCODED_ENDPOINTS -> canonicalList(readListField(ap.getEvidenceJson(), "url"));
+            case GOD_SERVICE -> canonicalList(readNestedListField(ap.getDetailsJson(), "godClasses", "className"));
+            case SHARED_DATABASE -> normalize(ap.getSharedDatabaseUrl());
+            case CHATTY_SERVICE -> normalize(readStringField(ap.getDetailsJson(), "chattyType"));
+            case CYCLIC_DEPENDENCY -> String.valueOf(ap.getCycleLength());
+            default -> "";
+        };
+    }
+
+    private String primaryServiceName(DetectedAntiPattern ap) {
+        return ap.getPrimaryService() != null ? ap.getPrimaryService().getName() : "";
+    }
+
+    private String canonicalList(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return "";
+        }
+        return values.stream()
+                .filter(Objects::nonNull)
+                .map(this::normalize)
+                .filter(value -> !value.isBlank())
+                .sorted()
+                .collect(Collectors.joining(","));
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private List<String> readListField(String json, String fieldName) {
+        if (json == null || json.isBlank()) {
+            return Collections.emptyList();
+        }
+        try {
+            List<Map<String, Object>> entries = objectMapper.readValue(json, new TypeReference<>() {});
+            return entries.stream()
+                    .map(entry -> entry.get(fieldName))
+                    .filter(Objects::nonNull)
+                    .map(Object::toString)
+                    .toList();
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    private List<String> readNestedListField(String json, String listField, String valueField) {
+        if (json == null || json.isBlank()) {
+            return Collections.emptyList();
+        }
+        try {
+            Map<String, Object> details = objectMapper.readValue(json, new TypeReference<>() {});
+            Object rawList = details.get(listField);
+            if (!(rawList instanceof List<?> entries)) {
+                return Collections.emptyList();
+            }
+            List<String> values = new ArrayList<>();
+            for (Object entry : entries) {
+                if (entry instanceof Map<?, ?> map) {
+                    Object value = map.get(valueField);
+                    if (value != null) {
+                        values.add(value.toString());
+                    }
+                }
+            }
+            return values;
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    private String readStringField(String json, String fieldName) {
+        if (json == null || json.isBlank()) {
+            return "";
+        }
+        try {
+            Map<String, Object> details = objectMapper.readValue(json, new TypeReference<>() {});
+            Object value = details.get(fieldName);
+            return value != null ? value.toString() : "";
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private List<String> parseJsonList(String json) {
