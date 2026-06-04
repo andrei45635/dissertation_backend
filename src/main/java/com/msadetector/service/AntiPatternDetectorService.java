@@ -57,8 +57,8 @@ public class AntiPatternDetectorService {
      * Delegates to {@link DependencyGraphBuilder} to scan source code
      * and populate endpoints, datasource URLs, and service dependencies.
      */
-    public void buildDependencyGraph(Project project) {
-        dependencyGraphBuilder.buildDependencyGraph(project);
+    public void buildDependencyGraph(Project project, AnalysisJob job) {
+        dependencyGraphBuilder.buildDependencyGraph(project, job);
     }
 
     /**
@@ -66,7 +66,7 @@ public class AntiPatternDetectorService {
      * assembles the final {@link AnalysisResult}.
      */
     public AnalysisResult detectAntiPatterns(Project project, AnalysisJob job) {
-        List<Microservice> microservices = microserviceRepository.findByProject(project);
+        List<Microservice> microservices = microserviceRepository.findByAnalysisJob(job);
         List<DetectedAntiPattern> antiPatterns = new ArrayList<>();
 
         for (AntiPatternDetector detector : detectors) {
@@ -76,7 +76,7 @@ public class AntiPatternDetectorService {
                 continue;
             }
             try {
-                List<DetectedAntiPattern> detected = detector.detect(project, microservices);
+                List<DetectedAntiPattern> detected = detector.detect(project, microservices, job);
                 antiPatterns.addAll(detected);
                 log.info("{} found {} anti-pattern(s)",
                         detector.getClass().getSimpleName(), detected.size());
@@ -85,7 +85,7 @@ public class AntiPatternDetectorService {
             }
         }
 
-        int totalCodeSmells = codeSmellRepository.countByProject(project);
+        int totalCodeSmells = codeSmellRepository.countByAnalysisJob(job);
         int totalLoc = microservices.stream().mapToInt(Microservice::getLinesOfCode).sum();
         double avgSize = microservices.isEmpty() ? 0 : (double) totalLoc / microservices.size();
 
@@ -94,7 +94,7 @@ public class AntiPatternDetectorService {
         int mediumCount = (int) antiPatterns.stream().filter(ap -> ap.getSeverity() == Severity.MEDIUM).count();
         int lowCount = (int) antiPatterns.stream().filter(ap -> ap.getSeverity() == Severity.LOW).count();
 
-        List<ServiceDependency> allDeps = dependencyRepository.findByProject(project);
+        List<ServiceDependency> allDeps = dependencyRepository.findByAnalysisJob(job);
 
         int cycleCount = (int) antiPatterns.stream()
                 .filter(ap -> ap.getPatternType() == AntiPatternType.CYCLIC_DEPENDENCY)
@@ -121,7 +121,7 @@ public class AntiPatternDetectorService {
                 .totalDependencies(allDeps.size())
                 .cycleCount(cycleCount)
                 .couplingCoefficient(couplingCoefficient)
-                .dependencyGraphJson(buildGraphJson(microservices, project))
+                .dependencyGraphJson(buildGraphJson(microservices, job))
                 .build();
 
         for (DetectedAntiPattern ap : antiPatterns) {
@@ -145,7 +145,7 @@ public class AntiPatternDetectorService {
         };
     }
 
-    private String buildGraphJson(List<Microservice> microservices, Project project) {
+    private String buildGraphJson(List<Microservice> microservices, AnalysisJob job) {
         try {
             List<Map<String, Object>> nodes = microservices.stream()
                     .map(ms -> Map.<String, Object>of(
@@ -155,7 +155,7 @@ public class AntiPatternDetectorService {
                     ))
                     .toList();
 
-            List<ServiceDependency> dependencies = dependencyRepository.findByProject(project);
+            List<ServiceDependency> dependencies = dependencyRepository.findByAnalysisJob(job);
             List<Map<String, Object>> edges = dependencies.stream()
                     .map(dep -> Map.<String, Object>of(
                             "source", dep.getSourceService().getId().toString(),

@@ -1,6 +1,7 @@
 package com.msadetector.service;
 
 import com.msadetector.entity.Endpoint;
+import com.msadetector.entity.AnalysisJob;
 import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
 import com.msadetector.entity.ServiceDependency;
@@ -66,8 +67,8 @@ public class DependencyGraphBuilder {
     /**
      * Scans each microservice's source code to build the dependency graph.
      */
-    public void buildDependencyGraph(Project project) {
-        List<Microservice> microservices = microserviceRepository.findByProject(project);
+    public void buildDependencyGraph(Project project, AnalysisJob job) {
+        List<Microservice> microservices = microserviceRepository.findByAnalysisJob(job);
         Path projectRoot = Path.of(project.getLocalPath());
 
         Map<String, String> portToServiceName = new HashMap<>();

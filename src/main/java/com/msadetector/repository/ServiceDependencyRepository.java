@@ -2,6 +2,7 @@ package com.msadetector.repository;
 
 import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
+import com.msadetector.entity.AnalysisJob;
 import com.msadetector.entity.ServiceDependency;
 import com.msadetector.enums.DependencyType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -27,11 +28,20 @@ public interface ServiceDependencyRepository extends JpaRepository<ServiceDepend
     @Query("SELECT sd FROM ServiceDependency sd WHERE sd.sourceService.project = :project")
     List<ServiceDependency> findByProject(@Param("project") Project project);
 
+    @Query("SELECT sd FROM ServiceDependency sd WHERE sd.sourceService.analysisJob = :analysisJob")
+    List<ServiceDependency> findByAnalysisJob(@Param("analysisJob") AnalysisJob analysisJob);
+
     @Query("SELECT sd FROM ServiceDependency sd " +
            "JOIN FETCH sd.sourceService " +
            "JOIN FETCH sd.targetService " +
            "WHERE sd.sourceService.project = :project")
     List<ServiceDependency> findByProjectWithServices(@Param("project") Project project);
+
+    @Query("SELECT sd FROM ServiceDependency sd " +
+           "JOIN FETCH sd.sourceService " +
+           "JOIN FETCH sd.targetService " +
+           "WHERE sd.sourceService.analysisJob = :analysisJob")
+    List<ServiceDependency> findByAnalysisJobWithServices(@Param("analysisJob") AnalysisJob analysisJob);
 
     @Query("SELECT sd FROM ServiceDependency sd WHERE sd.sourceService.project = :project AND sd.dependencyType = :type")
     List<ServiceDependency> findByProjectAndType(
@@ -42,9 +52,18 @@ public interface ServiceDependencyRepository extends JpaRepository<ServiceDepend
     @Query("SELECT COUNT(sd) FROM ServiceDependency sd WHERE sd.sourceService.project = :project")
     int countByProject(@Param("project") Project project);
 
+    @Query("SELECT COUNT(sd) FROM ServiceDependency sd WHERE sd.sourceService.analysisJob = :analysisJob")
+    int countByAnalysisJob(@Param("analysisJob") AnalysisJob analysisJob);
+
     @Query("SELECT sd FROM ServiceDependency sd WHERE sd.sourceService.project = :project AND sd.callCount >= :minCalls")
     List<ServiceDependency> findChattyDependencies(
         @Param("project") Project project,
+        @Param("minCalls") int minCalls
+    );
+
+    @Query("SELECT sd FROM ServiceDependency sd WHERE sd.sourceService.analysisJob = :analysisJob AND sd.callCount >= :minCalls")
+    List<ServiceDependency> findChattyDependenciesByAnalysisJob(
+        @Param("analysisJob") AnalysisJob analysisJob,
         @Param("minCalls") int minCalls
     );
 

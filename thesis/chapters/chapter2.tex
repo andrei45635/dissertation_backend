@@ -329,7 +329,7 @@ Table~\ref{tab:related-tools-comparison} provides a detailed feature comparison 
             \hline\hline
             Targets microservices & $\times$ & \checkmark & \checkmark & \checkmark \\
             \hline
-            Code smell detection & \checkmark & $\times$ & $\times$ & \checkmark \\
+            General intra-service code smell detection & \checkmark & $\times$ & Partial & \checkmark \\
             \hline
             Cycle detection & \checkmark & $\times$ & \checkmark & \checkmark \\
             \hline
@@ -365,7 +365,7 @@ Table~\ref{tab:related-tools-comparison} provides a detailed feature comparison 
             \hline
         \end{tabular}
     \end{center}
-    \caption{Feature comparison of related architectural analysis tools. \checkmark\ indicates the feature is supported, $\times$\ indicates it is not supported. ''Partial'' indicates limited support.}
+    \caption{Feature comparison of related architectural analysis tools. \checkmark\ indicates the feature is supported, $\times$\ indicates it is not supported. ''Partial'' indicates limited support. For MSANose, ''Partial'' means that the tool detects microservice-specific smells, but does not integrate a general intra-service smell catalogue such as DesigniteJava or use smell density as a health-score dimension.}
     \label{tab:related-tools-comparison}
 \end{table}
 

@@ -1,6 +1,7 @@
 package com.msadetector.service.detection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.msadetector.entity.AnalysisJob;
 import com.msadetector.entity.DetectedAntiPattern;
 import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
@@ -34,7 +35,7 @@ class BaseDetectorTest {
         }
 
         @Override
-        public List<DetectedAntiPattern> detect(Project project, List<Microservice> microservices) {
+        public List<DetectedAntiPattern> detect(Project project, List<Microservice> microservices, AnalysisJob job) {
             return List.of();
         }
 

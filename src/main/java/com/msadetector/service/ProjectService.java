@@ -10,6 +10,7 @@ import com.msadetector.enums.SourceType;
 import com.msadetector.exception.InvalidFileException;
 import com.msadetector.exception.ResourceNotFoundException;
 import com.msadetector.repository.AnalysisJobRepository;
+import com.msadetector.repository.MicroserviceRepository;
 import com.msadetector.repository.ProjectRepository;
 import com.msadetector.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +34,7 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final AnalysisJobRepository analysisJobRepository;
+    private final MicroserviceRepository microserviceRepository;
     private final UserRepository userRepository;
     private final AnalysisWorker analysisWorker;
     private final GitCloneService gitCloneService;
@@ -41,6 +43,7 @@ public class ProjectService {
     public ProjectService(
             ProjectRepository projectRepository,
             AnalysisJobRepository analysisJobRepository,
+            MicroserviceRepository microserviceRepository,
             UserRepository userRepository,
             AnalysisWorker analysisWorker,
             GitCloneService gitCloneService,
@@ -48,6 +51,7 @@ public class ProjectService {
     ) {
         this.projectRepository = projectRepository;
         this.analysisJobRepository = analysisJobRepository;
+        this.microserviceRepository = microserviceRepository;
         this.userRepository = userRepository;
         this.analysisWorker = analysisWorker;
         this.gitCloneService = gitCloneService;
@@ -239,7 +243,6 @@ public class ProjectService {
     }
 
     private UploadResponse createReanalysisJob(Project project) {
-        project.getMicroservices().clear();
         projectRepository.saveAndFlush(project);
 
         int nextNumber = analysisJobRepository.countByProject(project) + 1;
@@ -350,7 +353,15 @@ public class ProjectService {
     }
 
     private ProjectResponse toResponse(Project project) {
-        List<MicroserviceResponse> microservices = project.getMicroservices().stream()
+        AnalysisJob latestJob = analysisJobRepository.findFirstByProjectOrderByCreatedAtDesc(project)
+                .orElse(null);
+        Long latestJobId = latestJob != null ? latestJob.getId() : null;
+
+        List<com.msadetector.entity.Microservice> latestMicroservices = latestJob != null
+                ? microserviceRepository.findByAnalysisJobOrderByNameAsc(latestJob)
+                : List.of();
+
+        List<MicroserviceResponse> microservices = latestMicroservices.stream()
                 .map(ms -> new MicroserviceResponse(
                         ms.getId(),
                         ms.getName(),
@@ -361,10 +372,6 @@ public class ProjectService {
                 .toList();
 
         int analysisCount = analysisJobRepository.countByProject(project);
-
-        Long latestJobId = analysisJobRepository.findFirstByProjectOrderByCreatedAtDesc(project)
-                .map(j -> j.getId())
-                .orElse(null);
 
         return new ProjectResponse(
                 project.getId(),

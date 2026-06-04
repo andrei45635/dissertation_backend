@@ -61,37 +61,48 @@ public class AnalysisWorker {
         }
 
         try {
-            progressUpdater.startJob(jobId);
+            if (!progressUpdater.startJob(jobId)) {
+                log.info("Analysis job {} was cancelled before start", jobId);
+                return;
+            }
 
             Project project = job.getProject();
             Path projectPath = Path.of(project.getLocalPath());
 
             progressUpdater.updateProgress(jobId, JobStatus.DETECTING_SERVICES, "Scanning for microservices", null, 0, 0);
-            List<Microservice> microservices = detectMicroservices(project, projectPath);
+            if (isCancelled(jobId)) return;
+            List<Microservice> microservices = detectMicroservices(job, project, projectPath);
 
             int total = microservices.size();
             int completed = 0;
 
             progressUpdater.updateProgress(jobId, JobStatus.ANALYZING_SERVICES, "Running code analysis", null, completed, total);
+            if (isCancelled(jobId)) return;
 
             for (Microservice ms : microservices) {
+                if (isCancelled(jobId)) return;
                 progressUpdater.updateProgress(jobId, JobStatus.ANALYZING_SERVICES, "Analyzing service", ms.getName(), completed, total);
+                if (isCancelled(jobId)) return;
 
                 if (job.isRunDesignite()) {
                     Path servicePath = projectPath.resolve(ms.getRelativePath());
                     designiteService.analyzeService(ms, servicePath);
                 }
 
+                if (isCancelled(jobId)) return;
                 completed++;
                 progressUpdater.updateProgress(jobId, JobStatus.ANALYZING_SERVICES, "Analyzing service", ms.getName(), completed, total);
             }
 
             progressUpdater.updateProgress(jobId, JobStatus.BUILDING_GRAPH, "Building dependency graph", null, completed, total);
-            antiPatternDetector.buildDependencyGraph(project);
+            if (isCancelled(jobId)) return;
+            antiPatternDetector.buildDependencyGraph(project, job);
 
             progressUpdater.updateProgress(jobId, JobStatus.DETECTING_PATTERNS, "Detecting anti-patterns", null, completed, total);
+            if (isCancelled(jobId)) return;
             AnalysisResult result = antiPatternDetector.detectAntiPatterns(project, job);
 
+            if (isCancelled(jobId)) return;
             progressUpdater.completeJob(jobId, result);
 
             log.info("Analysis completed for job {}", jobId);
@@ -102,7 +113,17 @@ public class AnalysisWorker {
         }
     }
 
-    private List<Microservice> detectMicroservices(Project project, Path projectPath) {
+    private boolean isCancelled(Long jobId) {
+        boolean cancelled = jobRepository.findById(jobId)
+                .map(job -> job.getStatus() == JobStatus.CANCELLED)
+                .orElse(true);
+        if (cancelled) {
+            log.info("Analysis job {} was cancelled; stopping worker", jobId);
+        }
+        return cancelled;
+    }
+
+    private List<Microservice> detectMicroservices(AnalysisJob job, Project project, Path projectPath) {
         List<MicroserviceDetector.DetectedService> detectedServices =
                 microserviceDetector.detectServicesWithConfidence(projectPath);
         List<Microservice> microservices = new ArrayList<>();
@@ -116,6 +137,7 @@ public class AnalysisWorker {
                     .name(name)
                     .relativePath(relativePath)
                     .project(project)
+                    .analysisJob(job)
                     .linesOfCode(countLinesOfCode(servicePath))
                     .detectionConfidence(detected.confidence().name())
                     .detectionSignal(detected.signal())

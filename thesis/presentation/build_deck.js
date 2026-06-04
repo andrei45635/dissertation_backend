@@ -840,8 +840,8 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
         // Top: results bar chart (project vs score)
         s.addChart(pres.charts.BAR, [{
             name: "Health score",
-            labels: ["MicroSocial", "ftgo", "PiggyMetrics", "Site-Where", "RuoYi", "design-pat.", "mall-swarm", "NetworkDisk", "piomin", "Train-Ticket", "recruit"],
-            values: [83, 75, 71, 69, 68, 60, 53, 52, 51, 40, 40],
+            labels: ["MicroSocial", "ftgo", "PiggyMetrics", "RuoYi", "Site-Where", "design-pat.", "NetworkDisk", "piomin", "Train-Ticket", "mall-swarm", "recruit"],
+            values: [83, 75, 71, 71, 69, 60, 59, 55, 54, 53, 40],
         }], {
             x: 0.4, y: 0.95, w: 5.9, h: 3.0,
             barDir: "col",
@@ -922,7 +922,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             fontSize: 12, fontFace: HEADER_FONT, color: C.navy, bold: true, margin: 0,
         });
         s.addText([
-            { text: "126 anti-pattern instances across 9 types; Hardcoded Endpoints (43) and API Versioning Absence (37) dominate",
+            { text: "98 anti-pattern instances across 9 types; API Versioning Absence (37) and Nano Service (23) dominate",
                 options: { bullet: true, fontSize: 11, color: C.text, breakLine: true } },
             { text: "PiggyMetrics and piomin broadened ESB Misuse and Nano Service coverage; Cyclic Dependency and Wrong Cuts detected in microservice-recruit",
                 options: { bullet: true, fontSize: 11, color: C.text } },
@@ -935,8 +935,8 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "Talking points:\n" +
             "• 'I evaluated on eleven open-source Spring Boot projects, spanning from piomin at 1.3k LOC to mall-swarm at 86k LOC. 130 microservices, about 274k LOC total.'\n" +
             "• 'Health scores ranged from 40 to 83 — the scoring mechanism produces meaningful spread.'\n" +
-            "• 'The dominant findings are configuration and sizing issues: 43 hardcoded endpoints, 37 API versioning absences, 23 nano services. Cyclic Dependency and Wrong Cuts were detected in microservice-recruit. Adding PiggyMetrics and piomin broadened ESB Misuse and Nano Service coverage.'\n" +
-            "• '126 total anti-pattern instances across 9 distinct types. Only Distributed Monolith was not detected — plausible given these projects' topologies.'\n\n" +
+            "• 'The dominant findings are configuration and sizing issues: 37 API versioning absences, 23 nano services, 15 hardcoded endpoints. Cyclic Dependency and Wrong Cuts were detected in microservice-recruit. Adding PiggyMetrics and piomin broadened ESB Misuse and Nano Service coverage.'\n" +
+            "• '98 total anti-pattern instances across 9 distinct types. Only Distributed Monolith was not detected — plausible given these projects' topologies.'\n\n" +
             "You can add: 'The score range — 40 to 83 — shows that the metric has useful discriminating power. Projects known to be well-structured like MicroSocial score highest; projects known to have issues like Train-Ticket and microservice-recruit score lowest. If every project scored 70, the metric wouldn't be telling us much.'\n\n" +
             "EXPECT: 'Only eleven projects, is that enough?'\n" +
             "Answer: 'Not for a statistical claim. This evaluation is a feasibility demonstration across heterogeneous codebases. A full precision/recall study would need a labelled corpus, which doesn't exist for microservice anti-patterns — that's an open problem in the field. I note this in Threats to Validity.'"

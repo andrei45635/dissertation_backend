@@ -1,6 +1,7 @@
 package com.msadetector.service.detection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.msadetector.entity.AnalysisJob;
 import com.msadetector.entity.DetectedAntiPattern;
 import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
@@ -51,14 +52,16 @@ public class EsbMisuseDetector extends BaseDetector {
     }
 
     @Override
-    public List<DetectedAntiPattern> detect(Project project, List<Microservice> microservices) {
+    public List<DetectedAntiPattern> detect(Project project, List<Microservice> microservices, AnalysisJob job) {
         List<DetectedAntiPattern> patterns = new ArrayList<>();
 
         if (microservices.size() < 3) {
             return patterns;
         }
 
-        List<ServiceDependency> allDeps = dependencyRepository.findByProjectWithServices(project);
+        List<ServiceDependency> allDeps = job != null
+                ? dependencyRepository.findByAnalysisJobWithServices(job)
+                : dependencyRepository.findByProjectWithServices(project);
         if (allDeps.isEmpty()) {
             return patterns;
         }

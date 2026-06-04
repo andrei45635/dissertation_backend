@@ -2,6 +2,7 @@ package com.msadetector.repository;
 
 import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
+import com.msadetector.entity.AnalysisJob;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,6 +15,10 @@ import java.util.Optional;
 public interface MicroserviceRepository extends JpaRepository<Microservice, Long> {
 
     List<Microservice> findByProject(Project project);
+
+    List<Microservice> findByAnalysisJob(AnalysisJob analysisJob);
+
+    List<Microservice> findByAnalysisJobOrderByNameAsc(AnalysisJob analysisJob);
 
     List<Microservice> findByProjectOrderByNameAsc(Project project);
 
@@ -34,8 +39,14 @@ public interface MicroserviceRepository extends JpaRepository<Microservice, Long
     @Query("SELECT COUNT(m) FROM Microservice m WHERE m.project = :project")
     int countByProject(@Param("project") Project project);
 
+    @Query("SELECT COUNT(m) FROM Microservice m WHERE m.analysisJob = :analysisJob")
+    int countByAnalysisJob(@Param("analysisJob") AnalysisJob analysisJob);
+
     @Query("SELECT SUM(m.linesOfCode) FROM Microservice m WHERE m.project = :project")
     Integer sumLinesOfCodeByProject(@Param("project") Project project);
+
+    @Query("SELECT SUM(m.linesOfCode) FROM Microservice m WHERE m.analysisJob = :analysisJob")
+    Integer sumLinesOfCodeByAnalysisJob(@Param("analysisJob") AnalysisJob analysisJob);
 
     @Query("SELECT AVG(m.linesOfCode) FROM Microservice m WHERE m.project = :project")
     Double avgLinesOfCodeByProject(@Param("project") Project project);

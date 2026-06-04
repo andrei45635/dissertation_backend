@@ -41,7 +41,6 @@ app:
     nano-service-max-loc: 500
     nano-service-max-endpoints: 2
     chatty-service-min-calls: 10
-    hardcoded-endpoint-patterns: "http://,https://,localhost:,127.0.0.1"
     esb-mediator-threshold: 0.4
     code-smell-density-threshold: 80
     god-service-field-count: 25
@@ -60,4 +59,3 @@ logging:
     root: WARN
     com.msadetector: DEBUG
     org.testcontainers: INFO
-

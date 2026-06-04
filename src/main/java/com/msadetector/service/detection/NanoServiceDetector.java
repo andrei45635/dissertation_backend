@@ -1,6 +1,7 @@
 package com.msadetector.service.detection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.msadetector.entity.AnalysisJob;
 import com.msadetector.entity.DetectedAntiPattern;
 import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
@@ -36,7 +37,7 @@ public class NanoServiceDetector extends BaseDetector {
     }
 
     @Override
-    public List<DetectedAntiPattern> detect(Project project, List<Microservice> microservices) {
+    public List<DetectedAntiPattern> detect(Project project, List<Microservice> microservices, AnalysisJob job) {
         List<DetectedAntiPattern> patterns = new ArrayList<>();
         Path projectRoot = Path.of(project.getLocalPath());
 

@@ -11,6 +11,7 @@ import java.util.List;
 @Entity
 @Table(name = "microservices", indexes = {
     @Index(name = "idx_microservice_project", columnList = "project_id"),
+    @Index(name = "idx_microservice_analysis_job", columnList = "analysis_job_id"),
     @Index(name = "idx_microservice_name", columnList = "name")
 })
 @Getter
@@ -64,6 +65,10 @@ public class Microservice extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "analysis_job_id")
+    private AnalysisJob analysisJob;
 
     @Builder.Default
     @OneToMany(mappedBy = "microservice", cascade = CascadeType.ALL, orphanRemoval = true)

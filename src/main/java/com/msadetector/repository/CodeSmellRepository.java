@@ -1,6 +1,7 @@
 package com.msadetector.repository;
 
 import com.msadetector.entity.CodeSmell;
+import com.msadetector.entity.AnalysisJob;
 import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
 import com.msadetector.enums.Severity;
@@ -40,6 +41,9 @@ public interface CodeSmellRepository extends JpaRepository<CodeSmell, Long> {
 
     @Query("SELECT COUNT(cs) FROM CodeSmell cs WHERE cs.microservice.project = :project")
     int countByProject(@Param("project") Project project);
+
+    @Query("SELECT COUNT(cs) FROM CodeSmell cs WHERE cs.microservice.analysisJob = :analysisJob")
+    int countByAnalysisJob(@Param("analysisJob") AnalysisJob analysisJob);
 
     @Query("SELECT cs FROM CodeSmell cs WHERE cs.microservice.project = :project AND cs.smellType = 'God Class'")
     List<CodeSmell> findGodClassSmells(@Param("project") Project project);

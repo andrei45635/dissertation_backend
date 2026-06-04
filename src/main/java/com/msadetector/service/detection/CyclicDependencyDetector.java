@@ -1,6 +1,7 @@
 package com.msadetector.service.detection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.msadetector.entity.AnalysisJob;
 import com.msadetector.entity.DetectedAntiPattern;
 import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
@@ -30,9 +31,11 @@ public class CyclicDependencyDetector extends BaseDetector {
     }
 
     @Override
-    public List<DetectedAntiPattern> detect(Project project, List<Microservice> microservices) {
+    public List<DetectedAntiPattern> detect(Project project, List<Microservice> microservices, AnalysisJob job) {
         List<DetectedAntiPattern> patterns = new ArrayList<>();
-        List<ServiceDependency> dependencies = dependencyRepository.findByProjectWithServices(project);
+        List<ServiceDependency> dependencies = job != null
+                ? dependencyRepository.findByAnalysisJobWithServices(job)
+                : dependencyRepository.findByProjectWithServices(project);
         Path projectRoot = Path.of(project.getLocalPath());
 
         Map<Long, Set<Long>> adjacency = new HashMap<>();
@@ -153,4 +156,3 @@ public class CyclicDependencyDetector extends BaseDetector {
         }
     }
 }
-

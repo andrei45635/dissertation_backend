@@ -1,12 +1,12 @@
 package com.msadetector.service.detection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.msadetector.entity.AnalysisJob;
 import com.msadetector.entity.DetectedAntiPattern;
 import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
 import com.msadetector.enums.AntiPatternType;
 import com.msadetector.enums.Severity;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -32,26 +32,21 @@ public class HardcodedEndpointDetector extends BaseDetector {
                     + ":\\d{2,5}(?:[/\\w.\\-?=&#%]*)?)"
     );
 
-    private final String hardcodedEndpointPatterns;
-
-    public HardcodedEndpointDetector(ObjectMapper objectMapper,
-                                      @Value("${app.thresholds.hardcoded-endpoint-patterns:http://,https://,localhost:,127.0.0.1}") String hardcodedEndpointPatterns) {
+    public HardcodedEndpointDetector(ObjectMapper objectMapper) {
         super(objectMapper);
-        this.hardcodedEndpointPatterns = hardcodedEndpointPatterns;
     }
 
     @Override
-    public List<DetectedAntiPattern> detect(Project project, List<Microservice> microservices) {
+    public List<DetectedAntiPattern> detect(Project project, List<Microservice> microservices, AnalysisJob job) {
         List<DetectedAntiPattern> patterns = new ArrayList<>();
         Path projectRoot = Path.of(project.getLocalPath());
-        String[] urlPatterns = hardcodedEndpointPatterns.split(",");
 
         for (Microservice ms : microservices) {
             Path servicePath = projectRoot.resolve(ms.getRelativePath());
             Path srcDir = servicePath.resolve("src/main/java");
             if (!Files.exists(srcDir)) continue;
 
-            List<HardcodedUrlEvidence> evidenceList = scanForHardcodedUrls(srcDir, servicePath, urlPatterns);
+            List<HardcodedUrlEvidence> evidenceList = scanForHardcodedUrls(srcDir, servicePath);
 
             if (!evidenceList.isEmpty()) {
                 List<Map<String, Object>> evidenceJson = evidenceList.stream()
@@ -91,7 +86,7 @@ public class HardcodedEndpointDetector extends BaseDetector {
         return patterns;
     }
 
-    private List<HardcodedUrlEvidence> scanForHardcodedUrls(Path srcDir, Path servicePath, String[] urlPatterns) {
+    private List<HardcodedUrlEvidence> scanForHardcodedUrls(Path srcDir, Path servicePath) {
         List<HardcodedUrlEvidence> evidenceList = new ArrayList<>();
 
         try (Stream<Path> javaFiles = Files.walk(srcDir).filter(p -> p.toString().endsWith(".java"))) {
@@ -111,9 +106,10 @@ public class HardcodedEndpointDetector extends BaseDetector {
                         continue;
                     }
 
-                    for (String urlPattern : urlPatterns) {
-                        if (line.contains("\"" + urlPattern.trim()) || line.contains("'" + urlPattern.trim())) {
-                            String url = extractEndpointLiteral(line, urlPattern.trim());
+                    Matcher matcher = URL_PATTERN.matcher(line);
+                    while (matcher.find()) {
+                        String url = matcher.group();
+                        if (isInsideStringLiteral(line, matcher.start())) {
                             evidenceList.add(new HardcodedUrlEvidence(relativePath, i + 1, line, url));
                         }
                     }
@@ -126,12 +122,29 @@ public class HardcodedEndpointDetector extends BaseDetector {
         return evidenceList;
     }
 
-    private String extractEndpointLiteral(String line, String fallbackPattern) {
-        Matcher matcher = URL_PATTERN.matcher(line);
-        if (matcher.find()) {
-            return matcher.group();
+    private boolean isInsideStringLiteral(String line, int matchStart) {
+        boolean inSingleQuotedLiteral = false;
+        boolean inDoubleQuotedLiteral = false;
+        boolean escaped = false;
+
+        for (int i = 0; i < matchStart; i++) {
+            char ch = line.charAt(i);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (ch == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (ch == '"' && !inSingleQuotedLiteral) {
+                inDoubleQuotedLiteral = !inDoubleQuotedLiteral;
+            } else if (ch == '\'' && !inDoubleQuotedLiteral) {
+                inSingleQuotedLiteral = !inSingleQuotedLiteral;
+            }
         }
-        return fallbackPattern;
+
+        return inSingleQuotedLiteral || inDoubleQuotedLiteral;
     }
 
     private record HardcodedUrlEvidence(String file, int lineNumber, String code, String url) {}

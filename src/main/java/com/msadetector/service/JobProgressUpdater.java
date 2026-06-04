@@ -25,35 +25,39 @@ public class JobProgressUpdater {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void startJob(Long jobId) {
+    public boolean startJob(Long jobId) {
         AnalysisJob job = jobRepository.findById(jobId).orElse(null);
-        if (job == null) return;
+        if (job == null || job.getStatus() == JobStatus.CANCELLED) return false;
         job.start();
         jobRepository.saveAndFlush(job);
+        return true;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void updateProgress(Long jobId, JobStatus status, String phase, String currentService, int completed, int total) {
+    public boolean updateProgress(Long jobId, JobStatus status, String phase, String currentService, int completed, int total) {
         AnalysisJob job = jobRepository.findById(jobId).orElse(null);
-        if (job == null) return;
+        if (job == null || job.getStatus() == JobStatus.CANCELLED) return false;
         job.updateProgress(status, phase, currentService, completed, total);
         jobRepository.saveAndFlush(job);
+        return true;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void completeJob(Long jobId, AnalysisResult result) {
+    public boolean completeJob(Long jobId, AnalysisResult result) {
         AnalysisJob job = jobRepository.findById(jobId).orElse(null);
-        if (job == null) return;
+        if (job == null || job.getStatus() == JobStatus.CANCELLED) return false;
         job.complete(result);
         jobRepository.saveAndFlush(job);
+        return true;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void failJob(Long jobId, String errorMessage) {
+    public boolean failJob(Long jobId, String errorMessage) {
         AnalysisJob job = jobRepository.findById(jobId).orElse(null);
-        if (job == null) return;
+        if (job == null || job.getStatus() == JobStatus.CANCELLED) return false;
         job.fail(errorMessage);
         jobRepository.saveAndFlush(job);
+        return true;
     }
 }
 

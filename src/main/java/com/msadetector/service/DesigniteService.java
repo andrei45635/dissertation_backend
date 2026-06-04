@@ -244,10 +244,19 @@ public class DesigniteService {
         return parts.toArray(new String[0]);
     }
 
+    /**
+     * Maps a DesigniteJava smell type to a severity level, following the
+     * classification in the thesis (Chapter 3, Table "Code Smell Categories").
+     * Unrecognised smell types default to {@code MEDIUM}.
+     */
     private Severity mapSeverity(String smellType) {
         return switch (smellType.toLowerCase()) {
+            // Architecture / design smells
             case "cyclic dependency", "cyclic-dependent modularization" -> Severity.HIGH;
-            case "long method", "long parameter list", "complex method", "complex conditional" -> Severity.MEDIUM;
+            case "deficient encapsulation", "broken modularization", "broken hierarchy" -> Severity.MEDIUM;
+            case "unutilized abstraction", "unnecessary abstraction" -> Severity.LOW;
+            // Implementation smells
+            case "complex method", "complex conditional", "long parameter list", "long method" -> Severity.MEDIUM;
             case "magic number", "long statement", "empty catch clause" -> Severity.LOW;
             default -> Severity.MEDIUM;
         };

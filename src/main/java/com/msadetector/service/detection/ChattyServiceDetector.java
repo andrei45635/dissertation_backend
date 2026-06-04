@@ -1,6 +1,7 @@
 package com.msadetector.service.detection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.msadetector.entity.AnalysisJob;
 import com.msadetector.entity.DetectedAntiPattern;
 import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
@@ -77,13 +78,14 @@ public class ChattyServiceDetector extends BaseDetector {
     }
 
     @Override
-    public List<DetectedAntiPattern> detect(Project project, List<Microservice> microservices) {
+    public List<DetectedAntiPattern> detect(Project project, List<Microservice> microservices, AnalysisJob job) {
         List<DetectedAntiPattern> patterns = new ArrayList<>();
         Path projectRoot = Path.of(project.getLocalPath());
 
         Set<String> flaggedServices = new HashSet<>();
-
-        List<ServiceDependency> chattyDeps = dependencyRepository.findChattyDependencies(project, minCalls);
+        List<ServiceDependency> chattyDeps = job != null
+                ? dependencyRepository.findChattyDependenciesByAnalysisJob(job, minCalls)
+                : dependencyRepository.findChattyDependencies(project, minCalls);
 
         for (ServiceDependency dep : chattyDeps) {
             String sourceName = dep.getSourceService().getName();

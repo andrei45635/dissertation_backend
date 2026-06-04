@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "analysis_jobs", indexes = {
@@ -101,6 +103,10 @@ public class AnalysisJob extends BaseEntity {
     @Column(name = "chatty_service_min_calls")
     @Builder.Default
     private Integer chattyServiceMinCalls = 5;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "analysisJob", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Microservice> microservices = new ArrayList<>();
 
     @OneToOne(mappedBy = "analysisJob", cascade = CascadeType.ALL, orphanRemoval = true)
     private AnalysisResult result;

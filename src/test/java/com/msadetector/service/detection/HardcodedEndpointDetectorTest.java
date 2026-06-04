@@ -26,8 +26,7 @@ class HardcodedEndpointDetectorTest {
 
     @BeforeEach
     void setUp() {
-        detector = new HardcodedEndpointDetector(new ObjectMapper(),
-                "http://,https://,localhost:,127.0.0.1");
+        detector = new HardcodedEndpointDetector(new ObjectMapper());
     }
 
     private Project createProject() {
@@ -166,5 +165,32 @@ class HardcodedEndpointDetectorTest {
         assertEquals(1, results.size());
         assertTrue(results.getFirst().getEvidenceJson().contains("127.0.0.1:9090"));
     }
-}
 
+    @Test
+    void detect_bareIpAddress_flagsPattern() throws Exception {
+        createJavaFile("svc", "Config.java",
+                "public class Config {\n" +
+                "    String url = \"10.0.0.5:9090/api\";\n" +
+                "}\n");
+
+        Project project = createProject();
+        List<DetectedAntiPattern> results = detector.detect(project, List.of(createMs("svc")));
+
+        assertEquals(1, results.size());
+        assertTrue(results.getFirst().getEvidenceJson().contains("10.0.0.5:9090/api"));
+    }
+
+    @Test
+    void detect_urlOutsideStringLiteral_ignored() throws Exception {
+        createJavaFile("svc", "Config.java",
+                "public class Config {\n" +
+                "    // 10.0.0.5:9090/api\n" +
+                "    public void connect() { call(10.0.0.5:9090); }\n" +
+                "}\n");
+
+        Project project = createProject();
+        List<DetectedAntiPattern> results = detector.detect(project, List.of(createMs("svc")));
+
+        assertTrue(results.isEmpty());
+    }
+}
