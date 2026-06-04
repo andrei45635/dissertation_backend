@@ -1,16 +1,13 @@
 package com.msadetector.service.detection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.msadetector.entity.CodeSmell;
 import com.msadetector.entity.DetectedAntiPattern;
 import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
 import com.msadetector.entity.ServiceDependency;
 import com.msadetector.enums.AntiPatternType;
 import com.msadetector.enums.Severity;
-import com.msadetector.repository.CodeSmellRepository;
 import com.msadetector.repository.ServiceDependencyRepository;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
@@ -21,80 +18,25 @@ import java.util.*;
  * that should reside in one service is spread across multiple services,
  * or tightly-coupled functionality is incorrectly split.
  * <p>
- * Indicators:
- * <ul>
- *   <li>High number of Feature Envy code smells (classes that use methods
- *       from other classes more than their own — suggesting misplaced logic)</li>
- *   <li>Bidirectional (mutual) dependencies between services indicating
- *       that the split was wrong</li>
- * </ul>
+ * Indicator: bidirectional (mutual) dependencies between services, which
+ * indicate that two services are too tightly coupled and may have been split
+ * incorrectly.
  */
 @Component
 public class WrongCutsDetector extends BaseDetector {
 
-    private static final String UNKNOWN = "unknown";
-
-    private final CodeSmellRepository codeSmellRepository;
     private final ServiceDependencyRepository dependencyRepository;
-    private final int minFeatureEnvySmells;
 
     public WrongCutsDetector(ObjectMapper objectMapper,
-                              CodeSmellRepository codeSmellRepository,
-                              ServiceDependencyRepository dependencyRepository,
-                              @Value("${app.thresholds.wrong-cuts-min-feature-envy:3}") int minFeatureEnvySmells) {
+                              ServiceDependencyRepository dependencyRepository) {
         super(objectMapper);
-        this.codeSmellRepository = codeSmellRepository;
         this.dependencyRepository = dependencyRepository;
-        this.minFeatureEnvySmells = minFeatureEnvySmells;
     }
 
     @Override
     public List<DetectedAntiPattern> detect(Project project, List<Microservice> microservices) {
         List<DetectedAntiPattern> patterns = new ArrayList<>();
         Path projectRoot = Path.of(project.getLocalPath());
-
-        for (Microservice ms : microservices) {
-            List<CodeSmell> featureEnvySmells = codeSmellRepository.findByMicroservice(ms).stream()
-                    .filter(smell -> "Feature Envy".equalsIgnoreCase(smell.getSmellType()))
-                    .toList();
-
-            if (featureEnvySmells.size() >= minFeatureEnvySmells) {
-                List<Map<String, Object>> evidenceJson = featureEnvySmells.stream()
-                        .map(smell -> Map.<String, Object>of(
-                                "class", Optional.ofNullable(smell.getClassName()).orElse(UNKNOWN),
-                                "method", Optional.ofNullable(smell.getMethodName()).orElse(UNKNOWN),
-                                "file", Optional.ofNullable(smell.getFilePath()).orElse(UNKNOWN)
-                        ))
-                        .toList();
-
-                List<Map<String, Object>> snippets = featureEnvySmells.stream()
-                        .limit(5)
-                        .map(smell -> resolveSmellSnippet(smell, projectRoot, ms))
-                        .toList();
-
-                DetectedAntiPattern pattern = DetectedAntiPattern.builder()
-                        .patternType(AntiPatternType.WRONG_CUTS)
-                        .severity(Severity.HIGH)
-                        .description(String.format(
-                                "Service '%s' has %d Feature Envy smell(s), suggesting that some of its classes "
-                                        + "use external functionality more than their own. "
-                                        + "This indicates misplaced service boundaries.",
-                                ms.getName(), featureEnvySmells.size()
-                        ))
-                        .affectedServicesJson(toJson(List.of(ms.getName())))
-                        .primaryService(ms)
-                        .evidenceJson(toJson(evidenceJson))
-                        .codeSnippetsJson(snippetsToJson(snippets))
-                        .remediation("Re-evaluate service boundaries. Move classes with Feature Envy "
-                                + "to the service whose domain they access most frequently, "
-                                + "or merge tightly-coupled services")
-                        .build();
-
-                patterns.add(pattern);
-                log.info("Wrong Cuts detected in service {} ({} Feature Envy smells)",
-                        ms.getName(), featureEnvySmells.size());
-            }
-        }
 
         List<ServiceDependency> allDeps = dependencyRepository.findByProjectWithServices(project);
         Set<String> edgeSet = new HashSet<>();

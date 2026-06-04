@@ -91,14 +91,7 @@ The recommended remediation for nano services is to merge them with a related, f
 
 \par A God Service is the microservice counterpart of the well-known God Class code smell \cite{Fowler1999}. It refers to a service that handles too many responsibilities, spanning multiple business domains within a single deployable unit. God services grow over time as developers add functionality to an existing service rather than creating new ones, resulting in a service that is difficult to understand, test, and scale independently.
 
-Detection of god services in this work is based on the presence of code-level indicators. Specifically, a microservice is flagged as a god service when it contains a number of God Class code smells (as detected by DesigniteJava) exceeding a configurable threshold:
-
-\begin{equation}
-    |\{c \in \text{classes}(s) : \text{isGodClass}(c)\}| \geq \theta_{\text{god}}
-    \label{eq:god-service}
-\end{equation}
-
-\noindent where $\theta_{\text{god}}$ is the minimum number of God Class occurrences that indicates excessive responsibility concentration (default: 1).
+Detection of god services in this work is based on code-level structural indicators. A microservice is flagged as a god service when it contains at least one class that exhibits God Class characteristics, assessed through a combination of structural metrics such as field count, number of public methods, size, and class cohesion. The precise metrics, thresholds, and analysis procedure are presented in Chapter~\ref{chap:ch3}.
 
 \subsection{Chatty Service}
 \label{subsec:chatty-service}
@@ -128,7 +121,7 @@ Figure~\ref{fig:chatty-services} contrasts a chatty communication pattern with a
 
 \par The Hardcoded Endpoints anti-pattern occurs when service URLs are embedded directly in the source code instead of being resolved through a service discovery mechanism (e.g., Netflix Eureka, Consul, or Kubernetes DNS) \cite{Richardson2018}. Hardcoded endpoints create tight coupling between services and make the system inflexible to infrastructure changes such as scaling, failover, or environment migration.
 
-Detection involves scanning the source code and configuration files for patterns such as \texttt{http://}, \texttt{https://}, \texttt{localhost:}, or explicit IP addresses in REST client configurations.
+Detection involves scanning the source code for patterns such as \texttt{http://}, \texttt{https://}, \texttt{localhost:}, or explicit IP addresses in REST client configurations.
 
 \subsection{Distributed Monolith}
 \label{subsec:distributed-monolith}
@@ -142,7 +135,7 @@ A distributed monolith typically arises when services share too many dependencie
     \label{eq:distributed-monolith}
 \end{equation}
 
-\noindent where $\theta_{\text{monolith}}$ is the coupling coefficient threshold above which the system is considered excessively coupled.
+\noindent where $\theta_{\text{monolith}}$ is the coupling coefficient threshold above which the system is considered excessively coupled. The coupling coefficient is only one of the signals the detector uses in practice. The complete decision rule also incorporates the connected service ratio and the number of shared databases, and is presented in full in Chapter~\ref{chap:ch3}.
 
 The recommended remediation involves identifying and removing unnecessary inter-service dependencies, introducing asynchronous communication where possible, and ensuring that each service encapsulates a well-defined bounded context with minimal external dependencies \cite{Richardson2018}.
 
@@ -153,7 +146,7 @@ The recommended remediation involves identifying and removing unnecessary inter-
 
 \par API Versioning Absence occurs when services expose REST endpoints without a versioning strategy (e.g.\ a \texttt{/v1/} path prefix), making backward-compatible API evolution impossible without breaking existing consumers. In rapidly evolving microservice systems, the absence of versioning forces coordinated deployments across all consumer services whenever an endpoint's contract changes, undermining the independent deployability that microservices are designed to provide.
 
-\par Wrong Cuts refers to service boundaries that do not align with business domain boundaries, resulting in high coupling and low cohesion across services \cite{Taibi2018}. When functionality that belongs to a single bounded context is split across multiple services, the resulting inter-service communication overhead and tight coupling negate the benefits of decomposition. Indicators of wrong cuts include a high frequency of Feature Envy code smells within a service (suggesting that methods are accessing data belonging to other services) and bidirectional dependencies between service pairs (suggesting that two services are too tightly coupled to operate independently).
+\par Wrong Cuts refers to service boundaries that do not align with business domain boundaries, resulting in high coupling and low cohesion across services \cite{Taibi2018}. When functionality that belongs to a single bounded context is split across multiple services, the resulting inter-service communication overhead and tight coupling negate the benefits of decomposition. An indicator of wrong cuts is the presence of bidirectional dependencies between service pairs, which suggests that two services are too tightly coupled to operate independently.
 
 \par ESB Misuse occurs when a single service mediates most inter-service communication, effectively recreating the Enterprise Service Bus pattern within a microservices architecture \cite{Richards2015}. This centralisation introduces a single point of failure, a performance bottleneck, and a deployment coupling point that contradicts the decentralised communication principle of microservices. Detection involves identifying services with disproportionately high incoming and outgoing dependency counts relative to the rest of the system.
 
@@ -171,17 +164,17 @@ Table~\ref{tab:anti-patterns-summary} summarizes all the anti-patterns targeted 
             \hline
             Nano Service & Medium & LOC and endpoint count thresholds \\
             \hline
-            God Service & High & God Class code smell frequency via DesigniteJava \\
+            God Service & High & Structural class metrics via Spoon AST analysis \\
             \hline
             Chatty Service & High & Call count analysis on dependency edges \\
             \hline
-            Hardcoded Endpoints & Medium & Pattern matching in source and configuration files \\
+            Hardcoded Endpoints & Medium & Pattern matching in source files \\
             \hline
-            Distributed Monolith & Critical & Coupling coefficient analysis \\
+            Distributed Monolith & Critical & Composite coupling and connectivity metrics \\
             \hline
             API Versioning Absence & Medium & Endpoint path analysis for version indicators \\
             \hline
-            Wrong Cuts & High & Cohesion and coupling metrics \\
+            Wrong Cuts & High & Bidirectional inter-service dependencies \\
             \hline
             ESB Misuse & High & Centrality analysis of the dependency graph \\
             \hline
@@ -299,7 +292,7 @@ Bogner et al.\ conducted a systematic literature review investigating the assess
 
 \par Neri et al.\ introduced an index of design principles for microservices and developed static analysis techniques to detect violations \cite{Neri2020}. Their work formalized seven design principles (including service autonomy, decentralized data management, and smart endpoints/dumb pipes) and defined 16 architectural smells as violations of these principles. Their approach focuses on detecting violations through analysis of service interfaces, deployment descriptors, and data models. While their work provides a strong principled foundation for reasoning about microservice quality, it does not integrate code-level smell detection into the architectural analysis and does not provide an implemented tool with configurable thresholds.
 
-Sharma and Spinellis, the creators of DesigniteJava, provided a comprehensive survey on software smells and demonstrated the role of automated tools in detecting them \cite{Sharma2018}. DesigniteJava detects design smells (e.g. God Class, Feature Envy), implementation smells (e.g. Long Method, Complex Method), and architecture smells (e.g. Cyclic Dependency, Hub-like Dependency). While DesigniteJava operates at code level within individual projects, this dissertation uses its output as input to higher-level architectural analysis, connecting code smells and microservice anti-patterns. Specifically, God Class smell frequency is used as a signal for god service detection, and Feature Envy is used as an indicator of misplaced service boundaries (Wrong Cuts).
+Sharma and Spinellis, the creators of DesigniteJava, provided a comprehensive survey on software smells and demonstrated the role of automated tools in detecting them \cite{Sharma2018}. DesigniteJava detects design smells (e.g. Unutilized Abstraction, Deficient Encapsulation, Cyclic-Dependent Modularization), implementation smells (e.g. Long Method, Complex Method, Magic Number), and architecture smells (e.g. Cyclic Dependency, Unstable Dependency). While DesigniteJava operates at code level within individual projects, this dissertation uses the aggregate density of these smells as the code-quality signal that contributes to the composite health score, complementing the architectural-level analysis carried out through Spoon-based structural metrics and dependency-graph algorithms.
 
 Pigazzini et al.\ proposed an approach for detecting microservice smells by combining structural analysis with dependency extraction \cite{Pigazzini2020}. Their work focused on identifying smells such as Cyclic Dependencies, Hardcoded Endpoints, and Shared Persistence by analyzing dependency structure extracted from build files and Docker configurations. While their approach addresses inter-service structural smells, it does not incorporate intra-service code smell analysis and does not support the breadth of anti-patterns covered by this dissertation.
 
@@ -381,7 +374,7 @@ Table~\ref{tab:related-tools-comparison} provides a detailed feature comparison 
 
 \par This dissertation differentiates itself from existing work in several ways, addressing gaps identified in the reviewed literature.
 
-First, this work performs multi-level analysis. Existing tools typically operate at a single level of abstraction: either code-level smell detection (e.g.\ DesigniteJava) or architectural-level dependency analysis (e.g.\ Arcan, MicroART). This work combines intra-service code smell detection (via DesigniteJava) with inter-service architectural analysis (via Spoon-based Abstract Syntax Tree analysis and graph algorithms), providing a more comprehensive assessment. For example, God Class smells detected at the code level are used as evidence for flagging god services at the architectural level.
+First, this work performs multi-level analysis. Existing tools typically operate at a single level of abstraction: either code-level smell detection (e.g.\ DesigniteJava) or architectural-level dependency analysis (e.g.\ Arcan, MicroART). This work combines intra-service code analysis, comprising DesigniteJava smell density together with Spoon-based structural metrics, with inter-service architectural analysis via graph algorithms, providing a more comprehensive assessment. For example, code-level structural metrics such as class cohesion, computed via Spoon, are used as evidence for flagging god services at the architectural level.
 
 Second, the tool offers broader anti-pattern coverage, detecting ten distinct anti-patterns across four architectural dimensions: service design (Nano Service, God Service), inter-service communication (Chatty Service, Cyclic Dependency, Hardcoded Endpoints, ESB misuse), data management (Shared Database), and system-level coupling (Distributed Monolith, API Versioning Absence, Wrong Cuts). This represents a broader coverage than any single existing tool reviewed in this chapter.
 

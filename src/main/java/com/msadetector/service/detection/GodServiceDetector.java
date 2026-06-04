@@ -1,14 +1,11 @@
 package com.msadetector.service.detection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.msadetector.entity.CodeSmell;
 import com.msadetector.entity.DetectedAntiPattern;
 import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
 import com.msadetector.enums.AntiPatternType;
 import com.msadetector.enums.Severity;
-import com.msadetector.repository.CodeSmellRepository;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import spoon.Launcher;
 import spoon.reflect.CtModel;
@@ -26,16 +23,12 @@ import java.util.stream.Collectors;
 /**
  * Detects god services — services handling too many responsibilities.
  * <p>
- * Uses two complementary approaches:
- * <ol>
- *   <li><b>DesigniteJava signal:</b> any "God Class" code smell (≥1 is sufficient)</li>
- *   <li><b>Spoon-based multi-metric analysis:</b> scans each class for structural
- *       indicators of God Class behaviour — high field count, high public method count,
- *       high LOC, many import domains, and low cohesion (TCC). A class is flagged when
- *       ≥3 metrics exceed their thresholds simultaneously.</li>
- * </ol>
- * A service is reported as a God Service if it contains at least one God Class
- * from either approach.
+ * Uses a Spoon-based multi-metric analysis that scans each class for structural
+ * indicators of God Class behaviour — high field count, high public method count,
+ * high LOC, many import domains, many constructor parameters, and low cohesion (TCC).
+ * A class is flagged as a God Class when ≥3 metrics exceed their thresholds
+ * simultaneously, and a service is reported as a God Service if it contains at
+ * least one such class.
  */
 @Component
 public class GodServiceDetector extends BaseDetector {
@@ -65,15 +58,8 @@ public class GodServiceDetector extends BaseDetector {
             "result", "payload", "wrapper"
     );
 
-    private final CodeSmellRepository codeSmellRepository;
-    private final int minGodClasses;
-
-    public GodServiceDetector(ObjectMapper objectMapper,
-                               CodeSmellRepository codeSmellRepository,
-                               @Value("${app.thresholds.god-service-min-god-classes:1}") int minGodClasses) {
+    public GodServiceDetector(ObjectMapper objectMapper) {
         super(objectMapper);
-        this.codeSmellRepository = codeSmellRepository;
-        this.minGodClasses = minGodClasses;
     }
 
     @Override
@@ -82,37 +68,23 @@ public class GodServiceDetector extends BaseDetector {
         Path projectRoot = Path.of(project.getLocalPath());
 
         for (Microservice ms : microservices) {
-            List<CodeSmell> allSmells = codeSmellRepository.findByMicroservice(ms);
-            List<CodeSmell> godClassSmells = allSmells.stream()
-                    .filter(smell -> "God Class".equalsIgnoreCase(smell.getSmellType()))
-                    .toList();
-
-            boolean hasDesigniteGodClasses = godClassSmells.size() >= minGodClasses;
-
             Path serviceSrcDir = projectRoot.resolve(ms.getRelativePath()).resolve(SRC_MAIN_JAVA);
-            List<GodClassEvidence> spoonGodClasses = List.of();
-            if (!hasDesigniteGodClasses && Files.exists(serviceSrcDir)) {
-                spoonGodClasses = scanForGodClasses(serviceSrcDir);
+            if (!Files.exists(serviceSrcDir)) {
+                continue;
             }
-            boolean hasSpoonGodClasses = !spoonGodClasses.isEmpty();
 
-            if (!hasDesigniteGodClasses && !hasSpoonGodClasses) {
+            List<GodClassEvidence> godClasses = scanForGodClasses(serviceSrcDir);
+            if (godClasses.isEmpty()) {
                 continue;
             }
 
             StringBuilder desc = new StringBuilder();
             desc.append(String.format("Service '%s' exhibits God Service characteristics: ", ms.getName()));
             List<String> reasons = new ArrayList<>();
-
-            if (hasDesigniteGodClasses) {
-                reasons.add(String.format("%d God Class smell(s) detected by DesigniteJava", godClassSmells.size()));
-            }
-            if (hasSpoonGodClasses) {
-                for (GodClassEvidence ev : spoonGodClasses) {
-                    reasons.add(String.format("class '%s' exceeds %d God Class metrics (%s)",
-                            ev.className, ev.exceededMetrics.size(),
-                            String.join(", ", ev.exceededMetrics)));
-                }
+            for (GodClassEvidence ev : godClasses) {
+                reasons.add(String.format("class '%s' exceeds %d God Class metrics (%s)",
+                        ev.className, ev.exceededMetrics.size(),
+                        String.join(", ", ev.exceededMetrics)));
             }
             desc.append(String.join("; ", reasons));
 
@@ -121,24 +93,15 @@ public class GodServiceDetector extends BaseDetector {
                     : desc.toString();
 
             List<Map<String, Object>> snippets = new ArrayList<>();
-            if (hasDesigniteGodClasses) {
-                snippets = godClassSmells.stream()
-                        .limit(5)
-                        .map(smell -> resolveSmellSnippet(smell, projectRoot, ms))
-                        .filter(Objects::nonNull)
-                        .toList();
-            }
-            if (hasSpoonGodClasses) {
-                for (GodClassEvidence ev : spoonGodClasses) {
-                    if (ev.filePath != null) {
-                        Map<String, Object> snippet = readSnippet(Path.of(ev.filePath), ev.lineNumber, 10);
-                        if (snippet != null) snippets.add(snippet);
-                    }
+            for (GodClassEvidence ev : godClasses) {
+                if (ev.filePath != null) {
+                    Map<String, Object> snippet = readSnippet(Path.of(ev.filePath), ev.lineNumber, 10);
+                    if (snippet != null) snippets.add(snippet);
                 }
             }
 
             List<Map<String, Object>> godClassDetails = new ArrayList<>();
-            for (GodClassEvidence ev : spoonGodClasses) {
+            for (GodClassEvidence ev : godClasses) {
                 godClassDetails.add(Map.of(
                         "className", ev.className,
                         "metrics", ev.metrics,
@@ -153,9 +116,7 @@ public class GodServiceDetector extends BaseDetector {
                     .affectedServicesJson(toJson(List.of(ms.getName())))
                     .primaryService(ms)
                     .detailsJson(toJson(Map.of(
-                            "designiteGodClassCount", godClassSmells.size(),
-                            "spoonGodClasses", godClassDetails,
-                            "totalSmells", allSmells.size()
+                            "godClasses", godClassDetails
                     )))
                     .codeSnippetsJson(snippetsToJson(snippets))
                     .remediation("Consider decomposing into smaller, focused services with single responsibilities. "

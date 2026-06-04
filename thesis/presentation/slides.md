@@ -1,279 +1,219 @@
 # MSA Detector Dissertation Presentation
 
-Total target time: **15 minutes**
-- Main presentation: ~12 minutes
-- Case studies: ~1.5 minutes
-- Live demo: ~1.5 minutes
+Total target time: **~15 minutes** (12 slides + live demo).
+
+This outline mirrors the generated deck in `build_deck.js`. Slide numbers, titles and on-slide content match the `.pptx`; the presenter notes are condensed versions of the speaker notes embedded in the deck.
 
 ---
 
 ## Slide 1 - Title (0:30)
 
 **On-slide content**
-- MSA Detector: Automated Detection of Architectural Anti-Patterns in Java Microservices
-- Author name
-- Supervisor name
-- University / Department
-- Date
-
-**Visual**
-- University logo (top-right)
+- Detecting Architectural Anti-Patterns in Microservices
+- A multi-level static analysis tool for Java/Spring Boot systems
+- Iacob Andrei
+- Supervisor: Prof. Dr. Simona Motogna
+- Faculty of Mathematics and Computer Science, UBB
 
 **Presenter notes**
-- Good [morning/afternoon], my name is [Name], and today I present my dissertation on MSA Detector.
-- This work focuses on automatically detecting architectural anti-patterns in Java microservice systems.
+- Good [morning/afternoon], my name is Andrei Iacob, and today I defend my dissertation on the MSA Detector, a tool for detecting architectural anti-patterns in Java-based microservice systems.
+- The core idea: as teams adopt microservices, they often introduce structural problems that erode the very benefits they were after. This tool catches those problems early, from a source checkout.
 
 ---
 
-## Slide 2 - Agenda (0:20)
+## Slide 2 - Why this matters (1:30)
 
 **On-slide content**
-- Motivation and problem
-- Objectives and anti-pattern scope
-- Detection methodology
-- System architecture and implementation
-- Evaluation results
-- Conclusions and future work
-- Live demo
-
-**Visual**
-- Optional simple timeline icon row
-
-**Presenter notes**
-- I will first explain why this problem matters, then show methodology and implementation.
-- I will then present evaluation results and finish with a short live demo.
-
----
-
-## Slide 3 - Context and Motivation (1:30)
-
-**On-slide content**
-- Microservices improve scalability and deployment independence.
-- Architectural anti-patterns still emerge in practice.
-- Manual architecture review is hard to scale.
-- Need: automated, early, evidence-based detection.
+- Microservices adoption has outpaced tooling.
+- Architectural debt accumulates silently (shared databases, cyclic dependencies, ill-sized services).
+- Existing tools are single-level: Arcan, MicroART, MSANose each cover a slice, rarely both code and architecture.
+- Findings without evidence (snippets, affected services, remediation) get ignored.
+- Goal: actionable, evidence-based detection that bridges code and architecture levels.
 
 **Visual**
 - `thesis/figures/images/chapter2/monolith_vs_microservices.drawio.png`
 
 **Presenter notes**
-- Microservices promise independent deployability, fault isolation, and team autonomy.
-- In real projects, anti-patterns such as shared databases and cyclic dependencies silently accumulate as architectural debt.
-- The cost of fixing these issues increases over time, which motivates automated detection early in development.
+- Microservices are now the default for new large systems, but architectural quality tooling has not kept up.
+- Existing academic tools each handle a slice: Arcan does code-level cycles, MicroART recovers architecture, MSANose detects some microservice smells. None combine code-level analysis with architectural-level analysis.
+- Even when something is detected, the output is usually an abstract warning. Developers do not act without code evidence and remediation guidance.
 
 ---
 
-## Slide 4 - Problem and Objectives (1:30)
+## Slide 3 - Objectives and contributions (1:15)
 
 **On-slide content**
-- Problem:
-  - Existing detection support is fragmented across abstraction levels.
-  - Outputs are often hard to act on.
-- Objectives:
-  1. Detect 10 anti-patterns across 4 dimensions.
-  2. Combine code-level and architecture-level analysis.
-  3. Provide a composite health score.
-  4. Deliver as web app + REST API.
-  5. Evaluate on open-source microservice datasets.
-
-**Visual**
-- Simple "Problem -> Objectives" diagram
+- Multi-level analysis: intra-service code analysis (DesigniteJava smells + Spoon structural metrics) combined with inter-service dependency analysis (graph algorithms).
+- Ten anti-patterns across four dimensions.
+- Automated boundary detection: three-signal deployability gate with confidence levels.
+- Composite health score: 0-100 with letter grading, four interpretable categories, change over time.
+- Evidence-based reporting: source snippets, affected services, remediation per finding.
 
 **Presenter notes**
-- The key gap is that many approaches focus either on code smells or on architecture dependencies, but rarely both.
-- This dissertation addresses that by combining both levels into one analysis pipeline and presenting actionable evidence.
+- The first contribution is the multi-level analysis itself: using code-level structural metrics like class cohesion to flag architectural problems like God Service. That bridge between abstraction levels is the central novelty.
+- Ten anti-patterns across four dimensions is broader coverage than any single existing tool.
+- Automated boundary detection via a three-signal deployability gate (framework entry points, Dockerfiles, main methods) removes the manual configuration most tools require.
+- The composite score is decomposed into four categories so you can see which dimension drags the score down, and every finding ships with the code that triggered it.
 
 ---
 
-## Slide 5 - Anti-Patterns in Scope (1:30)
+## Slide 4 - The analysis pipeline (2:00)
 
 **On-slide content**
-- **Service design**: Nano Service, God Service
-- **Communication**: Chatty Service, Cyclic Dependency, Hardcoded Endpoints, ESB Misuse
-- **Data management**: Shared Database
-- **Deployment and coupling**: Distributed Monolith, API Versioning Absence, Wrong Cuts
+1. Ingest (ZIP upload / Git clone)
+2. Detect services (deployability gate, three signals)
+3. Intra + inter analysis (DesigniteJava + Spoon)
+4. Detect patterns (ten detectors, Strategy pattern)
+5. Score and report (health score + evidence)
+
+**Visual**
+- `thesis/figures/images/chapter3/analysis_pipeline.drawio.png`
+
+**Presenter notes**
+- Ingest a ZIP or a Git URL, then detect microservices by scanning for build files and applying a three-signal deployability gate: framework entry point (HIGH), Dockerfile (MEDIUM), main method (LOW).
+- Intra-service analysis runs DesigniteJava per service for code smells, whose density feeds the health score. Inter-service analysis uses Spoon to find @FeignClient, RestTemplate and WebClient calls and to build the dependency graph.
+- Ten detectors then run over the graph and the per-class structural metrics. Each detector is a Spring component implementing a common interface, so adding one means writing a single class.
+- Results are assembled, the health score is computed, and the dependency graph and evidence snippets are persisted as JSON.
+
+---
+
+## Slide 5 - Spotlight: God Service detection (2:00)
+
+**On-slide content**
+- Multi-level bridge: code-level structural class metrics (computed from the Spoon AST) feed an architectural-level finding.
+- Code level: structural class metrics per class (fields, methods, LOC, cohesion).
+- Architectural level: flag a service if it contains at least one God Class.
+- Six structural metrics per class: >= 25 fields, >= 30 public methods, >= 1000 LOC, >= 20 import domains, >= 12 constructor parameters, TCC < 0.5 (Bieman and Kang, 1995).
+- A class is flagged as a God Class if it exceeds at least 3 of the 6 thresholds.
+
+**Presenter notes**
+- I picked God Service because it is the cleanest illustration of how code-level metrics feed an architectural-level finding.
+- For each service, a Spoon-based analysis parses every class and computes the six structural metrics. The detector flags any microservice that contains at least one class identified as a God Class. A class is a God Class when it exceeds at least three of the six metrics.
+- Pure data holders such as entities and DTOs are excluded first, since they naturally have many fields and low cohesion without being an anti-pattern.
+- TCC, Tight Class Cohesion, is the fraction of method pairs that share an instance field access. Low TCC means methods operate on disjoint state, a sign of unrelated responsibilities packed into one class.
+- If asked where DesigniteJava fits: it runs per service for code smells, but its catalogue is abstraction and modularization smells rather than a literal God Class, so its smell density feeds the code-quality category of the health score while God Service detection is driven by the Spoon structural metrics.
+
+---
+
+## Slide 6 - Ten detectors across four dimensions (0:45)
+
+**On-slide content**
+- Service Design: Nano Service (med), God Service (high)
+- Communication: Chatty Service (high), Cyclic Dependency (critical), Hardcoded Endpoints (med), ESB Misuse (high)
+- Data Management: Shared Database (high)
+- Deployment and Coupling: Distributed Monolith (critical), API Versioning Absence (med), Wrong Cuts (high)
+- All detectors are pluggable Strategy components with configurable thresholds.
 
 **Visual**
 - Left: `thesis/figures/images/chapter2/cyclic-dependency.drawio.png`
 - Right: `thesis/figures/images/chapter2/shared_db.drawio.png`
 
 **Presenter notes**
-- I target ten anti-patterns that are both common and impactful in microservice systems.
-- Each detector has configurable thresholds and generates source code evidence for remediation.
-- ESB Misuse detection uses betweenness centrality via Brandes' algorithm alongside ratio-based signals.
-- Wrong Cuts uses Feature Envy smells and bidirectional dependency detection.
+- Ten detectors organised by architectural dimension. Each is a Spring component implementing a common interface, so adding a detector means one class and no orchestrator changes.
+- Severities feed the health score directly: critical costs 8 points, high 5, medium 3.
+- If asked about a specific detector: Shared DB groups services by datasource URL; Cyclic Dependency uses Tarjan SCC; Chatty Service uses per-edge call count >= 10 or a Feign interface with >= 10 methods; Hardcoded Endpoints is a regex scan of .java files; Distributed Monolith is a composite coupling rule; API Versioning is a regex on endpoint paths; ESB Misuse uses caller/callee ratios, a volume ratio and betweenness centrality; Wrong Cuts uses bidirectional edges between a service pair.
 
 ---
 
-## Slide 6 - Detection Pipeline (2:00)
+## Slide 7 - Composite health score: four-category decomposition (1:15)
 
 **On-slide content**
-1. Project ingestion (ZIP or Git)
-2. Automatic microservice boundary detection
-3. Intra-service analysis (DesigniteJava)
-4. Inter-service AST analysis (Spoon)
-5. Dependency graph construction
-6. Anti-pattern detection + evidence extraction
-7. Composite health score and report
-
-**Visual**
-- `thesis/figures/images/chapter3/analysis_pipeline.drawio.png`
-
-**Presenter notes**
-- The pipeline starts by identifying microservices from build files.
-- DesigniteJava contributes code-smell signals (for example, God Class frequency).
-- Spoon extracts dependencies from annotations and client calls.
-- Results are merged into a dependency graph used for graph-based detection and final reporting.
-
----
-
-## Slide 7 - Graph Analysis and Health Score (1:30)
-
-**On-slide content**
-- Dependency graph: nodes = services, edges = inter-service dependencies
-- Cycle detection via Tarjan SCC
-- Betweenness centrality for ESB Misuse (Brandes' algorithm)
-- Coupling coefficient for distributed monolith signals
-- Health score: `H = S_ap(40) + S_cq(20) + S_arch(25) + S_sz(15)`
-  - 4 categories, each with independent cap and itemized deductions
+- `H = S_ap(40) + S_cq(20) + S_arch(25) + S_sz(15)`, each category capped independently.
+- Anti-Patterns (40): -8/-5/-3/-1 per issue (critical/high/medium/low).
+- Code Quality (20): density-based penalty (smells per KLOC).
+- Architecture (25): coupling coefficient + cycle count.
+- Service Sizing (15): nano (cap 8) + god (cap 10) penalties.
+- Letter grades: A >= 90, B >= 80, C >= 65, D >= 50, F < 50.
 
 **Visual**
 - `thesis/figures/images/chapter3/dependency_graph_example.png`
 
 **Presenter notes**
-- The graph is central to detecting structural anti-patterns such as cycles, high coupling, and ESB misuse.
-- The health score is decomposed into four categories: Anti-Patterns (40 pts), Code Quality (20), Architecture (25), Service Sizing (15).
-- Each category has an independent cap and itemized deductions, enabling teams to identify which quality dimension is degraded.
+- The composite is a sum of four independent categories, each clamped at zero, so penalties cannot bleed across categories.
+- The breakdown is preserved in the UI: a developer does not just see a number, they see which category is dragging it down, with itemised deductions.
+- The analysis-diff feature compares successive runs, so a team that fixes a shared database can see exactly how many points that bought them.
 
 ---
 
-## Slide 8 - Implementation Architecture (1:00)
+## Slide 8 - Worked example: microservice-recruit (40 / F) (1:15)
 
 **On-slide content**
-- Backend: Spring Boot
-- Frontend: Angular
-- Data store: PostgreSQL
-- Deployment: Docker
-- Detector design: pluggable Strategy components
-- Interfaces: browser dashboard + REST API
-
-**Visual**
-- `thesis/figures/images/chapter4/high-level-diagram.drawio.png`
+- Anti-pattern findings: 6 API Versioning Absence (-18), 2 ESB Misuse (-10), 2 Wrong Cuts (-10), 1 Cyclic Dependency (-8), 1 Hardcoded Endpoint (-3). Total penalty 49, so Anti-Patterns clamps to 0.
+- Code Quality: 260 smells over 8,280 LOC = 31.4 per KLOC, penalty 8, leaving 12/20.
+- Architecture: 16/25 (dependency-graph coupling).
+- Service Sizing: one nano service, penalty 3, leaving 12/15.
+- Composite: 0 + 12 + 16 + 12 = 40, grade F.
 
 **Presenter notes**
-- The implementation is designed for practical use in both manual analysis and CI/CD integration.
-- Pluggable detector components make future anti-pattern extensions straightforward.
+- microservice-recruit is a Spring Cloud recruitment platform. Its anti-pattern load (penalty 49) exceeds the 40-point cap, so Anti-Patterns clamps to zero. The two Wrong Cuts are bidirectional dependencies between pf-recruit/pf-resume and pf-recruit/pf-user.
+- The single nano service is scored under Service Sizing, not Anti-Patterns, to avoid double counting.
+- Code Quality is scored by smell density per 1000 LOC, not raw count, so a codebase is not punished just for its size.
+- This project loses points in every dimension, which is exactly what the multi-category decomposition is meant to surface.
 
 ---
 
-## Slide 9 - Evaluation Results (2:00)
+## Slide 9 - Evaluation: eleven open-source projects (2:00)
 
 **On-slide content**
-- Dataset: 6 open-source projects, 99 microservices, ~335k LOC
-- Health scores:
-  - MicroservicesSocial: 77 (C)
-  - Site-Where: 69 (C)
-  - microservices-design-patterns: 60 (D)
-  - Apollo-Config: 59 (D)
-  - Train-Ticket: 52 (D)
-  - Genie: 45 (F)
-- Most frequent: Hardcoded Endpoints, Nano Service, API Versioning Absence
-- ESB Misuse detected in Site-Where; Chatty Service in Train-Ticket
+- 11 projects, 130 detected microservices, ~274k LOC.
+- Health scores (0-100): MicroSocial 83, ftgo 75, PiggyMetrics 71, Site-Where 69, RuoYi 68, design-patterns 60, mall-swarm 53, NetworkDisk 52, piomin 51, Train-Ticket 40, recruit 40.
+- 126 anti-pattern instances across 9 distinct types.
+- Hardcoded Endpoints (43) and API Versioning Absence (37) dominate.
+- Cyclic Dependency and Wrong Cuts detected in microservice-recruit; Distributed Monolith was not detected.
 
 **Visual**
 - Bar chart from `thesis/presentation/results_chart_data.csv`
 
 **Presenter notes**
-- Health scores ranged from 45 to 77, showing the scoring differentiates meaningfully.
-- Train-Ticket triggered Chatty Service and Shared Database detections.
-- Site-Where triggered ESB Misuse detection — validating the betweenness centrality implementation.
-- Genie scored lowest due to God Service, Nano Service and Hardcoded Endpoints.
+- Eleven open-source Spring Boot projects, from piomin at 1.3k LOC to mall-swarm at 86k LOC, 130 microservices and about 274k LOC.
+- Health scores ranged from 40 to 83, so the scoring has useful discriminating power.
+- The dominant findings are configuration and sizing issues. Only Distributed Monolith was not detected, plausible given these projects' topologies.
+- If asked whether eleven projects is enough: this is a feasibility demonstration across heterogeneous codebases, not a statistical precision/recall claim, which would need a labelled corpus that does not yet exist for microservice anti-patterns. I note this in Threats to Validity.
 
 ---
 
-## Slide 10 - Case Study: Site-Where (0:45)
+## Slide 10 - Live demo (2:00)
 
 **On-slide content**
-- Site-Where: IoT platform, 15 microservices, 74k LOC
-- Health score: 69 (C)
-- Detected: God Service, ESB Misuse, Hardcoded Endpoints
-- First project to trigger ESB Misuse detector
-- ESB Misuse detected via betweenness centrality — a service acting as central mediator
+1. Clone a small public repo and watch the pipeline progress.
+2. Open the results dashboard (health score, four-category breakdown).
+3. Drill into a finding to see source evidence and remediation.
+4. Explore the interactive dependency graph.
 
 **Visual**
-- Optional: screenshot of Site-Where results page from the app
+- `thesis/figures/images/chapter4/clone_page.png`, `analysis_page.png`, `history_page.png`
 
 **Presenter notes**
-- Site-Where is significant because it triggered the ESB Misuse detector, validating the betweenness centrality implementation.
-- The centralized orchestration layer in the IoT platform naturally creates a hub service that mediates most inter-service communication.
-- This demonstrates that the detector works on real-world architectural patterns, not just synthetic examples.
+- Have the app already running and be logged in; do not start the server live.
+- Keep a small known-working repo URL ready (MicroservicesSocial is a safe choice) and a second tab with a previously completed analysis as a fallback.
+- The drill-down into a finding is the strongest moment: the committee sees evidence-based reporting in action.
+- If the demo breaks, switch to the backup tab or the Chapter 4 screenshots and move on quickly.
 
 ---
 
-## Slide 11 - Case Study: Train-Ticket (0:45)
+## Slide 11 - Limitations and future work (1:00)
 
 **On-slide content**
-- Train-Ticket: academic benchmark, 42 services, 38k LOC
-- Health score: 52 (D)
-- Detected: 4 Chatty Services, 27 Hardcoded Endpoints, 4 Nano Services, 1 Shared Database
-- 36 total anti-pattern instances — highest count across all datasets
-- First project in evaluation to trigger Chatty Service detector
-- Realistic microservice topology with inter-service REST calls
-
-**Visual**
-- Optional: screenshot of Train-Ticket results page from the app
+- Limitations: Java/Spring Boot scope; static analysis only (no runtime call frequencies); deployability gate may miss unconventional services; dynamic URLs (Spring Cloud Config) not resolved; health-score weights and thresholds chosen by literature and engineering judgement rather than empirical calibration; eleven-project evaluation is not a statistical claim.
+- Future work: multi-language support via language-agnostic dependency graphs (Docker Compose / Kubernetes manifests); extended anti-pattern catalogue; ML-based detection; empirical threshold calibration.
 
 **Presenter notes**
-- Train-Ticket is specifically designed as a microservice research benchmark by Fudan University.
-- The 42 services communicate via RestTemplate, producing a rich dependency graph.
-- The 4 Chatty Service detections validated a detector that no other project triggered.
-- 27 Hardcoded Endpoints reflect the project's use of literal localhost URLs rather than service discovery.
-- The Shared Database detection found services sharing a single data store, consistent with the project's known architecture.
+- The biggest limitation is the Java/Spring Boot restriction; real-world systems are polyglot.
+- Static analysis trades precision for applicability: it runs on a fresh checkout without a deployed, instrumented system.
+- The health-score weights and detection thresholds are engineering judgement informed by the literature rather than systematically calibrated.
+- Future work in priority order: multi-language support, then ML-based detection, then empirical threshold calibration.
 
 ---
 
-## Slide 12 - Conclusions and Future Work (1:00)
+## Slide 12 - Closing (0:30)
 
 **On-slide content**
-- Contributions:
-  - Multi-level static analysis approach
-  - 10 anti-pattern detectors with evidence
-  - Composite health score and trend tracking
-  - Automated microservice boundary detection
-- Limitations:
-  - Java + Spring Boot scope
-  - Static-analysis-only constraints
-- Future work:
-  - Multi-language support
-  - Additional anti-patterns
-  - Deeper CI/CD and IDE integration
-
-**Visual**
-- Optional roadmap graphic or minimal text-only slide
+- Multi-level static analysis combining code-level structural metrics and architectural-level dependency analysis.
+- Ten anti-patterns, configurable thresholds, evidence-based reporting.
+- Composite health score with four-category decomposition and analysis diff.
+- Open-source web application, ready for CI/CD integration.
 
 **Presenter notes**
-- The core contribution is actionable architectural quality feedback without requiring a running system.
-- The methodology is extensible even though the current implementation is Java/Spring-focused.
-
----
-
-## Slide 13 - Live Demo (2:00)
-
-**On-slide content**
-- Live demo:
-  1. Ingest project (Git clone)
-  2. Run analysis
-  3. Inspect anti-pattern findings + snippets
-  4. Show health score and history/diff
-
-**Visual**
-- Optional small thumbnails:
-  - `thesis/figures/images/chapter4/clone_page.png`
-  - `thesis/figures/images/chapter4/analysis_page.png`
-  - `thesis/figures/images/chapter4/history_page.png`
-
-**Presenter notes**
-- I will run one full analysis flow live and show the final findings.
-- If runtime is tight, I will use a pre-analyzed project and focus on findings, score, and analysis history.
-- Transition to Q&A after the demo.
-
+- Recap the four points above, then thank the committee and invite questions.
+- The takeaway: the bridge between code-level evidence and architectural-level findings is what makes this tool different. It does not just say something is wrong, it shows where in the code the problem lives.
+- Then stop talking and let the committee ask. Common questions: why one God Class flags a service (sensitivity, configurable), why only eleven projects (feasibility demo, no labelled corpus), score compression at the bottom (known limitation), static versus dynamic (applicability), Spring Boot only (largest Java microservice ecosystem).

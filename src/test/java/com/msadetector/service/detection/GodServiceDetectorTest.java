@@ -1,42 +1,28 @@
 package com.msadetector.service.detection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.msadetector.entity.CodeSmell;
 import com.msadetector.entity.DetectedAntiPattern;
 import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
 import com.msadetector.enums.AntiPatternType;
 import com.msadetector.enums.Severity;
 import com.msadetector.enums.SourceType;
-import com.msadetector.repository.CodeSmellRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class GodServiceDetectorTest {
-
-    @Mock
-    private CodeSmellRepository codeSmellRepository;
-
-    private GodServiceDetector detector;
 
     @TempDir
     Path tempDir;
 
-    @BeforeEach
-    void setUp() {
-        detector = new GodServiceDetector(new ObjectMapper(), codeSmellRepository, 1);
-    }
+    private final GodServiceDetector detector = new GodServiceDetector(new ObjectMapper());
 
     private Project createProject() {
         Project project = new Project();
@@ -53,34 +39,38 @@ class GodServiceDetectorTest {
         return ms;
     }
 
-    private CodeSmell createGodClassSmell(Microservice ms) {
-        CodeSmell smell = new CodeSmell();
-        smell.setSmellType("God Class");
-        smell.setClassName("com.example.BigService");
-        smell.setMicroservice(ms);
-        smell.setSeverity(Severity.HIGH);
-        return smell;
+    /** Writes a Java source file under {@code <service>/src/main/java}. */
+    private void writeSource(String service, String className, String code) throws IOException {
+        Path dir = tempDir.resolve(service).resolve("src/main/java");
+        Files.createDirectories(dir);
+        Files.writeString(dir.resolve(className + ".java"), code);
+    }
+
+    /**
+     * Builds a class that trips three God Class metrics at once: it declares many
+     * fields and many public methods, and each method touches a different field, so
+     * the class has near-zero tight class cohesion. The methods are not accessors,
+     * so the class is not mistaken for a data holder.
+     */
+    private String godClassSource(String className, int members) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("public class ").append(className).append(" {\n");
+        for (int i = 0; i < members; i++) {
+            sb.append("    private int field").append(i).append(";\n");
+        }
+        for (int i = 0; i < members; i++) {
+            sb.append("    public void process").append(i).append("() { field")
+              .append(i).append(" = field").append(i).append(" + 1; }\n");
+        }
+        sb.append("}\n");
+        return sb.toString();
     }
 
     @Test
-    void detect_noGodClassSmells_returnsEmpty() {
-        Project project = createProject();
-        Microservice ms = createMs("clean-svc");
-
-        when(codeSmellRepository.findByMicroservice(ms)).thenReturn(List.of());
-
-        List<DetectedAntiPattern> results = detector.detect(project, List.of(ms));
-
-        assertTrue(results.isEmpty());
-    }
-
-    @Test
-    void detect_hasDesigniteGodClass_returnsPattern() {
+    void detect_godClass_flagsService() throws IOException {
         Project project = createProject();
         Microservice ms = createMs("big-svc");
-
-        CodeSmell godSmell = createGodClassSmell(ms);
-        when(codeSmellRepository.findByMicroservice(ms)).thenReturn(List.of(godSmell));
+        writeSource("big-svc", "OrderManager", godClassSource("OrderManager", 30));
 
         List<DetectedAntiPattern> results = detector.detect(project, List.of(ms));
 
@@ -89,37 +79,18 @@ class GodServiceDetectorTest {
         assertEquals(AntiPatternType.GOD_SERVICE, pattern.getPatternType());
         assertEquals(Severity.HIGH, pattern.getSeverity());
         assertTrue(pattern.getDescription().contains("big-svc"));
-        assertTrue(pattern.getDescription().contains("God Class"));
+        assertTrue(pattern.getDescription().contains("OrderManager"));
     }
 
     @Test
-    void detect_multipleGodClasses_reportsCount() {
+    void detect_smallClass_returnsEmpty() throws IOException {
         Project project = createProject();
-        Microservice ms = createMs("mega-svc");
-
-        CodeSmell smell1 = createGodClassSmell(ms);
-        CodeSmell smell2 = createGodClassSmell(ms);
-        smell2.setClassName("com.example.AnotherBigClass");
-
-        when(codeSmellRepository.findByMicroservice(ms)).thenReturn(List.of(smell1, smell2));
-
-        List<DetectedAntiPattern> results = detector.detect(project, List.of(ms));
-
-        assertEquals(1, results.size());
-        assertTrue(results.getFirst().getDescription().contains("2 God Class"));
-    }
-
-    @Test
-    void detect_nonGodClassSmells_notFlagged() {
-        Project project = createProject();
-        Microservice ms = createMs("smelly-svc");
-
-        CodeSmell featureEnvy = new CodeSmell();
-        featureEnvy.setSmellType("Feature Envy");
-        featureEnvy.setMicroservice(ms);
-        featureEnvy.setSeverity(Severity.MEDIUM);
-
-        when(codeSmellRepository.findByMicroservice(ms)).thenReturn(List.of(featureEnvy));
+        Microservice ms = createMs("clean-svc");
+        writeSource("clean-svc", "Calculator",
+                "public class Calculator {\n"
+              + "    private int a;\n"
+              + "    public int add(int b) { return a + b; }\n"
+              + "}\n");
 
         List<DetectedAntiPattern> results = detector.detect(project, List.of(ms));
 
@@ -127,30 +98,39 @@ class GodServiceDetectorTest {
     }
 
     @Test
-    void detect_minGodClassesThreshold_respected() {
-        GodServiceDetector strictDetector = new GodServiceDetector(
-                new ObjectMapper(), codeSmellRepository, 3);
-
+    void detect_dataClassExcluded_notFlagged() throws IOException {
         Project project = createProject();
-        Microservice ms = createMs("svc");
+        Microservice ms = createMs("dto-svc");
+        // Same structural shape as a God Class, but the name ends in "Dto", so it
+        // is treated as a data holder and excluded from God Class detection.
+        writeSource("dto-svc", "CustomerDto", godClassSource("CustomerDto", 30));
 
-        when(codeSmellRepository.findByMicroservice(ms))
-                .thenReturn(List.of(createGodClassSmell(ms), createGodClassSmell(ms)));
-
-        List<DetectedAntiPattern> results = strictDetector.detect(project, List.of(ms));
+        List<DetectedAntiPattern> results = detector.detect(project, List.of(ms));
 
         assertTrue(results.isEmpty());
     }
 
     @Test
-    void detect_multipleServices_onlyFlagsGodOnes() {
+    void detect_noSourceDirectory_returnsEmpty() {
+        Project project = createProject();
+        Microservice ms = createMs("missing-svc");
+
+        List<DetectedAntiPattern> results = detector.detect(project, List.of(ms));
+
+        assertTrue(results.isEmpty());
+    }
+
+    @Test
+    void detect_multipleServices_onlyFlagsGodOnes() throws IOException {
         Project project = createProject();
         Microservice clean = createMs("clean-svc");
         Microservice god = createMs("god-svc");
-
-        when(codeSmellRepository.findByMicroservice(clean)).thenReturn(List.of());
-        when(codeSmellRepository.findByMicroservice(god))
-                .thenReturn(List.of(createGodClassSmell(god)));
+        writeSource("clean-svc", "Calculator",
+                "public class Calculator {\n"
+              + "    private int a;\n"
+              + "    public int add(int b) { return a + b; }\n"
+              + "}\n");
+        writeSource("god-svc", "OrderManager", godClassSource("OrderManager", 30));
 
         List<DetectedAntiPattern> results = detector.detect(project, List.of(clean, god));
 
@@ -158,4 +138,3 @@ class GodServiceDetectorTest {
         assertTrue(results.getFirst().getDescription().contains("god-svc"));
     }
 }
-

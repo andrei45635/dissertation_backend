@@ -269,7 +269,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
 
         // Five contributions as icon rows
         const rows = [
-            { icon: icCogs,    color: C.deepBlue, title: "Multi-level analysis",        text: "Combines intra-service code smells (DesigniteJava) with inter-service dependency analysis (Spoon + graphs)" },
+            { icon: icCogs,    color: C.deepBlue, title: "Multi-level analysis",        text: "Combines intra-service code analysis (DesigniteJava smells + Spoon structural metrics) with inter-service dependency analysis (graph algorithms)" },
             { icon: icSitemap, color: C.teal,     title: "Ten anti-patterns detected",  text: "Across four dimensions: service design, communication, data management, deployment & coupling" },
             { icon: icSearch,  color: C.navy,     title: "Automated boundary detection",text: "Three-signal deployability gate (framework entry point, Dockerfile, main method) with confidence levels" },
             { icon: icChart,   color: C.good,     title: "Composite health score",      text: "0–100 with letter grading; decomposes into four interpretable categories; tracks change over time" },
@@ -295,7 +295,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
         s.addNotes(
             "Spend ~75 seconds here. Don't read the slide — talk to it.\n\n" +
             "What to actually say:\n" +
-            "• 'The work has five contributions. The first is the multi-level analysis itself — using code-level signals like God Class frequency to flag architectural problems like God Service. That bridge between abstraction levels is the central novelty.'\n" +
+            "• 'The work has five contributions. The first is the multi-level analysis itself — using code-level structural metrics like class cohesion to flag architectural problems like God Service. That bridge between abstraction levels is the central novelty.'\n" +
             "• 'Second, ten anti-patterns across four dimensions — broader coverage than any single existing tool.'\n" +
             "• 'Third, automated microservice boundary detection via a three-signal deployability gate — framework entry points, Dockerfiles, and main methods — with confidence levels. Most existing tools require manual configuration.'\n" +
             "• 'Fourth, a composite health score on 0–100, decomposed into four categories so you can see which dimension is dragging the score down.'\n" +
@@ -417,11 +417,11 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             x: 0.7, y: 1.45, w: 4, h: 0.3,
             fontSize: 11, fontFace: HEADER_FONT, color: C.muted, bold: true, margin: 0,
         });
-        s.addText("God Class smell (per class)", {
+        s.addText("Structural class metrics (per class)", {
             x: 0.7, y: 1.72, w: 4, h: 0.32,
             fontSize: 13, fontFace: BODY_FONT, color: C.text, bold: true, margin: 0,
         });
-        s.addText("Detected by DesigniteJava, persisted as CodeSmell entities", {
+        s.addText("Computed from the Spoon AST: fields, methods, LOC, cohesion", {
             x: 0.7, y: 2.02, w: 4, h: 0.35,
             fontSize: 10, fontFace: BODY_FONT, color: C.muted, italic: true, margin: 0,
         });
@@ -449,17 +449,17 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             x: 0.7, y: 3.27, w: 4, h: 0.32,
             fontSize: 13, fontFace: BODY_FONT, color: C.text, bold: true, margin: 0,
         });
-        s.addText("Flag service if ≥ θ_god God Classes detected (default = 1)", {
+        s.addText("Flag service if it contains at least one God Class", {
             x: 0.7, y: 3.57, w: 4, h: 0.4,
             fontSize: 10, fontFace: BODY_FONT, color: C.muted, italic: true, margin: 0,
         });
 
         // Right side: fallback panel
-        s.addText("Spoon-based fallback", {
+        s.addText("Six structural metrics", {
             x: 5.1, y: 0.95, w: 4.4, h: 0.35,
             fontSize: 14, fontFace: HEADER_FONT, color: C.navy, bold: true, margin: 0,
         });
-        s.addText("If DesigniteJava reports zero God Classes, a Spoon-based structural analysis evaluates each class against six metrics:", {
+        s.addText("Each non-data class is evaluated against six structural metrics computed from its AST:", {
             x: 5.1, y: 1.32, w: 4.4, h: 0.65,
             fontSize: 11, fontFace: BODY_FONT, color: C.text, margin: 0,
         });
@@ -493,12 +493,12 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "Spend ~90–120 seconds. This is the slide that demonstrates the multi-level claim.\n\n" +
             "Talking points:\n" +
             "• 'I picked God Service as the example because it's the cleanest illustration of how code-level signals feed an architectural-level finding.'\n" +
-            "• Walk through left side: 'DesigniteJava detects God Class smells per class. Those are persisted as CodeSmell entities in the database. The God Service detector then queries that table and flags any microservice containing one or more God Classes.'\n" +
-            "• Right side: 'But what if DesigniteJava fails or is disabled? The detector falls back to its own Spoon-based analysis using six structural metrics. A class is flagged if it exceeds at least three.'\n" +
+            "• Walk through left side: 'For each service, a Spoon-based analysis parses every class and computes structural metrics — field count, public method count, lines of code, import domains, constructor parameters, and class cohesion. The God Service detector flags any microservice containing at least one class identified as a God Class.'\n" +
+            "• Right side: 'A class is flagged as a God Class when it exceeds at least three of the six metrics. Pure data holders such as entities and DTOs are excluded first, since they naturally have many fields and low cohesion without being an anti-pattern.'\n" +
             "• On TCC: 'Tight Class Cohesion measures the fraction of method pairs that share an instance field access. Low TCC means the methods operate on disjoint state — a sign of unrelated responsibilities packed into one class.'\n\n" +
-            "EXPECT THIS QUESTION: 'Why threshold = 1? One God Class shouldn't flag a service.'\n" +
-            "Answer: 'The default is intentionally sensitive. False positives are cheap to dismiss. False negatives — architectural debt growing undetected — are expensive. The threshold is configurable; teams in production would calibrate it. Even one God Class concentrates responsibilities enough to warrant a look.'\n\n" +
-            "You can also note: 'The dual-path approach — DesigniteJava primary, Spoon fallback — is a pattern I used across several detectors. It makes the tool resilient to external-tool failures and also lets us cross-validate results when both paths are available.'"
+            "EXPECT THIS QUESTION: 'Why does one God Class flag a service?'\n" +
+            "Answer: 'The default is intentionally sensitive. False positives are cheap to dismiss. False negatives — architectural debt growing undetected — are expensive. The threshold is configurable; teams in production would calibrate it. Even one class concentrating that many responsibilities is worth a look.'\n\n" +
+            "If asked where DesigniteJava fits: 'DesigniteJava runs per service for code smells, but its catalogue is abstraction and modularization smells rather than a literal God Class. So God Service detection is driven by the Spoon structural metrics, and DesigniteJava smell density feeds the code-quality category of the health score instead.'"
         );
     }
 
@@ -582,7 +582,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "• Distributed Monolith — composite rule on coupling coefficient, connected ratio, shared DB count\n" +
             "• API Versioning — regex /v\\d+[/.] on endpoint paths\n" +
             "• ESB Misuse — caller/callee ratios + volume-based mediator ratio\n" +
-            "• Wrong Cuts — Feature Envy count OR bidirectional edges\n\n" +
+            "• Wrong Cuts — bidirectional edges between a service pair\n\n" +
             "Worth saying aloud: 'The severity levels aren't arbitrary — they reflect how much damage the anti-pattern can cause. Cyclic Dependency and Distributed Monolith are critical because they undermine independent deployability entirely. Hardcoded Endpoints and API Versioning are medium because they're easier to fix and their impact is more localised.'\n\n" +
             "Don't get defensive about limitations. Acknowledging them is more impressive than glossing over them."
         );

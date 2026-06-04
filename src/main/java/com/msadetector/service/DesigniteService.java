@@ -246,9 +246,9 @@ public class DesigniteService {
 
     private Severity mapSeverity(String smellType) {
         return switch (smellType.toLowerCase()) {
-            case "god class", "cyclic dependency", "feature envy" -> Severity.HIGH;
-            case "long method", "long parameter list", "complex method" -> Severity.MEDIUM;
-            case "magic number", "empty catch clause" -> Severity.LOW;
+            case "cyclic dependency", "cyclic-dependent modularization" -> Severity.HIGH;
+            case "long method", "long parameter list", "complex method", "complex conditional" -> Severity.MEDIUM;
+            case "magic number", "long statement", "empty catch clause" -> Severity.LOW;
             default -> Severity.MEDIUM;
         };
     }
