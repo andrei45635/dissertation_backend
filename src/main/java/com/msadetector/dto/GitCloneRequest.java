@@ -15,8 +15,6 @@ public record GitCloneRequest(
         @NotBlank(message = "Project name is required")
         String name,
 
-        // Optional branch — defaults to "main" if not provided.
         String branch
 ) {}
-
 

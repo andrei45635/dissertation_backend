@@ -42,8 +42,6 @@ public class NanoServiceDetector extends BaseDetector {
 
         for (Microservice ms : microservices) {
             if (ms.getLinesOfCode() < maxLoc && ms.getNumberOfEndpoints() <= maxEndpoints) {
-
-                // Try to show the main application class or first Java file as evidence
                 List<Map<String, Object>> snippets = new ArrayList<>();
                 Path serviceSrc = projectRoot.resolve(ms.getRelativePath()).resolve("src/main/java");
                 Path mainClass = findMainClass(serviceSrc);
@@ -88,7 +86,7 @@ public class NanoServiceDetector extends BaseDetector {
         } catch (IOException e) {
             log.debug("Could not scan for main class: {}", e.getMessage());
         }
-        // Fall back to first Java file
+
         try (Stream<Path> files = Files.walk(srcDir).filter(p -> p.toString().endsWith(".java"))) {
             return files.findFirst().orElse(null);
         } catch (IOException e) {

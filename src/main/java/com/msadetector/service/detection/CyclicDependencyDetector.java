@@ -35,11 +35,9 @@ public class CyclicDependencyDetector extends BaseDetector {
         List<ServiceDependency> dependencies = dependencyRepository.findByProjectWithServices(project);
         Path projectRoot = Path.of(project.getLocalPath());
 
-        // Build adjacency list
         Map<Long, Set<Long>> adjacency = new HashMap<>();
         Map<Long, String> serviceNames = new HashMap<>();
 
-        // Index dependencies for quick lookup of evidence
         Map<String, ServiceDependency> depByEdge = new HashMap<>();
 
         for (ServiceDependency dep : dependencies) {
@@ -64,9 +62,6 @@ public class CyclicDependencyDetector extends BaseDetector {
                 String cycleDescription = String.join(" -> ", cycleServiceNames)
                         + " -> " + cycleServiceNames.getFirst();
 
-                // Collect code snippets from the actual dependency edges among the
-                // cycle's services (an SCC is not an ordered path, so we iterate real
-                // edges between SCC members rather than consecutive list elements).
                 List<Map<String, Object>> snippets = new ArrayList<>();
                 Set<Long> sccSet = new HashSet<>(scc);
                 outer:

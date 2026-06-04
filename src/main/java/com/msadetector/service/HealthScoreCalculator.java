@@ -77,13 +77,10 @@ public class HealthScoreCalculator {
         );
     }
 
-
     private ScoreCategory buildAntiPatternCategory(AnalysisResult result) {
         List<Deduction> deductions = new ArrayList<>();
         int totalPenalty = 0;
 
-        // Nano/God services are scored exclusively in the Service Sizing category,
-        // so they are excluded here to avoid penalising them in two categories.
         Map<AntiPatternType, List<DetectedAntiPattern>> byType =
                 result.getDetectedAntiPatterns().stream()
                         .filter(p -> p.getPatternType() != AntiPatternType.NANO_SERVICE
@@ -120,10 +117,6 @@ public class HealthScoreCalculator {
         int totalSmells = result.getTotalCodeSmells();
         int totalLoc = result.getTotalLinesOfCode() != null ? result.getTotalLinesOfCode() : 0;
         if (totalSmells > 0 && totalLoc > 0) {
-            // Score smell *density* (smells per 1000 LOC) rather than absolute count,
-            // so a large codebase is not penalised simply for being large. The penalty
-            // scales linearly with density and reaches CODE_QUALITY_MAX at
-            // smellDensityFullPenalty smells/KLOC.
             double density = totalSmells / (totalLoc / 1000.0);
             int penalty = (int) Math.min(CODE_QUALITY_MAX,
                     Math.round(CODE_QUALITY_MAX * density / smellDensityFullPenalty));
@@ -211,7 +204,6 @@ public class HealthScoreCalculator {
                 score, SERVICE_SIZING_MAX, deductions);
     }
 
-
     private static String toGrade(int score) {
         if (score >= 90) return "A";
         if (score >= 80) return "B";
@@ -220,4 +212,3 @@ public class HealthScoreCalculator {
         return "F";
     }
 }
-

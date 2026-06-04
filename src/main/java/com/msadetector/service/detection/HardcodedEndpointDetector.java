@@ -27,7 +27,9 @@ import java.util.stream.Stream;
 public class HardcodedEndpointDetector extends BaseDetector {
 
     private static final Pattern URL_PATTERN = Pattern.compile(
-            "(https?://[\\w.\\-:]+[/\\w.\\-?=&#%]*)"
+            "(?i)(https?://[\\w.\\-:]+[/\\w.\\-?=&#%]*)"
+                    + "|((?:localhost|127\\.0\\.0\\.1|\\d{1,3}(?:\\.\\d{1,3}){3})"
+                    + ":\\d{2,5}(?:[/\\w.\\-?=&#%]*)?)"
     );
 
     private final String hardcodedEndpointPatterns;
@@ -61,9 +63,8 @@ public class HardcodedEndpointDetector extends BaseDetector {
                         ))
                         .toList();
 
-                // Build code snippets — read actual source with surrounding context
                 List<Map<String, Object>> snippets = evidenceList.stream()
-                        .limit(5) // cap at 5 snippets to avoid huge payloads
+                        .limit(5)
                         .map(e -> readSnippet(servicePath.resolve(e.file()), e.lineNumber()))
                         .toList();
 
@@ -112,8 +113,7 @@ public class HardcodedEndpointDetector extends BaseDetector {
 
                     for (String urlPattern : urlPatterns) {
                         if (line.contains("\"" + urlPattern.trim()) || line.contains("'" + urlPattern.trim())) {
-                            Matcher matcher = URL_PATTERN.matcher(line);
-                            String url = matcher.find() ? matcher.group(1) : urlPattern.trim();
+                            String url = extractEndpointLiteral(line, urlPattern.trim());
                             evidenceList.add(new HardcodedUrlEvidence(relativePath, i + 1, line, url));
                         }
                     }
@@ -126,6 +126,13 @@ public class HardcodedEndpointDetector extends BaseDetector {
         return evidenceList;
     }
 
+    private String extractEndpointLiteral(String line, String fallbackPattern) {
+        Matcher matcher = URL_PATTERN.matcher(line);
+        if (matcher.find()) {
+            return matcher.group();
+        }
+        return fallbackPattern;
+    }
+
     private record HardcodedUrlEvidence(String file, int lineNumber, String code, String url) {}
 }
-

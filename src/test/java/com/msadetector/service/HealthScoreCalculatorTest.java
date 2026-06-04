@@ -63,7 +63,7 @@ class HealthScoreCalculatorTest {
         HealthScoreBreakdownResponse response = calculator.calculate(result);
 
         ScoreCategory apCategory = response.categories().get(0);
-        assertEquals(40, apCategory.score()); // no deduction
+        assertEquals(40, apCategory.score());
     }
 
     @Test

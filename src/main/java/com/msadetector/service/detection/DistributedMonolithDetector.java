@@ -8,6 +8,7 @@ import com.msadetector.entity.ServiceDependency;
 import com.msadetector.enums.AntiPatternType;
 import com.msadetector.enums.Severity;
 import com.msadetector.repository.ServiceDependencyRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
@@ -26,11 +27,20 @@ import java.util.stream.Collectors;
 public class DistributedMonolithDetector extends BaseDetector {
 
     private final ServiceDependencyRepository dependencyRepository;
+    private final double highCouplingThreshold;
+    private final double connectedRatioThreshold;
+    private final double moderateCouplingThreshold;
 
     public DistributedMonolithDetector(ObjectMapper objectMapper,
-                                        ServiceDependencyRepository dependencyRepository) {
+                                        ServiceDependencyRepository dependencyRepository,
+                                        @Value("${app.thresholds.distributed-monolith-high-coupling:0.5}") double highCouplingThreshold,
+                                        @Value("${app.thresholds.distributed-monolith-connected-ratio:0.8}") double connectedRatioThreshold,
+                                        @Value("${app.thresholds.distributed-monolith-moderate-coupling:0.3}") double moderateCouplingThreshold) {
         super(objectMapper);
         this.dependencyRepository = dependencyRepository;
+        this.highCouplingThreshold = highCouplingThreshold;
+        this.connectedRatioThreshold = connectedRatioThreshold;
+        this.moderateCouplingThreshold = moderateCouplingThreshold;
     }
 
     @Override
@@ -67,15 +77,14 @@ public class DistributedMonolithDetector extends BaseDetector {
                 .filter(list -> list.size() > 1)
                 .count();
 
-        boolean isDistributedMonolith = couplingCoefficient > 0.5
-                || (connectedRatio > 0.8 && sharedDbCount > 0)
-                || (connectedRatio > 0.8 && couplingCoefficient > 0.3);
+        boolean isDistributedMonolith = couplingCoefficient > highCouplingThreshold
+                || (connectedRatio > connectedRatioThreshold && sharedDbCount > 0)
+                || (connectedRatio > connectedRatioThreshold && couplingCoefficient > moderateCouplingThreshold);
 
         if (isDistributedMonolith) {
             List<String> allServiceNames = microservices.stream().map(Microservice::getName).toList();
             Path projectRoot = Path.of(project.getLocalPath());
 
-            // Collect code snippets from inter-service call evidence (up to 5)
             List<Map<String, Object>> snippets = allDeps.stream()
                     .filter(dep -> dep.getEvidenceFile() != null)
                     .limit(5)
@@ -125,4 +134,3 @@ public class DistributedMonolithDetector extends BaseDetector {
         return patterns;
     }
 }
-

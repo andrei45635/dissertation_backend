@@ -20,7 +20,7 @@ public record AnalysisDiffResponse(
 
         int currentHealthScore,
         int previousHealthScore,
-        int healthScoreDelta,            // positive = improved
+        int healthScoreDelta,
         String currentGrade,
         String previousGrade,
 
@@ -42,7 +42,7 @@ public record AnalysisDiffResponse(
 
         List<CategoryDelta> categoryDeltas,
 
-        String summary   // human-readable one-liner, e.g. "Health improved from 52 (D) → 78 (C). 2 anti-patterns resolved, 1 new."
+        String summary
 
 ) {
 

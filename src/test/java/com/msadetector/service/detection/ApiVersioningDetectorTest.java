@@ -63,6 +63,12 @@ class ApiVersioningDetectorTest {
         return ep;
     }
 
+    private Endpoint createEndpoint(String path, String apiVersion) {
+        Endpoint ep = createEndpoint(path, false);
+        ep.setApiVersion(apiVersion);
+        return ep;
+    }
+
     @Test
     void detect_noVersioning_flagsPattern() {
         Project project = createProject();
@@ -102,7 +108,7 @@ class ApiVersioningDetectorTest {
 
     @Test
     void detect_mixedVersioning_notFlagged() {
-        // Only flags when versionedCount == 0
+
         Project project = createProject();
         Microservice ms = createMs("svc");
 
@@ -111,6 +117,32 @@ class ApiVersioningDetectorTest {
                         createEndpoint("/v1/api/users", true),
                         createEndpoint("/api/legacy", false)
                 ));
+
+        List<DetectedAntiPattern> results = detector.detect(project, List.of(ms));
+
+        assertTrue(results.isEmpty());
+    }
+
+    @Test
+    void detect_headerVersioningMetadata_returnsEmpty() {
+        Project project = createProject();
+        Microservice ms = createMs("svc");
+
+        when(endpointRepository.findByMicroservice(ms))
+                .thenReturn(List.of(createEndpoint("/api/users", "header")));
+
+        List<DetectedAntiPattern> results = detector.detect(project, List.of(ms));
+
+        assertTrue(results.isEmpty());
+    }
+
+    @Test
+    void detect_queryVersioningMetadata_returnsEmpty() {
+        Project project = createProject();
+        Microservice ms = createMs("svc");
+
+        when(endpointRepository.findByMicroservice(ms))
+                .thenReturn(List.of(createEndpoint("/api/users", "query")));
 
         List<DetectedAntiPattern> results = detector.detect(project, List.of(ms));
 
@@ -146,4 +178,3 @@ class ApiVersioningDetectorTest {
         assertTrue(results.getFirst().getDescription().contains("unversioned-svc"));
     }
 }
-

@@ -145,18 +145,12 @@ public class GitCloneService {
                                 try {
                                     Files.delete(path);
                                 } catch (IOException e) {
-                                    // best-effort cleanup
                                 }
                             });
                 }
             }
         } catch (IOException e) {
-            // best-effort cleanup
         }
     }
 }
-
-
-
-
 

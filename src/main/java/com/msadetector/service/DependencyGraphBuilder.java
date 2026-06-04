@@ -28,7 +28,6 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-
 /**
  * Builds the dependency graph for a microservices project by scanning source
  * code with Spoon and parsing configuration files.
@@ -40,7 +39,14 @@ public class DependencyGraphBuilder {
 
     private static final String SRC_MAIN_JAVA = "src/main/java";
 
-    private static final Pattern API_VERSION_PATTERN = Pattern.compile("/v\\d+[/.]");
+    private static final Pattern API_VERSION_PATTERN = Pattern.compile("/v(\\d+)([/.]|$)");
+    private static final Pattern HEADER_VERSION_PATTERN = Pattern.compile(
+            "(?i)(x-api-version|api-version|accept-version|api\\.version)"
+    );
+    private static final Pattern MEDIA_TYPE_VERSION_PATTERN = Pattern.compile("(?i)vnd\\.[\\w.-]+\\.v\\d+");
+    private static final Pattern QUERY_VERSION_PATTERN = Pattern.compile(
+            "(?i)(^|[^a-z0-9_-])(version|api-version|api\\.version|v)\\s*="
+    );
 
     /** Matches Spring property placeholders like ${some.prop} or ${some.prop:default} */
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\$\\{([^:}]+)(?::([^}]*))?}");
@@ -227,17 +233,15 @@ public class DependencyGraphBuilder {
                     String classLevelPath = extractRequestMappingPath(type);
 
                     for (CtMethod<?> method : type.getMethods()) {
-                        EndpointInfo info = extractEndpointInfo(method, classLevelPath);
+                        EndpointInfo info = extractEndpointInfo(type, method, classLevelPath);
                         if (info != null) {
-                            boolean hasVersioning = API_VERSION_PATTERN.matcher(info.path()).find();
-
                             Endpoint endpoint = Endpoint.builder()
                                     .path(info.path())
                                     .httpMethod(info.httpMethod())
                                     .controllerClass(type.getQualifiedName())
                                     .methodName(method.getSimpleName())
-                                    .hasVersioning(hasVersioning)
-                                    .apiVersion(hasVersioning ? extractVersionFromPath(info.path()) : null)
+                                    .hasVersioning(info.hasVersioning())
+                                    .apiVersion(info.apiVersion())
                                     .microservice(ms)
                                     .build();
 
@@ -583,7 +587,7 @@ public class DependencyGraphBuilder {
             String left = extractUrlFromExpression(binOp.getLeftHandOperand(), valueFieldUrls);
             String right = extractStringValue(binOp.getRightHandOperand());
             if (left != null && right != null) return left + right;
-            if (left != null) return left; // partial URL is still useful for service name extraction
+            if (left != null) return left;
         }
 
         if (expr instanceof CtVariableRead<?> varRead) {
@@ -630,9 +634,9 @@ public class DependencyGraphBuilder {
         return "";
     }
 
-    private record EndpointInfo(String path, HttpMethod httpMethod) {}
+    private record EndpointInfo(String path, HttpMethod httpMethod, boolean hasVersioning, String apiVersion) {}
 
-    private EndpointInfo extractEndpointInfo(CtMethod<?> method, String classLevelPath) {
+    private EndpointInfo extractEndpointInfo(CtType<?> type, CtMethod<?> method, String classLevelPath) {
         Map<String, HttpMethod> mappingAnnotations = Map.of(
                 "GetMapping", HttpMethod.GET,
                 "PostMapping", HttpMethod.POST,
@@ -652,12 +656,56 @@ public class DependencyGraphBuilder {
                         httpMethod = extractHttpMethodFromRequestMapping(annotation);
                     }
                     String methodPath = extractPathFromAnnotation(annotation);
-                    return new EndpointInfo(normalizePath(classLevelPath + methodPath), httpMethod);
+                    String fullPath = normalizePath(classLevelPath + methodPath);
+                    VersionInfo versionInfo = detectVersioning(fullPath, type.getAnnotations(), method.getAnnotations());
+                    return new EndpointInfo(fullPath, httpMethod, versionInfo.hasVersioning(), versionInfo.apiVersion());
                 }
             } catch (Exception ignored) {
             }
         }
         return null;
+    }
+
+    private record VersionInfo(boolean hasVersioning, String apiVersion) {}
+
+    private VersionInfo detectVersioning(String path,
+                                         Collection<CtAnnotation<?>> classAnnotations,
+                                         Collection<CtAnnotation<?>> methodAnnotations) {
+        String pathVersion = extractVersionFromPath(path);
+        if (pathVersion != null) {
+            return new VersionInfo(true, pathVersion);
+        }
+
+        for (CtAnnotation<?> annotation : classAnnotations) {
+            VersionInfo info = detectAnnotationVersioning(annotation);
+            if (info.hasVersioning()) return info;
+        }
+        for (CtAnnotation<?> annotation : methodAnnotations) {
+            VersionInfo info = detectAnnotationVersioning(annotation);
+            if (info.hasVersioning()) return info;
+        }
+
+        return new VersionInfo(false, null);
+    }
+
+    private VersionInfo detectAnnotationVersioning(CtAnnotation<?> annotation) {
+        String text = annotation.toString();
+        String lower = text.toLowerCase(Locale.ROOT);
+
+        if (lower.contains("headers") && HEADER_VERSION_PATTERN.matcher(text).find()) {
+            return new VersionInfo(true, "header");
+        }
+
+        if ((lower.contains("produces") || lower.contains("consumes"))
+                && MEDIA_TYPE_VERSION_PATTERN.matcher(text).find()) {
+            return new VersionInfo(true, "header");
+        }
+
+        if (lower.contains("params") && QUERY_VERSION_PATTERN.matcher(text).find()) {
+            return new VersionInfo(true, "query");
+        }
+
+        return new VersionInfo(false, null);
     }
 
     private String extractPathFromAnnotation(CtAnnotation<?> annotation) {
@@ -781,7 +829,7 @@ public class DependencyGraphBuilder {
     }
 
     private String extractVersionFromPath(String path) {
-        Matcher matcher = Pattern.compile("/v(\\d+)").matcher(path);
+        Matcher matcher = API_VERSION_PATTERN.matcher(path);
         return matcher.find() ? "v" + matcher.group(1) : null;
     }
 
@@ -829,7 +877,5 @@ public class DependencyGraphBuilder {
         return str.length() > maxLength ? str.substring(0, maxLength) + "..." : str;
     }
 
-
     private record CallEvidence(DependencyType dependencyType, String file, int line, String code, String url) {}
 }
-

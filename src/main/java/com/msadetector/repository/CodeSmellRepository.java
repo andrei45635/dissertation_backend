@@ -41,11 +41,9 @@ public interface CodeSmellRepository extends JpaRepository<CodeSmell, Long> {
     @Query("SELECT COUNT(cs) FROM CodeSmell cs WHERE cs.microservice.project = :project")
     int countByProject(@Param("project") Project project);
 
-    // Find God Class smells (useful for God Service detection)
     @Query("SELECT cs FROM CodeSmell cs WHERE cs.microservice.project = :project AND cs.smellType = 'God Class'")
     List<CodeSmell> findGodClassSmells(@Param("project") Project project);
 
-    // Find Feature Envy smells (useful for Wrong Cuts detection)
     @Query("SELECT cs FROM CodeSmell cs WHERE cs.microservice.project = :project AND cs.smellType = 'Feature Envy'")
     List<CodeSmell> findFeatureEnvySmells(@Param("project") Project project);
 }

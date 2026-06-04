@@ -22,7 +22,8 @@ class GodServiceDetectorTest {
     @TempDir
     Path tempDir;
 
-    private final GodServiceDetector detector = new GodServiceDetector(new ObjectMapper());
+    private final GodServiceDetector detector = new GodServiceDetector(
+            new ObjectMapper(), 25, 30, 1000, 20, 12, 0.5, 3);
 
     private Project createProject() {
         Project project = new Project();
@@ -101,8 +102,7 @@ class GodServiceDetectorTest {
     void detect_dataClassExcluded_notFlagged() throws IOException {
         Project project = createProject();
         Microservice ms = createMs("dto-svc");
-        // Same structural shape as a God Class, but the name ends in "Dto", so it
-        // is treated as a data holder and excluded from God Class detection.
+
         writeSource("dto-svc", "CustomerDto", godClassSource("CustomerDto", 30));
 
         List<DetectedAntiPattern> results = detector.detect(project, List.of(ms));

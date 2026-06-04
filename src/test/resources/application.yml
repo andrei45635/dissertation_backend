@@ -44,6 +44,16 @@ app:
     hardcoded-endpoint-patterns: "http://,https://,localhost:,127.0.0.1"
     esb-mediator-threshold: 0.4
     code-smell-density-threshold: 80
+    god-service-field-count: 25
+    god-service-public-methods: 30
+    god-service-loc: 1000
+    god-service-import-domains: 20
+    god-service-constructor-params: 12
+    god-service-tcc-threshold: 0.5
+    god-service-min-metrics: 3
+    distributed-monolith-high-coupling: 0.5
+    distributed-monolith-connected-ratio: 0.8
+    distributed-monolith-moderate-coupling: 0.3
 
 logging:
   level:

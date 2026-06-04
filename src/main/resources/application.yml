@@ -52,6 +52,16 @@ app:
     hardcoded-endpoint-patterns: "http://,https://,localhost:,127.0.0.1"
     esb-mediator-threshold: ${ESB_MEDIATOR_THRESHOLD:0.4}
     code-smell-density-threshold: ${CODE_SMELL_DENSITY_THRESHOLD:80}
+    god-service-field-count: ${GOD_SERVICE_FIELD_COUNT:25}
+    god-service-public-methods: ${GOD_SERVICE_PUBLIC_METHODS:30}
+    god-service-loc: ${GOD_SERVICE_LOC:1000}
+    god-service-import-domains: ${GOD_SERVICE_IMPORT_DOMAINS:20}
+    god-service-constructor-params: ${GOD_SERVICE_CONSTRUCTOR_PARAMS:12}
+    god-service-tcc-threshold: ${GOD_SERVICE_TCC_THRESHOLD:0.5}
+    god-service-min-metrics: ${GOD_SERVICE_MIN_METRICS:3}
+    distributed-monolith-high-coupling: ${DISTRIBUTED_MONOLITH_HIGH_COUPLING:0.5}
+    distributed-monolith-connected-ratio: ${DISTRIBUTED_MONOLITH_CONNECTED_RATIO:0.8}
+    distributed-monolith-moderate-coupling: ${DISTRIBUTED_MONOLITH_MODERATE_COUPLING:0.3}
 
 logging:
   level:

@@ -75,7 +75,6 @@ public class JobService {
         AnalysisResult result = resultRepository.findByAnalysisJobWithAntiPatterns(job)
                 .orElseThrow(() -> new ResourceNotFoundException("Results not found for job: " + jobId));
 
-        // Try to build a diff against the previous analysis for the same project
         AnalysisDiffResponse diff = buildDiffIfAvailable(result, job);
 
         return toResultResponse(result, diff);

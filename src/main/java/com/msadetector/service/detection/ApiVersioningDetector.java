@@ -42,7 +42,7 @@ public class ApiVersioningDetector extends BaseDetector {
             List<Endpoint> endpoints = endpointRepository.findByMicroservice(ms);
             if (endpoints.isEmpty()) continue;
 
-            long versionedCount = endpoints.stream().filter(Endpoint::isHasVersioning).count();
+            long versionedCount = endpoints.stream().filter(this::hasVersioningStrategy).count();
             long unversionedCount = endpoints.size() - versionedCount;
 
             if (versionedCount == 0) {
@@ -50,12 +50,11 @@ public class ApiVersioningDetector extends BaseDetector {
                         .map(Endpoint::getPath)
                         .toList();
 
-                // Build code snippets from controller classes that declare unversioned endpoints
                 Path serviceSrc = projectRoot.resolve(ms.getRelativePath()).resolve("src/main/java");
                 List<Map<String, Object>> snippets = endpoints.stream()
                         .map(Endpoint::getControllerClass)
                         .distinct()
-                        .limit(3) // cap at 3 controller snippets
+                        .limit(3)
                         .map(controllerClass -> findControllerSnippet(serviceSrc, controllerClass))
                         .toList();
 
@@ -77,7 +76,7 @@ public class ApiVersioningDetector extends BaseDetector {
                         )))
                         .codeSnippetsJson(snippetsToJson(snippets))
                         .remediation("Adopt an API versioning strategy such as URL path versioning (/v1/resource), "
-                                + "header versioning, or query parameter versioning")
+                                + "header versioning (e.g., X-API-Version), or query parameter versioning")
                         .build();
 
                 patterns.add(pattern);
@@ -87,6 +86,11 @@ public class ApiVersioningDetector extends BaseDetector {
         return patterns;
     }
 
+    private boolean hasVersioningStrategy(Endpoint endpoint) {
+        return endpoint.isHasVersioning()
+                || (endpoint.getApiVersion() != null && !endpoint.getApiVersion().isBlank());
+    }
+
     /**
      * Finds a controller Java file by its qualified class name and returns
      * a snippet showing the class declaration and @RequestMapping.
@@ -94,14 +98,13 @@ public class ApiVersioningDetector extends BaseDetector {
     private Map<String, Object> findControllerSnippet(Path srcDir, String qualifiedClassName) {
         if (qualifiedClassName == null || srcDir == null || !Files.exists(srcDir)) return null;
 
-        // Convert qualified name to file path: com.example.FooController -> com/example/FooController.java
         String relativePath = qualifiedClassName.replace('.', '/') + ".java";
         Path controllerFile = srcDir.resolve(relativePath);
 
         if (Files.exists(controllerFile)) {
             try {
                 List<String> lines = Files.readAllLines(controllerFile, java.nio.charset.StandardCharsets.ISO_8859_1);
-                // Find the @RestController or @Controller annotation line
+
                 for (int i = 0; i < lines.size(); i++) {
                     String line = lines.get(i).trim();
                     if (line.contains("@RestController") || line.contains("@Controller")
@@ -109,7 +112,7 @@ public class ApiVersioningDetector extends BaseDetector {
                         return readSnippet(controllerFile, i + 1, 5);
                     }
                 }
-                // Fallback: show top of file
+
                 return readSnippet(controllerFile, 1, 10);
             } catch (IOException e) {
                 log.debug("Could not read controller file {}: {}", controllerFile, e.getMessage());
@@ -118,4 +121,3 @@ public class ApiVersioningDetector extends BaseDetector {
         return null;
     }
 }
-

@@ -10,7 +10,7 @@ class JwtTokenProviderTest {
     private JwtTokenProvider tokenProvider;
 
     private static final String SECRET = "a]kG9Rd2!Fp7sXe3Qw8#Yl5Bn6Hm4Jt1Cv0Zx_AoUiIkNrTfDhMbWqPjSyLzEg";
-    private static final long EXPIRATION_MS = 86400000L; // 24h
+    private static final long EXPIRATION_MS = 86400000L;
 
     @BeforeEach
     void setUp() {

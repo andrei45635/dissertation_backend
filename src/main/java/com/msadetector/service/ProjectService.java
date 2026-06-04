@@ -164,7 +164,6 @@ public class ProjectService {
             try {
                 deleteDirectory(Path.of(project.getLocalPath()));
             } catch (IOException e) {
-                // log warning but continue with deletion
             }
         }
 
@@ -239,7 +238,6 @@ public class ProjectService {
         return createReanalysisJob(project);
     }
 
-
     private UploadResponse createReanalysisJob(Project project) {
         project.getMicroservices().clear();
         projectRepository.saveAndFlush(project);
@@ -269,7 +267,6 @@ public class ProjectService {
             try {
                 deleteDirectory(Path.of(project.getLocalPath()));
             } catch (IOException e) {
-                // log warning but continue
             }
         }
     }
@@ -339,7 +336,6 @@ public class ProjectService {
         }
     }
 
-
     private void deleteDirectory(Path dir) throws IOException {
         if (Files.exists(dir)) {
             Files.walk(dir)
@@ -348,7 +344,6 @@ public class ProjectService {
                         try {
                             Files.delete(path);
                         } catch (IOException e) {
-                            // ignore
                         }
                     });
         }

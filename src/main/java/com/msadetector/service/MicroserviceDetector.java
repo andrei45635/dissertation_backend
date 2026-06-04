@@ -469,11 +469,9 @@ public class MicroserviceDetector {
                     return true;
                 }
             } catch (IOException e) {
-                // fall through
             }
         }
 
-        // Gradle multi-module check
         for (String settingsFile : List.of("settings.gradle", "settings.gradle.kts")) {
             Path settings = dir.resolve(settingsFile);
             if (Files.exists(settings)) {
@@ -483,7 +481,6 @@ public class MicroserviceDetector {
                         return true;
                     }
                 } catch (IOException e) {
-                    // fall through
                 }
             }
         }

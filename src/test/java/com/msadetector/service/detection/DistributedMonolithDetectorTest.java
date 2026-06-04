@@ -31,7 +31,7 @@ class DistributedMonolithDetectorTest {
 
     @BeforeEach
     void setUp() {
-        detector = new DistributedMonolithDetector(new ObjectMapper(), dependencyRepository);
+        detector = new DistributedMonolithDetector(new ObjectMapper(), dependencyRepository, 0.5, 0.8, 0.3);
     }
 
     private Project createProject() {
@@ -103,7 +103,6 @@ class DistributedMonolithDetectorTest {
         Microservice c = createMs(3L, "c", null);
         Microservice d = createMs(4L, "d", null);
 
-        // 4 services, max edges = 12, only 1 edge → 0.083 coupling
         when(dependencyRepository.findByProjectWithServices(project))
                 .thenReturn(List.of(createDep(a, b)));
 
@@ -143,4 +142,3 @@ class DistributedMonolithDetectorTest {
         assertTrue(results.isEmpty());
     }
 }
-

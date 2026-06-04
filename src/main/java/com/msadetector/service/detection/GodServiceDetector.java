@@ -6,6 +6,7 @@ import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
 import com.msadetector.enums.AntiPatternType;
 import com.msadetector.enums.Severity;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import spoon.Launcher;
 import spoon.reflect.CtModel;
@@ -21,12 +22,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Detects god services — services handling too many responsibilities.
+ * Detects god services - services handling too many responsibilities.
  * <p>
  * Uses a Spoon-based multi-metric analysis that scans each class for structural
- * indicators of God Class behaviour — high field count, high public method count,
+ * indicators of God Class behaviour - high field count, high public method count,
  * high LOC, many import domains, many constructor parameters, and low cohesion (TCC).
- * A class is flagged as a God Class when ≥3 metrics exceed their thresholds
+ * A class is flagged as a God Class when enough metrics exceed their configured thresholds
  * simultaneously, and a service is reported as a God Service if it contains at
  * least one such class.
  */
@@ -35,14 +36,13 @@ public class GodServiceDetector extends BaseDetector {
 
     private static final String SRC_MAIN_JAVA = "src/main/java";
 
-    private static final int FIELD_COUNT_THRESHOLD = 25;
-    private static final int PUBLIC_METHOD_THRESHOLD = 30;
-    private static final int LOC_THRESHOLD = 1000;
-    private static final int IMPORT_DOMAIN_THRESHOLD = 20;
-    private static final int CONSTRUCTOR_PARAM_THRESHOLD = 12;
-    private static final double TCC_THRESHOLD = 0.5; // below this = low cohesion
-    /** Minimum number of metrics that must exceed thresholds to flag a class */
-    private static final int MIN_METRICS_EXCEEDED = 3;
+    private final int fieldCountThreshold;
+    private final int publicMethodThreshold;
+    private final int locThreshold;
+    private final int importDomainThreshold;
+    private final int constructorParamThreshold;
+    private final double tccThreshold;
+    private final int minMetricsExceeded;
 
     private static final Set<String> DATA_CLASS_ANNOTATIONS = Set.of(
             "Entity", "Table", "Document", "MappedSuperclass",
@@ -58,8 +58,23 @@ public class GodServiceDetector extends BaseDetector {
             "result", "payload", "wrapper"
     );
 
-    public GodServiceDetector(ObjectMapper objectMapper) {
+    public GodServiceDetector(
+            ObjectMapper objectMapper,
+            @Value("${app.thresholds.god-service-field-count:25}") int fieldCountThreshold,
+            @Value("${app.thresholds.god-service-public-methods:30}") int publicMethodThreshold,
+            @Value("${app.thresholds.god-service-loc:1000}") int locThreshold,
+            @Value("${app.thresholds.god-service-import-domains:20}") int importDomainThreshold,
+            @Value("${app.thresholds.god-service-constructor-params:12}") int constructorParamThreshold,
+            @Value("${app.thresholds.god-service-tcc-threshold:0.5}") double tccThreshold,
+            @Value("${app.thresholds.god-service-min-metrics:3}") int minMetricsExceeded) {
         super(objectMapper);
+        this.fieldCountThreshold = fieldCountThreshold;
+        this.publicMethodThreshold = publicMethodThreshold;
+        this.locThreshold = locThreshold;
+        this.importDomainThreshold = importDomainThreshold;
+        this.constructorParamThreshold = constructorParamThreshold;
+        this.tccThreshold = tccThreshold;
+        this.minMetricsExceeded = minMetricsExceeded;
     }
 
     @Override
@@ -132,15 +147,15 @@ public class GodServiceDetector extends BaseDetector {
     /**
      * Scans all classes in a source directory and returns those that exhibit
      * God Class characteristics based on multiple structural metrics.
-     * A class is flagged when ≥{@value MIN_METRICS_EXCEEDED} of the following
-     * metrics exceed their thresholds:
+     * A class is flagged when enough structural metrics exceed their configured
+     * thresholds:
      * <ul>
-     *   <li>Field count ≥ {@value FIELD_COUNT_THRESHOLD}</li>
-     *   <li>Public method count ≥ {@value PUBLIC_METHOD_THRESHOLD}</li>
-     *   <li>Lines of code ≥ {@value LOC_THRESHOLD}</li>
-     *   <li>Import domain count ≥ {@value IMPORT_DOMAIN_THRESHOLD}</li>
-     *   <li>Constructor parameter count ≥ {@value CONSTRUCTOR_PARAM_THRESHOLD}</li>
-     *   <li>Tight Class Cohesion (TCC) &lt; {@value TCC_THRESHOLD}</li>
+     *   <li>Field count</li>
+     *   <li>Public method count</li>
+     *   <li>Lines of code</li>
+     *   <li>Import domain count</li>
+     *   <li>Constructor parameter count</li>
+     *   <li>Tight Class Cohesion (TCC)</li>
      * </ul>
      */
     private List<GodClassEvidence> scanForGodClasses(Path srcDir) {
@@ -220,7 +235,8 @@ public class GodServiceDetector extends BaseDetector {
 
     /**
      * Analyzes a single class against God Class metrics.
-     * Returns evidence if ≥{@value MIN_METRICS_EXCEEDED} metrics are exceeded, null otherwise.
+     * Returns evidence if the configured minimum number of metrics are exceeded,
+     * null otherwise.
      */
     private GodClassEvidence analyzeClass(CtType<?> type) {
         int fieldCount = type.getFields().size();
@@ -259,20 +275,20 @@ public class GodServiceDetector extends BaseDetector {
         double tcc = computeTCC(type);
 
         List<String> exceededMetrics = new ArrayList<>();
-        if (fieldCount >= FIELD_COUNT_THRESHOLD)
-            exceededMetrics.add("fields=" + fieldCount + " (≥" + FIELD_COUNT_THRESHOLD + ")");
-        if (publicMethodCount >= PUBLIC_METHOD_THRESHOLD)
-            exceededMetrics.add("publicMethods=" + publicMethodCount + " (≥" + PUBLIC_METHOD_THRESHOLD + ")");
-        if (loc >= LOC_THRESHOLD)
-            exceededMetrics.add("LOC=" + loc + " (≥" + LOC_THRESHOLD + ")");
-        if (importDomainCount >= IMPORT_DOMAIN_THRESHOLD)
-            exceededMetrics.add("importDomains=" + importDomainCount + " (≥" + IMPORT_DOMAIN_THRESHOLD + ")");
-        if (maxConstructorParams >= CONSTRUCTOR_PARAM_THRESHOLD)
-            exceededMetrics.add("constructorParams=" + maxConstructorParams + " (≥" + CONSTRUCTOR_PARAM_THRESHOLD + ")");
-        if (tcc >= 0 && tcc < TCC_THRESHOLD)
-            exceededMetrics.add(String.format("TCC=%.2f (<%.2f)", tcc, TCC_THRESHOLD));
+        if (fieldCount >= fieldCountThreshold)
+            exceededMetrics.add("fields=" + fieldCount + " (>=" + fieldCountThreshold + ")");
+        if (publicMethodCount >= publicMethodThreshold)
+            exceededMetrics.add("publicMethods=" + publicMethodCount + " (>=" + publicMethodThreshold + ")");
+        if (loc >= locThreshold)
+            exceededMetrics.add("LOC=" + loc + " (>=" + locThreshold + ")");
+        if (importDomainCount >= importDomainThreshold)
+            exceededMetrics.add("importDomains=" + importDomainCount + " (>=" + importDomainThreshold + ")");
+        if (maxConstructorParams >= constructorParamThreshold)
+            exceededMetrics.add("constructorParams=" + maxConstructorParams + " (>=" + constructorParamThreshold + ")");
+        if (tcc >= 0 && tcc < tccThreshold)
+            exceededMetrics.add(String.format("TCC=%.2f (<%.2f)", tcc, tccThreshold));
 
-        if (exceededMetrics.size() >= MIN_METRICS_EXCEEDED) {
+        if (exceededMetrics.size() >= minMetricsExceeded) {
             String filePath = type.getPosition().isValidPosition()
                     ? type.getPosition().getFile().getPath() : null;
             int lineNumber = type.getPosition().isValidPosition()
@@ -294,7 +310,7 @@ public class GodServiceDetector extends BaseDetector {
     }
 
     /**
-     * Computes Tight Class Cohesion (TCC) — the fraction of method pairs that
+     * Computes Tight Class Cohesion (TCC) - the fraction of method pairs that
      * share at least one instance field access.
      * <p>
      * TCC = (connected pairs) / (total pairs)
@@ -357,4 +373,3 @@ public class GodServiceDetector extends BaseDetector {
             List<String> exceededMetrics
     ) {}
 }
-

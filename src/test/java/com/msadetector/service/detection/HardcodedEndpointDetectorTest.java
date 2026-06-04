@@ -84,6 +84,7 @@ class HardcodedEndpointDetectorTest {
         List<DetectedAntiPattern> results = detector.detect(project, List.of(createMs("svc")));
 
         assertEquals(1, results.size());
+        assertTrue(results.getFirst().getEvidenceJson().contains("localhost:8080"));
     }
 
     @Test
@@ -163,6 +164,7 @@ class HardcodedEndpointDetectorTest {
         List<DetectedAntiPattern> results = detector.detect(project, List.of(createMs("svc")));
 
         assertEquals(1, results.size());
+        assertTrue(results.getFirst().getEvidenceJson().contains("127.0.0.1:9090"));
     }
 }
 

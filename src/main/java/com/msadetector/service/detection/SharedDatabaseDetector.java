@@ -43,7 +43,6 @@ public class SharedDatabaseDetector extends BaseDetector {
                         .map(Microservice::getName)
                         .toList();
 
-                // Read the datasource config snippet from each sharing service
                 List<Map<String, Object>> snippets = entry.getValue().stream()
                         .map(ms -> readDatasourceSnippet(projectRoot, ms))
                         .toList();
@@ -84,7 +83,6 @@ public class SharedDatabaseDetector extends BaseDetector {
                         return readSnippet(configFile, i + 1, 3);
                     }
                 }
-                // If datasource keyword not found, show beginning of config
                 return readSnippet(configFile, 1, 10);
             } catch (IOException e) {
                 log.debug("Could not read config for {}: {}", ms.getName(), e.getMessage());

@@ -273,11 +273,9 @@ public class DesigniteService {
                         try {
                             Files.delete(path);
                         } catch (IOException e) {
-                            // ignore
                         }
                     });
         } catch (IOException e) {
-            // ignore
         }
     }
 }
