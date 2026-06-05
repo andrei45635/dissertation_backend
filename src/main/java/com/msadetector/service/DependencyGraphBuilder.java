@@ -442,12 +442,10 @@ public class DependencyGraphBuilder {
             try {
                 String annotationName = annotation.getAnnotationType().getSimpleName();
                 if ("FeignClient".equals(annotationName)) {
-                    String targetName = extractFeignClientTarget(annotation);
-                    if (targetName != null) {
-                        String resolved = resolveSpringPlaceholder(targetName, serviceConfig);
-                        if (resolved != null) targetName = resolved;
-
-                        String normalizedTarget = normalizeServiceName(targetName);
+                    FeignClientTarget target = extractFeignClientTarget(annotation, serviceConfig);
+                    if (target != null) {
+                        String targetName = target.rawTarget();
+                        String normalizedTarget = target.normalizedTarget();
 
                         Set<CtMethod<?>> methods = type.getMethods();
                         if (methods.isEmpty()) {
@@ -739,15 +737,45 @@ public class DependencyGraphBuilder {
         return HttpMethod.GET;
     }
 
-    private String extractFeignClientTarget(CtAnnotation<?> annotation) {
-        for (String attr : List.of("name", "value", "url")) {
-            CtExpression<?> expr = annotation.getValue(attr);
-            if (expr != null) {
-                String value = extractStringValue(expr);
-                if (value != null && !value.isBlank()) return value;
+    private FeignClientTarget extractFeignClientTarget(CtAnnotation<?> annotation, Map<String, String> serviceConfig) {
+        String url = extractAnnotationString(annotation, "url");
+        if (url != null) {
+            String resolvedUrl = resolveSpringPlaceholder(url, serviceConfig);
+            String rawTarget = resolvedUrl != null ? resolvedUrl : url;
+            String normalizedTarget = extractServiceNameFromUrl(rawTarget);
+            if (normalizedTarget == null) {
+                normalizedTarget = normalizeServiceName(rawTarget);
+            }
+            if (normalizedTarget != null && !normalizedTarget.isBlank()) {
+                return new FeignClientTarget(normalizedTarget, rawTarget);
+            }
+        }
+
+        for (String attr : List.of("name", "value")) {
+            String logicalName = extractAnnotationString(annotation, attr);
+            if (logicalName == null) {
+                continue;
+            }
+
+            String resolved = resolveSpringPlaceholder(logicalName, serviceConfig);
+            String rawTarget = resolved != null ? resolved : logicalName;
+            String normalizedTarget = rawTarget.startsWith("http://") || rawTarget.startsWith("https://")
+                    ? extractServiceNameFromUrl(rawTarget)
+                    : normalizeServiceName(rawTarget);
+            if (normalizedTarget != null && !normalizedTarget.isBlank()) {
+                return new FeignClientTarget(normalizedTarget, rawTarget);
             }
         }
         return null;
+    }
+
+    private String extractAnnotationString(CtAnnotation<?> annotation, String attr) {
+        CtExpression<?> expr = annotation.getValue(attr);
+        if (expr == null) {
+            return null;
+        }
+        String value = extractStringValue(expr);
+        return value != null && !value.isBlank() ? value : null;
     }
 
     private String extractStringValue(CtExpression<?> expr) {
@@ -877,6 +905,8 @@ public class DependencyGraphBuilder {
         if (str == null) return null;
         return str.length() > maxLength ? str.substring(0, maxLength) + "..." : str;
     }
+
+    private record FeignClientTarget(String normalizedTarget, String rawTarget) {}
 
     private record CallEvidence(DependencyType dependencyType, String file, int line, String code, String url) {}
 }
