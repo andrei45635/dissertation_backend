@@ -89,7 +89,7 @@ The recommended remediation for nano services is to merge them with a related, f
 \subsection{God Service}
 \label{subsec:god-service}
 
-\par A God Service is the microservice counterpart of the well-known God Class code smell \cite{Fowler1999}. It refers to a service that handles too many responsibilities, spanning multiple business domains within a single deployable unit. God services grow over time as developers add functionality to an existing service rather than creating new ones, resulting in a service that is difficult to understand, test, and scale independently.
+\par A God Service is the microservice counterpart of the well-known God Class code smell, also documented as the ''Blob'' anti-pattern \cite{Brown1998}. It refers to a service that handles too many responsibilities, spanning multiple business domains within a single deployable unit. God services grow over time as developers add functionality to an existing service rather than creating new ones, resulting in a service that is difficult to understand, test, and scale independently.
 
 Detection of god services in this work is based on code-level structural indicators. A microservice is flagged as a god service when it contains at least one class that exhibits God Class characteristics, assessed through a combination of structural metrics such as field count, number of public methods, size, and class cohesion. The precise metrics, thresholds, and analysis procedure are presented in Chapter~\ref{chap:ch3}.
 

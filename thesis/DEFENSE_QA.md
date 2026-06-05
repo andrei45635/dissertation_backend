@@ -144,6 +144,75 @@
 
 ---
 
+## ADDITIONAL COMMISSION-STYLE QUESTIONS
+
+> Pattern they usually use: **1 theoretical + 1 practical + 1 source-code question.** These are extra questions that go beyond the obvious detector walkthroughs.
+
+### Extra theoretical questions
+
+**Q: What is the difference between a code smell and an architectural anti-pattern?**
+> A code smell is usually local to a class or method — for example high complexity, low cohesion, or too many fields. An architectural anti-pattern appears at the service or system-boundary level — for example Shared Database, Cyclic Dependency, or Distributed Monolith. My work connects both levels: code-level metrics can become evidence for service-level design problems, especially for God Service and the health score.
+
+**Q: Why are thresholds acceptable if architecture quality is context-dependent?**
+> They are heuristics, not universal truth. The thresholds operationalize anti-pattern definitions from the literature into measurable signals. The tool should be read as an evidence-backed detector of candidates, not as an absolute judge. In a real organization, the defaults would be calibrated to the project type and team conventions.
+
+**Q: Why did you not use machine learning?**
+> The main reason is explainability and data availability. Publicly labeled datasets of microservice anti-patterns are limited, and architectural smells are context-sensitive. A rule-based static analysis tool can show exactly why a service was flagged: the threshold, the metric, the affected service, and the source evidence.
+
+**Q: What is the strongest threat to validity in your work?**
+> Construct validity: whether the static signals fully capture the real architectural problem. For example, Chatty Service is approximated from static call declarations, not real runtime traffic volume. I mitigate this by treating results as candidate findings and attaching concrete evidence for manual inspection.
+
+**Q: Why is API Versioning Absence considered an anti-pattern?**
+> Because microservices evolve independently. Without explicit versioning, a provider change can break consumers and force coordinated releases. It is less severe in a small prototype, but in long-lived independently deployed services it increases coupling between teams and release cycles.
+
+### Extra practical questions
+
+**Q: If a company used your tool, what should they fix first?**
+> I would prioritize issues that block independent deployment: Cyclic Dependency, Shared Database, Wrong Cuts, and Distributed Monolith indicators. Those affect service autonomy. Lower-risk issues like missing API versioning or nano services can be handled after the structural coupling is understood.
+
+**Q: How would this integrate into CI/CD?**
+> The backend already supports asynchronous analyses and stores historical results. In CI/CD, the tool could run after a merge request or nightly build and report new critical findings. I would avoid failing builds on all legacy issues; a better gate is "no new critical issues" or "health score must not regress."
+
+**Q: What result surprised you most?**
+> The frequency of API Versioning Absence and Nano Service. Many projects show microservice decomposition and service discovery, but not always mature API lifecycle practices or balanced granularity. That is why the results are useful: they reveal architectural debt even in projects that look structurally microservice-based.
+
+**Q: Why did no project receive an A grade?**
+> Because the score combines multiple dimensions. A project can avoid severe cyclic dependencies and still lose points for API versioning, hardcoded endpoints, code-smell density, or service sizing. The goal is not to label projects as bad, but to show where architectural debt accumulates.
+
+**Q: What would you change before deploying this in an enterprise environment?**
+> I would add organization-specific threshold profiles, better support for Spring Cloud Config and Kubernetes manifests, and eventually runtime telemetry. Static analysis is good for early detection, but traces and metrics would improve confidence for Chatty Service and real coupling.
+
+**Q: How does a developer know whether a finding is a false positive?**
+> Each finding includes affected services, severity, explanation, remediation advice, and evidence snippets. The tool does not ask developers to trust a black box; it gives them the concrete source or graph evidence so they can accept, reject, or tune the finding.
+
+### Extra source-code questions
+
+**Q: Why do you start the analysis worker after transaction commit?**
+> Uploading or cloning creates the project and job rows in a transaction. The worker is started through an `afterCommit()` callback, so the async thread cannot read a job that has not been committed yet. That avoids a race condition between the request thread and the background analysis.
+
+**Q: How is progress visible while analysis is running?**
+> The worker updates the job status between phases: detecting services, analyzing services, building the graph, detecting patterns, then completed or failed. The frontend polls these job fields, so the user sees progress instead of waiting for a single blocking request.
+
+**Q: How did you protect ZIP upload extraction?**
+> The extractor normalizes every ZIP entry path to prevent Zip Slip, rejects duplicate entries, and streams each file while counting decompressed bytes. It also enforces limits on total uncompressed size, number of entries, and nesting depth, then deletes the partial workspace if extraction fails.
+
+**Q: How does the dependency graph resolve a call target to a service?**
+> It builds aliases from service directory names, `spring.application.name`, and configured ports. Then it resolves Feign clients, `RestTemplate` calls, and `WebClient` calls using exact name matching, port matching, and fallback fuzzy matching. Each resolved call becomes a directed edge in the service dependency graph.
+
+**Q: Why use Spoon instead of regular expressions everywhere?**
+> Spoon understands Java structure: annotations, methods, invocations, types, and class relationships. That is more reliable for endpoint extraction, Feign clients, TCC metrics, and God Service detection. Regex is only used where the signal is naturally textual, such as hardcoded URL literals.
+
+**Q: How do you avoid double-counting Nano Service and God Service in the health score?**
+> They are detected as anti-patterns, but they are excluded from the general Anti-Patterns category and counted only in Service Sizing. That way service-granularity problems affect the score once, in the category where they belong.
+
+**Q: What happens if one detector fails?**
+> The current orchestrator logs that detector failure and continues with the remaining detectors. The benefit is resilience: one detector does not kill the whole analysis. The tradeoff is that a production version should expose partial-analysis warnings clearly in the UI.
+
+**Q: Where is the system extensible in code?**
+> The main extension point is the `AntiPatternDetector` interface. A new detector implements `detect(Project, List<Microservice>)`, is annotated as a Spring component, and is automatically included because the orchestrator receives a `List<AntiPatternDetector>`. That keeps the pipeline independent of individual detector classes.
+
+---
+
 ## IF I BLANK (recovery scripts — these are allowed)
 
 - *"Could you repeat the question?"* — buys time, totally normal.

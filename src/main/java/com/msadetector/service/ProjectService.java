@@ -22,8 +22,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Comparator;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -32,6 +35,8 @@ import java.util.zip.ZipInputStream;
 @Service
 public class ProjectService {
 
+    private static final int ZIP_BUFFER_SIZE = 8192;
+
     private final ProjectRepository projectRepository;
     private final AnalysisJobRepository analysisJobRepository;
     private final MicroserviceRepository microserviceRepository;
@@ -39,6 +44,9 @@ public class ProjectService {
     private final AnalysisWorker analysisWorker;
     private final GitCloneService gitCloneService;
     private final Path workspaceDir;
+    private final long maxZipUncompressedBytes;
+    private final int maxZipEntries;
+    private final int maxZipDepth;
 
     public ProjectService(
             ProjectRepository projectRepository,
@@ -47,7 +55,10 @@ public class ProjectService {
             UserRepository userRepository,
             AnalysisWorker analysisWorker,
             GitCloneService gitCloneService,
-            @Value("${app.analysis.workspace-dir}") String workspaceDir
+            @Value("${app.analysis.workspace-dir}") String workspaceDir,
+            @Value("${app.upload.max-uncompressed-size-bytes:1073741824}") long maxZipUncompressedBytes,
+            @Value("${app.upload.max-entries:100000}") int maxZipEntries,
+            @Value("${app.upload.max-depth:50}") int maxZipDepth
     ) {
         this.projectRepository = projectRepository;
         this.analysisJobRepository = analysisJobRepository;
@@ -56,6 +67,9 @@ public class ProjectService {
         this.analysisWorker = analysisWorker;
         this.gitCloneService = gitCloneService;
         this.workspaceDir = Path.of(workspaceDir);
+        this.maxZipUncompressedBytes = requirePositive(maxZipUncompressedBytes, "max uncompressed ZIP size");
+        this.maxZipEntries = requirePositive(maxZipEntries, "max ZIP entries");
+        this.maxZipDepth = requirePositive(maxZipDepth, "max ZIP depth");
     }
 
     @Transactional
@@ -291,7 +305,7 @@ public class ProjectService {
     }
 
     private Path extractZip(MultipartFile file, Long projectId) {
-        Path projectDir = workspaceDir.resolve(projectId.toString());
+        Path projectDir = workspaceDir.resolve(projectId.toString()).normalize();
 
         try {
             Files.createDirectories(projectDir);
@@ -300,18 +314,41 @@ public class ProjectService {
                  ZipInputStream zis = new ZipInputStream(is)) {
 
                 ZipEntry entry;
-                while ((entry = zis.getNextEntry()) != null) {
-                    Path entryPath = projectDir.resolve(entry.getName()).normalize();
+                int entryCount = 0;
+                long totalUncompressedBytes = 0;
+                byte[] buffer = new byte[ZIP_BUFFER_SIZE];
 
-                    if (!entryPath.startsWith(projectDir)) {
-                        throw new InvalidFileException("Invalid zip entry: " + entry.getName());
+                while ((entry = zis.getNextEntry()) != null) {
+                    entryCount++;
+                    if (entryCount > maxZipEntries) {
+                        throw new InvalidFileException("ZIP archive contains too many entries");
+                    }
+
+                    Path entryPath = resolveZipEntry(projectDir, entry);
+                    if (entryDepth(projectDir, entryPath) > maxZipDepth) {
+                        throw new InvalidFileException("ZIP entry is too deeply nested: " + entry.getName());
                     }
 
                     if (entry.isDirectory()) {
                         Files.createDirectories(entryPath);
                     } else {
+                        if (Files.exists(entryPath)) {
+                            throw new InvalidFileException("Duplicate ZIP entry: " + entry.getName());
+                        }
                         Files.createDirectories(entryPath.getParent());
-                        Files.copy(zis, entryPath);
+                        try (OutputStream os = Files.newOutputStream(
+                                entryPath,
+                                StandardOpenOption.CREATE_NEW,
+                                StandardOpenOption.WRITE)) {
+                            int bytesRead;
+                            while ((bytesRead = zis.read(buffer)) != -1) {
+                                totalUncompressedBytes += bytesRead;
+                                if (totalUncompressedBytes > maxZipUncompressedBytes) {
+                                    throw new InvalidFileException("ZIP archive exceeds decompressed size limit");
+                                }
+                                os.write(buffer, 0, bytesRead);
+                            }
+                        }
                     }
 
                     zis.closeEntry();
@@ -320,9 +357,48 @@ public class ProjectService {
 
             return normalizeProjectRoot(projectDir);
 
+        } catch (InvalidFileException e) {
+            deleteDirectoryQuietly(projectDir);
+            throw e;
+        } catch (FileAlreadyExistsException e) {
+            deleteDirectoryQuietly(projectDir);
+            throw new InvalidFileException("Duplicate ZIP entry: " + e.getFile());
         } catch (IOException e) {
+            deleteDirectoryQuietly(projectDir);
             throw new InvalidFileException("Failed to extract ZIP file: " + e.getMessage());
         }
+    }
+
+    private Path resolveZipEntry(Path projectDir, ZipEntry entry) {
+        String entryName = entry.getName();
+        if (entryName == null || entryName.isBlank()) {
+            throw new InvalidFileException("Invalid empty ZIP entry");
+        }
+
+        Path entryPath = projectDir.resolve(entryName).normalize();
+        if (!entryPath.startsWith(projectDir)) {
+            throw new InvalidFileException("Invalid ZIP entry: " + entryName);
+        }
+
+        return entryPath;
+    }
+
+    private int entryDepth(Path projectDir, Path entryPath) {
+        return entryPath.getNameCount() - projectDir.getNameCount();
+    }
+
+    private static long requirePositive(long value, String name) {
+        if (value <= 0) {
+            throw new IllegalArgumentException(name + " must be positive");
+        }
+        return value;
+    }
+
+    private static int requirePositive(int value, String name) {
+        if (value <= 0) {
+            throw new IllegalArgumentException(name + " must be positive");
+        }
+        return value;
     }
 
     private Path normalizeProjectRoot(Path projectDir) {
@@ -349,6 +425,13 @@ public class ProjectService {
                         } catch (IOException e) {
                         }
                     });
+        }
+    }
+
+    private void deleteDirectoryQuietly(Path dir) {
+        try {
+            deleteDirectory(dir);
+        } catch (IOException e) {
         }
     }
 

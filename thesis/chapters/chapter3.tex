@@ -18,7 +18,7 @@
 \subsection{Static Code Analysis}
 \label{subsec:static-analysis}
 
-\par Static code analysis examines source code without executing it, allowing detection of structural issues, code smells, and architectural violations at the source level \cite{Chess2007}. In the context of microservices, static analysis can be applied at two levels. Intra-service analysis examines the internal structure of each microservice for code-level smells such as God Class, Long Method, and Complex Method. The aforementioned smells serve as indicators of architectural problems at the service level. Inter-service analysis, on the other hand, examines the communication patterns, dependencies, and shared resources across microservices to detect architectural anti-patterns such as cyclic dependencies and shared databases.
+\par Static code analysis examines source code without executing it, allowing detection of structural issues, code smells, and architectural violations at the source level \cite{Chess2007}. In the context of microservices, static analysis can be applied at two levels. Intra-service analysis examines the internal structure of each microservice for code-level smells such as God Class, Long Method, and Complex Method \cite{Fowler1999}. The aforementioned smells serve as indicators of architectural problems at the service level. Inter-service analysis, on the other hand, examines the communication patterns, dependencies, and shared resources across microservices to detect architectural anti-patterns such as cyclic dependencies and shared databases.
 
 \subsection{Abstract Syntax Tree Analysis with Spoon}
 \label{subsec:spoon-analysis}
