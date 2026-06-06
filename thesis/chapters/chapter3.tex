@@ -34,9 +34,9 @@ The AST-based approach is more robust than regular expression-based scanning, as
 \subsection{Code Smell Detection with DesigniteJava}
 \label{subsec:designite-analysis}
 
-\par DesigniteJava is a static analysis tool that detects design smells, implementation smells and architecture smells in Java projects \cite{Sharma2024}. It analyzes Java source code and produces CSV reports categorizing detected smells by type, affected class and file location.
+\par DesigniteJava is a static analysis tool that detects code smells and computes object-oriented metrics for Java projects \cite{Sharma2024}. It analyzes Java source code and produces CSV reports categorizing detected smells by type, affected class and file location.
 
-In this dissertation, DesigniteJava is integrated as an external tool invoked as a subprocess. The analysis pipeline passes each detected microservice's source directory to DesigniteJava, parses the resulting CSV output files (\texttt{designCodeSmells.csv}, \texttt{implementationCodeSmells.csv}, \texttt{architectureCodeSmells.csv}), and stores the results in the application database. The aggregate density of these smells per service is then used as the code-quality signal that feeds the composite health score (see Section~\ref{subsec:health-score}).
+In this dissertation, DesigniteJava is integrated as an external tool invoked as a subprocess. The analysis pipeline passes each detected microservice's source directory to DesigniteJava, parses the available smell-report CSV files produced by the configured installation, and stores the results in the application database. The aggregate density of these smells per service is then used as the code-quality signal that feeds the composite health score (see Section~\ref{subsec:health-score}).
 
 \begin{table}[htbp]
     \centering
@@ -68,7 +68,7 @@ In this dissertation, DesigniteJava is integrated as an external tool invoked as
         & Magic Number & Unexplained numeric literals & Low \\
         \hline
     \end{tabular}
-    \caption{Representative code smells reported by DesigniteJava and observed across the evaluated projects, grouped by category. DesigniteJava additionally reports architecture smells such as Cyclic Dependency and Unstable Dependency, which are persisted and contribute to the overall smell density used by the health score.}
+    \caption{Representative code smells reported by DesigniteJava and observed across the evaluated projects, grouped by category. All parsed smells contribute to the overall smell density used by the health score.}
     \label{tab:code-smell-categories}
 \end{table}
 
