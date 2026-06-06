@@ -4,6 +4,7 @@ import com.msadetector.entity.CodeSmell;
 import com.msadetector.entity.Microservice;
 import com.msadetector.enums.Severity;
 import com.msadetector.repository.CodeSmellRepository;
+import com.msadetector.repository.MicroserviceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +19,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -27,15 +31,18 @@ public class DesigniteService {
     private static final Logger log = LoggerFactory.getLogger(DesigniteService.class);
 
     private final CodeSmellRepository codeSmellRepository;
+    private final MicroserviceRepository microserviceRepository;
     private final String designiteJarPath;
     private final int timeoutSeconds;
 
     public DesigniteService(
             CodeSmellRepository codeSmellRepository,
+            MicroserviceRepository microserviceRepository,
             @Value("${app.analysis.designite-jar-path}") String designiteJarPath,
             @Value("${app.analysis.analysis-timeout-seconds:1800}") int timeoutSeconds
     ) {
         this.codeSmellRepository = codeSmellRepository;
+        this.microserviceRepository = microserviceRepository;
         this.designiteJarPath = designiteJarPath;
         this.timeoutSeconds = timeoutSeconds;
     }
@@ -56,6 +63,7 @@ public class DesigniteService {
                 codeSmellRepository.saveAll(smells);
 
                 microservice.setNumberOfClasses(countClasses(outputDir));
+                microserviceRepository.save(microservice);
 
                 log.info("DesigniteJava: parsed and saved {} code smell(s) for service '{}'",
                         smells.size(), microservice.getName());
@@ -77,28 +85,57 @@ public class DesigniteService {
 
         pb.redirectErrorStream(true);
         Process process = pb.start();
+        ExecutorService outputReader = Executors.newSingleThreadExecutor();
+        Future<?> outputTask = outputReader.submit(() -> logProcessOutput(process));
 
+        try {
+            boolean finished;
+            try {
+                finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                process.destroyForcibly();
+                Thread.currentThread().interrupt();
+                throw e;
+            }
+
+            if (!finished) {
+                process.destroyForcibly();
+                process.waitFor(5, TimeUnit.SECONDS);
+                log.warn("DesigniteJava timed out after {} seconds", timeoutSeconds);
+                return false;
+            }
+
+            waitForOutputReader(outputTask);
+
+            int exitCode = process.exitValue();
+            if (exitCode != 0) {
+                log.warn("DesigniteJava exited with code {} for input {}; will still attempt to parse any output produced",
+                        exitCode, inputPath);
+            }
+            return true;
+        } finally {
+            outputTask.cancel(true);
+            outputReader.shutdownNow();
+        }
+    }
+
+    private void logProcessOutput(Process process) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 log.debug("Designite: {}", line);
             }
+        } catch (IOException e) {
+            log.debug("Failed to read DesigniteJava output: {}", e.getMessage());
         }
+    }
 
-        boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
-
-        if (!finished) {
-            process.destroyForcibly();
-            log.warn("DesigniteJava timed out after {} seconds", timeoutSeconds);
-            return false;
+    private void waitForOutputReader(Future<?> outputTask) {
+        try {
+            outputTask.get(5, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.debug("DesigniteJava output reader did not finish cleanly: {}", e.getMessage());
         }
-
-        int exitCode = process.exitValue();
-        if (exitCode != 0) {
-            log.warn("DesigniteJava exited with code {} for input {}; will still attempt to parse any output produced",
-                    exitCode, inputPath);
-        }
-        return true;
     }
 
     private List<CodeSmell> parseResults(Path outputDir, Microservice microservice) {
