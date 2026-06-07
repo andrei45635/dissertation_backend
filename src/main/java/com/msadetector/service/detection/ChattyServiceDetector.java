@@ -71,7 +71,7 @@ public class ChattyServiceDetector extends BaseDetector {
 
     public ChattyServiceDetector(ObjectMapper objectMapper,
                                   ServiceDependencyRepository dependencyRepository,
-                                  @Value("${app.thresholds.chatty-service-min-calls:10}") int minCalls) {
+                                  @Value("${app.thresholds.chatty-service-min-calls:5}") int minCalls) {
         super(objectMapper);
         this.dependencyRepository = dependencyRepository;
         this.minCalls = minCalls;
@@ -81,11 +81,14 @@ public class ChattyServiceDetector extends BaseDetector {
     public List<DetectedAntiPattern> detect(Project project, List<Microservice> microservices, AnalysisJob job) {
         List<DetectedAntiPattern> patterns = new ArrayList<>();
         Path projectRoot = Path.of(project.getLocalPath());
+        int effectiveMinCalls = job != null && job.getChattyServiceMinCalls() != null
+                ? job.getChattyServiceMinCalls()
+                : minCalls;
 
         Set<String> flaggedServices = new HashSet<>();
         List<ServiceDependency> chattyDeps = job != null
-                ? dependencyRepository.findChattyDependenciesByAnalysisJob(job, minCalls)
-                : dependencyRepository.findChattyDependencies(project, minCalls);
+                ? dependencyRepository.findChattyDependenciesByAnalysisJob(job, effectiveMinCalls)
+                : dependencyRepository.findChattyDependencies(project, effectiveMinCalls);
 
         for (ServiceDependency dep : chattyDeps) {
             String sourceName = dep.getSourceService().getName();
@@ -132,7 +135,8 @@ public class ChattyServiceDetector extends BaseDetector {
             Path srcDir = servicePath.resolve(SRC_MAIN_JAVA);
             if (!Files.exists(srcDir)) continue;
 
-            List<ChattyTypeEvidence> chattyTypes = scanForChattyTypes(srcDir, servicePath);
+            List<ChattyTypeEvidence> chattyTypes = scanForChattyTypes(
+                    srcDir, servicePath, effectiveMinCalls);
             if (!chattyTypes.isEmpty()) {
                 for (ChattyTypeEvidence evidence : chattyTypes) {
                     List<Map<String, Object>> snippets = new ArrayList<>();
@@ -186,7 +190,8 @@ public class ChattyServiceDetector extends BaseDetector {
      * Regular domain interfaces/classes with many methods are NOT flagged — only those
      * that exhibit concrete evidence of being HTTP communication abstractions.
      */
-    private List<ChattyTypeEvidence> scanForChattyTypes(Path srcDir, Path servicePath) {
+    private List<ChattyTypeEvidence> scanForChattyTypes(
+            Path srcDir, Path servicePath, int effectiveMinCalls) {
         List<ChattyTypeEvidence> results = new ArrayList<>();
 
         try {
@@ -224,7 +229,7 @@ public class ChattyServiceDetector extends BaseDetector {
                                             .anyMatch(a -> HTTP_METHOD_ANNOTATIONS.contains(
                                                     a.getAnnotationType().getSimpleName())))
                                     .count();
-                            if (httpMethodCount < minCalls) continue;
+                            if (httpMethodCount < effectiveMinCalls) continue;
 
                             String relPath = type.getPosition().isValidPosition()
                                     ? servicePath.relativize(Path.of(type.getPosition().getFile().getPath())).toString()
@@ -243,7 +248,7 @@ public class ChattyServiceDetector extends BaseDetector {
                                     .filter(m -> !m.isDefaultMethod())
                                     .count();
 
-                            if (methodCount >= minCalls) {
+                            if (methodCount >= effectiveMinCalls) {
                                 String relPath = type.getPosition().isValidPosition()
                                         ? servicePath.relativize(Path.of(type.getPosition().getFile().getPath())).toString()
                                         : null;
@@ -283,7 +288,7 @@ public class ChattyServiceDetector extends BaseDetector {
                                 })
                                 .count();
 
-                        if (httpCallCount >= minCalls) {
+                        if (httpCallCount >= effectiveMinCalls) {
                             String relPath = type.getPosition().isValidPosition()
                                     ? servicePath.relativize(Path.of(type.getPosition().getFile().getPath())).toString()
                                     : null;

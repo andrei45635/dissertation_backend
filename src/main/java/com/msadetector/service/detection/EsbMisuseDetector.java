@@ -65,6 +65,9 @@ public class EsbMisuseDetector extends BaseDetector {
         if (allDeps.isEmpty()) {
             return patterns;
         }
+        double effectiveMediatorThreshold = job != null && job.getEsbMediatorThreshold() != null
+                ? job.getEsbMediatorThreshold()
+                : mediatorThreshold;
 
         int totalDependencies = allDeps.size();
 
@@ -120,9 +123,10 @@ public class EsbMisuseDetector extends BaseDetector {
             double rawBC = betweenness.getOrDefault(msId, 0.0);
             double normalizedBC = normFactor > 0 ? rawBC / normFactor : 0;
 
-            boolean isMediatorByConnections = callerRatio >= mediatorThreshold && calleeRatio >= mediatorThreshold;
-            boolean isMediatorByVolume = mediatorRatio >= mediatorThreshold;
-            boolean isMediatorByCentrality = normalizedBC >= mediatorThreshold;
+            boolean isMediatorByConnections = callerRatio >= effectiveMediatorThreshold
+                    && calleeRatio >= effectiveMediatorThreshold;
+            boolean isMediatorByVolume = mediatorRatio >= effectiveMediatorThreshold;
+            boolean isMediatorByCentrality = normalizedBC >= effectiveMediatorThreshold;
 
             if (isMediatorByConnections || isMediatorByVolume || isMediatorByCentrality) {
                 Path projectRoot = Path.of(project.getLocalPath());

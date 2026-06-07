@@ -40,9 +40,16 @@ public class NanoServiceDetector extends BaseDetector {
     public List<DetectedAntiPattern> detect(Project project, List<Microservice> microservices, AnalysisJob job) {
         List<DetectedAntiPattern> patterns = new ArrayList<>();
         Path projectRoot = Path.of(project.getLocalPath());
+        int effectiveMaxLoc = job != null && job.getNanoServiceMaxLoc() != null
+                ? job.getNanoServiceMaxLoc()
+                : maxLoc;
+        int effectiveMaxEndpoints = job != null && job.getNanoServiceMaxEndpoints() != null
+                ? job.getNanoServiceMaxEndpoints()
+                : maxEndpoints;
 
         for (Microservice ms : microservices) {
-            if (ms.getLinesOfCode() < maxLoc && ms.getNumberOfEndpoints() <= maxEndpoints) {
+            if (ms.getLinesOfCode() < effectiveMaxLoc
+                    && ms.getNumberOfEndpoints() <= effectiveMaxEndpoints) {
                 List<Map<String, Object>> snippets = new ArrayList<>();
                 Path serviceSrc = projectRoot.resolve(ms.getRelativePath()).resolve("src/main/java");
                 Path mainClass = findMainClass(serviceSrc);

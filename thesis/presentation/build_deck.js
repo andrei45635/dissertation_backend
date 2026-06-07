@@ -577,7 +577,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "If a committee member asks about a specific detector:\n" +
             "• Shared DB — group services by spring.datasource.url, flag groups of size > 1\n" +
             "• Cyclic Dependency — Tarjan's SCC on the dep graph, any SCC > 1 vertex is a cycle\n" +
-            "• Chatty Service — call count per edge ≥ 10 OR a Feign interface with ≥ 10 methods\n" +
+            "• Chatty Service — call count per edge ≥ 5 OR a Feign interface with ≥ 5 methods\n" +
             "• Hardcoded Endpoints — regex scan of .java for http://, localhost:, IP literals (with comment/test exclusions)\n" +
             "• Distributed Monolith — composite rule on coupling coefficient, connected ratio, shared DB count\n" +
             "• API Versioning — regex /v\\d+[/.] on endpoint paths\n" +

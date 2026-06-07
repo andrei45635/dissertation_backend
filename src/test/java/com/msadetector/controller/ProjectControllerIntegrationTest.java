@@ -58,7 +58,7 @@ class ProjectControllerIntegrationTest {
         MockMultipartFile file = new MockMultipartFile("file", "project.zip",
                 "application/zip", "fake-zip-content".getBytes());
 
-        when(projectService.uploadAndAnalyze(any(), eq("my-project"), eq(1L)))
+        when(projectService.uploadAndAnalyze(any(), eq("my-project"), any(), eq(1L)))
                 .thenReturn(new UploadResponse(10L, 100L));
 
         mockMvc.perform(multipart("/api/projects/upload")
@@ -74,9 +74,9 @@ class ProjectControllerIntegrationTest {
     @Test
     void cloneProject_returnsAccepted() throws Exception {
         GitCloneRequest request = new GitCloneRequest(
-                "https://github.com/example/repo.git", "test-project", "main");
+                "https://github.com/example/repo.git", "test-project", "main", null);
 
-        when(projectService.cloneAndAnalyze(any(), any(), any(), eq(1L)))
+        when(projectService.cloneAndAnalyze(any(), any(), any(), any(), eq(1L)))
                 .thenReturn(new UploadResponse(10L, 100L));
 
         mockMvc.perform(post("/api/projects/clone")
@@ -131,7 +131,7 @@ class ProjectControllerIntegrationTest {
 
     @Test
     void reanalyzeProject_returnsAccepted() throws Exception {
-        when(projectService.reanalyze(eq(10L), eq(1L), any(), any()))
+        when(projectService.reanalyze(eq(10L), eq(1L), any(), any(), any()))
                 .thenReturn(new UploadResponse(10L, 101L));
 
         mockMvc.perform(post("/api/projects/10/reanalyze")
@@ -148,7 +148,7 @@ class ProjectControllerIntegrationTest {
         MockMultipartFile file = new MockMultipartFile("file", "project.zip",
                 "application/zip", "fake-content".getBytes());
 
-        when(projectService.reuploadAndAnalyze(eq(10L), any(), eq(1L)))
+        when(projectService.reuploadAndAnalyze(eq(10L), any(), any(), eq(1L)))
                 .thenReturn(new UploadResponse(10L, 102L));
 
         mockMvc.perform(multipart("/api/projects/10/reupload")

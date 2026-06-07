@@ -134,6 +134,9 @@ public class AntiPatternDetectorService {
     }
 
     private boolean isDetectorEnabled(AntiPatternDetector detector, AnalysisJob job) {
+        if (job == null) {
+            return true;
+        }
         return switch (detector) {
             case CyclicDependencyDetector _ -> job.isDetectCyclicDependencies();
             case SharedDatabaseDetector _ -> job.isDetectSharedDatabases();
@@ -141,6 +144,10 @@ public class AntiPatternDetectorService {
             case GodServiceDetector _ -> job.isDetectGodServices();
             case ChattyServiceDetector _ -> job.isDetectChattyServices();
             case HardcodedEndpointDetector _ -> job.isDetectHardcodedEndpoints();
+            case DistributedMonolithDetector _ -> job.isDetectDistributedMonoliths();
+            case ApiVersioningDetector _ -> job.isDetectApiVersioningAbsence();
+            case WrongCutsDetector _ -> job.isDetectWrongCuts();
+            case EsbMisuseDetector _ -> job.isDetectEsbMisuse();
             default -> true;
         };
     }

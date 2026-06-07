@@ -40,7 +40,7 @@ app:
   thresholds:
     nano-service-max-loc: 500
     nano-service-max-endpoints: 2
-    chatty-service-min-calls: 10
+    chatty-service-min-calls: 5
     esb-mediator-threshold: 0.4
     code-smell-density-threshold: 80
     god-service-field-count: 25

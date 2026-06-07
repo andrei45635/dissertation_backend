@@ -91,6 +91,23 @@ class AnalysisJobTest {
         assertTrue(job.isDetectGodServices());
         assertTrue(job.isDetectChattyServices());
         assertTrue(job.isDetectHardcodedEndpoints());
+        assertTrue(job.isDetectDistributedMonoliths());
+        assertTrue(job.isDetectApiVersioningAbsence());
+        assertTrue(job.isDetectWrongCuts());
+        assertTrue(job.isDetectEsbMisuse());
+        assertEquals(500, job.getNanoServiceMaxLoc());
+        assertEquals(2, job.getNanoServiceMaxEndpoints());
+        assertEquals(5, job.getChattyServiceMinCalls());
+        assertEquals(25, job.getGodServiceFieldCount());
+        assertEquals(30, job.getGodServicePublicMethods());
+        assertEquals(1000, job.getGodServiceLoc());
+        assertEquals(20, job.getGodServiceImportDomains());
+        assertEquals(12, job.getGodServiceConstructorParams());
+        assertEquals(0.5, job.getGodServiceTccThreshold(), 0.001);
+        assertEquals(3, job.getGodServiceMinMetrics());
+        assertEquals(0.4, job.getEsbMediatorThreshold(), 0.001);
+        assertEquals(0.5, job.getDistributedMonolithHighCoupling(), 0.001);
+        assertEquals(0.8, job.getDistributedMonolithConnectedRatio(), 0.001);
+        assertEquals(0.3, job.getDistributedMonolithModerateCoupling(), 0.001);
     }
 }
-

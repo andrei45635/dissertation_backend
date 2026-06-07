@@ -88,6 +88,22 @@ public class AnalysisJob extends BaseEntity {
     @Builder.Default
     private boolean detectHardcodedEndpoints = true;
 
+    @Column(name = "detect_distributed_monoliths")
+    @Builder.Default
+    private boolean detectDistributedMonoliths = true;
+
+    @Column(name = "detect_api_versioning_absence")
+    @Builder.Default
+    private boolean detectApiVersioningAbsence = true;
+
+    @Column(name = "detect_wrong_cuts")
+    @Builder.Default
+    private boolean detectWrongCuts = true;
+
+    @Column(name = "detect_esb_misuse")
+    @Builder.Default
+    private boolean detectEsbMisuse = true;
+
     @Column(name = "nano_service_max_loc")
     @Builder.Default
     private Integer nanoServiceMaxLoc = 500;
@@ -96,6 +112,34 @@ public class AnalysisJob extends BaseEntity {
     @Builder.Default
     private Integer nanoServiceMaxEndpoints = 2;
 
+    @Column(name = "god_service_field_count")
+    @Builder.Default
+    private Integer godServiceFieldCount = 25;
+
+    @Column(name = "god_service_public_methods")
+    @Builder.Default
+    private Integer godServicePublicMethods = 30;
+
+    @Column(name = "god_service_loc")
+    @Builder.Default
+    private Integer godServiceLoc = 1000;
+
+    @Column(name = "god_service_import_domains")
+    @Builder.Default
+    private Integer godServiceImportDomains = 20;
+
+    @Column(name = "god_service_constructor_params")
+    @Builder.Default
+    private Integer godServiceConstructorParams = 12;
+
+    @Column(name = "god_service_tcc_threshold")
+    @Builder.Default
+    private Double godServiceTccThreshold = 0.5;
+
+    @Column(name = "god_service_min_metrics")
+    @Builder.Default
+    private Integer godServiceMinMetrics = 3;
+
     @Column(name = "god_service_min_domains")
     @Builder.Default
     private Integer godServiceMinDomains = 3;
@@ -103,6 +147,22 @@ public class AnalysisJob extends BaseEntity {
     @Column(name = "chatty_service_min_calls")
     @Builder.Default
     private Integer chattyServiceMinCalls = 5;
+
+    @Column(name = "esb_mediator_threshold")
+    @Builder.Default
+    private Double esbMediatorThreshold = 0.4;
+
+    @Column(name = "distributed_monolith_high_coupling")
+    @Builder.Default
+    private Double distributedMonolithHighCoupling = 0.5;
+
+    @Column(name = "distributed_monolith_connected_ratio")
+    @Builder.Default
+    private Double distributedMonolithConnectedRatio = 0.8;
+
+    @Column(name = "distributed_monolith_moderate_coupling")
+    @Builder.Default
+    private Double distributedMonolithModerateCoupling = 0.3;
 
     @Builder.Default
     @OneToMany(mappedBy = "analysisJob", cascade = CascadeType.ALL, orphanRemoval = true)

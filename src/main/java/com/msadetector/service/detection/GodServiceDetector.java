@@ -82,6 +82,7 @@ public class GodServiceDetector extends BaseDetector {
     public List<DetectedAntiPattern> detect(Project project, List<Microservice> microservices, AnalysisJob job) {
         List<DetectedAntiPattern> patterns = new ArrayList<>();
         Path projectRoot = Path.of(project.getLocalPath());
+        GodServiceThresholds thresholds = thresholds(job);
 
         for (Microservice ms : microservices) {
             Path serviceSrcDir = projectRoot.resolve(ms.getRelativePath()).resolve(SRC_MAIN_JAVA);
@@ -89,7 +90,7 @@ public class GodServiceDetector extends BaseDetector {
                 continue;
             }
 
-            List<GodClassEvidence> godClasses = scanForGodClasses(serviceSrcDir);
+            List<GodClassEvidence> godClasses = scanForGodClasses(serviceSrcDir, thresholds);
             if (godClasses.isEmpty()) {
                 continue;
             }
@@ -159,7 +160,7 @@ public class GodServiceDetector extends BaseDetector {
      *   <li>Tight Class Cohesion (TCC)</li>
      * </ul>
      */
-    private List<GodClassEvidence> scanForGodClasses(Path srcDir) {
+    private List<GodClassEvidence> scanForGodClasses(Path srcDir, GodServiceThresholds thresholds) {
         List<GodClassEvidence> results = new ArrayList<>();
 
         try {
@@ -179,7 +180,7 @@ public class GodServiceDetector extends BaseDetector {
                 if (isDataClass(type)) continue;
 
                 try {
-                    GodClassEvidence evidence = analyzeClass(type);
+                    GodClassEvidence evidence = analyzeClass(type, thresholds);
                     if (evidence != null) {
                         results.add(evidence);
                     }
@@ -239,7 +240,7 @@ public class GodServiceDetector extends BaseDetector {
      * Returns evidence if the configured minimum number of metrics are exceeded,
      * null otherwise.
      */
-    private GodClassEvidence analyzeClass(CtType<?> type) {
+    private GodClassEvidence analyzeClass(CtType<?> type, GodServiceThresholds thresholds) {
         int fieldCount = type.getFields().size();
 
         int publicMethodCount = (int) type.getMethods().stream()
@@ -276,20 +277,23 @@ public class GodServiceDetector extends BaseDetector {
         double tcc = computeTCC(type);
 
         List<String> exceededMetrics = new ArrayList<>();
-        if (fieldCount >= fieldCountThreshold)
-            exceededMetrics.add("fields=" + fieldCount + " (>=" + fieldCountThreshold + ")");
-        if (publicMethodCount >= publicMethodThreshold)
-            exceededMetrics.add("publicMethods=" + publicMethodCount + " (>=" + publicMethodThreshold + ")");
-        if (loc >= locThreshold)
-            exceededMetrics.add("LOC=" + loc + " (>=" + locThreshold + ")");
-        if (importDomainCount >= importDomainThreshold)
-            exceededMetrics.add("importDomains=" + importDomainCount + " (>=" + importDomainThreshold + ")");
-        if (maxConstructorParams >= constructorParamThreshold)
-            exceededMetrics.add("constructorParams=" + maxConstructorParams + " (>=" + constructorParamThreshold + ")");
-        if (tcc >= 0 && tcc < tccThreshold)
-            exceededMetrics.add(String.format("TCC=%.2f (<%.2f)", tcc, tccThreshold));
+        if (fieldCount >= thresholds.fieldCountThreshold())
+            exceededMetrics.add("fields=" + fieldCount + " (>=" + thresholds.fieldCountThreshold() + ")");
+        if (publicMethodCount >= thresholds.publicMethodThreshold())
+            exceededMetrics.add("publicMethods=" + publicMethodCount + " (>="
+                    + thresholds.publicMethodThreshold() + ")");
+        if (loc >= thresholds.locThreshold())
+            exceededMetrics.add("LOC=" + loc + " (>=" + thresholds.locThreshold() + ")");
+        if (importDomainCount >= thresholds.importDomainThreshold())
+            exceededMetrics.add("importDomains=" + importDomainCount + " (>="
+                    + thresholds.importDomainThreshold() + ")");
+        if (maxConstructorParams >= thresholds.constructorParamThreshold())
+            exceededMetrics.add("constructorParams=" + maxConstructorParams + " (>="
+                    + thresholds.constructorParamThreshold() + ")");
+        if (tcc >= 0 && tcc < thresholds.tccThreshold())
+            exceededMetrics.add(String.format("TCC=%.2f (<%.2f)", tcc, thresholds.tccThreshold()));
 
-        if (exceededMetrics.size() >= minMetricsExceeded) {
+        if (exceededMetrics.size() >= thresholds.minMetricsExceeded()) {
             String filePath = type.getPosition().isValidPosition()
                     ? type.getPosition().getFile().getPath() : null;
             int lineNumber = type.getPosition().isValidPosition()
@@ -365,6 +369,36 @@ public class GodServiceDetector extends BaseDetector {
 
         return totalPairs > 0 ? (double) connectedPairs / totalPairs : -1;
     }
+
+    private GodServiceThresholds thresholds(AnalysisJob job) {
+        return new GodServiceThresholds(
+                threshold(job != null ? job.getGodServiceFieldCount() : null, fieldCountThreshold),
+                threshold(job != null ? job.getGodServicePublicMethods() : null, publicMethodThreshold),
+                threshold(job != null ? job.getGodServiceLoc() : null, locThreshold),
+                threshold(job != null ? job.getGodServiceImportDomains() : null, importDomainThreshold),
+                threshold(job != null ? job.getGodServiceConstructorParams() : null, constructorParamThreshold),
+                threshold(job != null ? job.getGodServiceTccThreshold() : null, tccThreshold),
+                threshold(job != null ? job.getGodServiceMinMetrics() : null, minMetricsExceeded)
+        );
+    }
+
+    private int threshold(Integer jobValue, int defaultValue) {
+        return jobValue != null ? jobValue : defaultValue;
+    }
+
+    private double threshold(Double jobValue, double defaultValue) {
+        return jobValue != null ? jobValue : defaultValue;
+    }
+
+    private record GodServiceThresholds(
+            int fieldCountThreshold,
+            int publicMethodThreshold,
+            int locThreshold,
+            int importDomainThreshold,
+            int constructorParamThreshold,
+            double tccThreshold,
+            int minMetricsExceeded
+    ) {}
 
     private record GodClassEvidence(
             String className,

@@ -1,6 +1,7 @@
 package com.msadetector.service.detection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.msadetector.entity.AnalysisJob;
 import com.msadetector.entity.DetectedAntiPattern;
 import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
@@ -131,6 +132,20 @@ class NanoServiceDetectorTest {
         List<Microservice> services = List.of(createMs("medium-svc", 800, 3));
 
         List<DetectedAntiPattern> results = strictDetector.detect(project, services);
+
+        assertEquals(1, results.size());
+    }
+
+    @Test
+    void detect_jobThresholdsOverrideConfiguredDefaults() {
+        Project project = createProject();
+        List<Microservice> services = List.of(createMs("medium-svc", 800, 3));
+        AnalysisJob job = AnalysisJob.builder()
+                .nanoServiceMaxLoc(1000)
+                .nanoServiceMaxEndpoints(5)
+                .build();
+
+        List<DetectedAntiPattern> results = detector.detect(project, services, job);
 
         assertEquals(1, results.size());
     }

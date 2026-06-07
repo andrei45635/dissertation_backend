@@ -48,7 +48,7 @@ class DependencyGraphBuilderTest {
     }
 
     @Test
-    void buildDependencyGraph_feignUrlToLocalhost_resolvesTargetByPort() throws Exception {
+    void buildDependencyGraph_feignNameResolvesTargetByServiceName() throws Exception {
         AnalysisJob job = new AnalysisJob();
         Project project = createProject();
         Microservice source = createService(1L, "order-service");
@@ -60,7 +60,7 @@ class DependencyGraphBuilderTest {
                 import org.springframework.cloud.openfeign.FeignClient;
                 import org.springframework.web.bind.annotation.GetMapping;
 
-                @FeignClient(url = "http://localhost:8081")
+                @FeignClient(name = "payment-service", url = "http://localhost:8081")
                 interface PaymentClient {
                     @GetMapping("/payments")
                     String listPayments();
@@ -81,11 +81,11 @@ class DependencyGraphBuilderTest {
         assertEquals(source, dependency.getSourceService());
         assertEquals(target, dependency.getTargetService());
         assertEquals(DependencyType.FEIGN_CLIENT, dependency.getDependencyType());
-        assertEquals("http://localhost:8081", dependency.getTargetUrl());
+        assertEquals("payment-service", dependency.getTargetUrl());
     }
 
     @Test
-    void buildDependencyGraph_feignUrlPlaceholder_resolvesDefaultUrlByPort() throws Exception {
+    void buildDependencyGraph_feignNameWithUrlPlaceholderResolvesTargetByServiceName() throws Exception {
         AnalysisJob job = new AnalysisJob();
         Project project = createProject();
         Microservice source = createService(1L, "order-service");
@@ -116,7 +116,7 @@ class DependencyGraphBuilderTest {
         verify(dependencyRepository).save(captor.capture());
         ServiceDependency dependency = captor.getValue();
         assertEquals(target, dependency.getTargetService());
-        assertEquals("http://localhost:8081", dependency.getTargetUrl());
+        assertEquals("payment", dependency.getTargetUrl());
     }
 
     private Project createProject() {

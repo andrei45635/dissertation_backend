@@ -111,7 +111,7 @@ This outline mirrors the generated deck in `build_deck.js`. Slide numbers, title
 **Presenter notes**
 - Ten detectors organised by architectural dimension. Each is a Spring component implementing a common interface, so adding a detector means one class and no orchestrator changes.
 - Severities feed the health score directly: critical costs 8 points, high 5, medium 3.
-- If asked about a specific detector: Shared DB groups services by datasource URL; Cyclic Dependency uses Tarjan SCC; Chatty Service uses per-edge call count >= 10 or a Feign interface with >= 10 methods; Hardcoded Endpoints is a regex scan of .java files; Distributed Monolith is a composite coupling rule; API Versioning is a regex on endpoint paths; ESB Misuse uses caller/callee ratios, a volume ratio and betweenness centrality; Wrong Cuts uses bidirectional edges between a service pair.
+- If asked about a specific detector: Shared DB groups services by datasource URL; Cyclic Dependency uses Tarjan SCC; Chatty Service uses per-edge call count >= 5 or a Feign interface with >= 5 methods; Hardcoded Endpoints is a regex scan of .java files; Distributed Monolith is a composite coupling rule; API Versioning is a regex on endpoint paths; ESB Misuse uses caller/callee ratios, a volume ratio and betweenness centrality; Wrong Cuts uses bidirectional edges between a service pair.
 
 ---
 
@@ -156,9 +156,9 @@ This outline mirrors the generated deck in `build_deck.js`. Slide numbers, title
 
 **On-slide content**
 - 11 projects, 130 detected microservices, ~274k LOC.
-- Health scores (0-100): MicroSocial 83, ftgo 75, PiggyMetrics 71, Site-Where 69, RuoYi 68, design-patterns 60, mall-swarm 53, NetworkDisk 52, piomin 51, Train-Ticket 40, recruit 40.
-- 126 anti-pattern instances across 9 distinct types.
-- Hardcoded Endpoints (43) and API Versioning Absence (37) dominate.
+- Health scores (0-100): MicroSocial 83, ftgo 75, RuoYi 71, PiggyMetrics 71, Site-Where 69, design-patterns 60, NetworkDisk 59, piomin 55, Train-Ticket 54, mall-swarm 53, recruit 40.
+- 98 anti-pattern instances across 9 distinct types.
+- API Versioning Absence (37) and Nano Service (23) are the most frequent findings.
 - Cyclic Dependency and Wrong Cuts detected in microservice-recruit; Distributed Monolith was not detected.
 
 **Visual**

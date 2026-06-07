@@ -105,7 +105,7 @@ Detection involves analyzing the dependency graph and identifying edges with a c
     \label{eq:chatty-service}
 \end{equation}
 
-\noindent where $\theta_{\text{chatty}}$ is the minimum call count threshold (default: 10).
+\noindent where $\theta_{\text{chatty}}$ is the minimum call count threshold (default: 5).
 
 Figure~\ref{fig:chatty-services} contrasts a chatty communication pattern with a well-designed coarse-grained interaction. In the chatty pattern, Service A makes many fine-grained calls to Service B to complete a single operation, whereas the improved design consolidates these into fewer, coarser-grained requests.
 
@@ -246,7 +246,7 @@ Soldani et al.\ performed a systematic grey literature review covering 51 indust
 
 \par Taibi and Lenarduzzi conducted an empirical study involving interviews with 72 experienced developers, identifying the most common "bad smells" in microservice architectures \cite{Taibi2018}. Their findings highlighted that Wrong Cuts, Shared Database (also referred to as "Shared Persistency") and Hardcoded Endpoints are among the most frequently encountered and impactful anti-patterns in enterprise practice. The study also reported that many teams were unaware of these anti-patterns until they had accumulated enough significant technical debt, underscoring the value of automated detection tools. This empirical evidence informed the selection of anti-patterns targeted by this dissertation.
 
-In a subsequent work, Taibi, Lenarduzzi, and Pahl proposed a structured taxonomy of microservice anti-patterns \cite{Taibi2020}. They classified anti-patterns along two dimensions: the architectural level at which they manifest (e.g. service design, communication, data management, deployment) and their root cause (e.g. improper decomposition, misused patterns, technology misuse). This taxonomy provides a principled framework for organizing detection efforts. The anti-patterns addressed in this dissertation span all four architectural levels, as summarized in Table~\ref{tab:antipattern-dimensions}.
+In a subsequent work, Taibi, Lenarduzzi, and Pahl proposed a structured taxonomy that catalogues twenty microservice anti-patterns grouped into \emph{technical} and \emph{organizational} categories, each further divided into subcategories, i.e. internal and communication smells on the technical side, and team-oriented and technology/tool-oriented smells on the organizational side \cite{Taibi2020}. This taxonomy provides a principled framework for reasoning about the origins of microservice anti-patterns. Drawing on this and the broader anti-pattern literature, the present dissertation organizes the ten anti-patterns it targets into four architectural dimensions of its own, i.e. service design, communication, data management, and deployment and coupling, as summarized in Table~\ref{tab:antipattern-dimensions}.
 
 \begin{table}[htbp]
     \begin{center}
@@ -281,7 +281,7 @@ In a subsequent work, Taibi, Lenarduzzi, and Pahl proposed a structured taxonomy
             \hline
         \end{tabular}
     \end{center}
-    \caption{Mapping of the ten anti-patterns detected by this work to the architectural dimensions defined by Taibi et al.\ \cite{Taibi2020}.}
+    \caption{Mapping of the ten anti-patterns detected by this work to four architectural dimensions. The grouping is the author's own, inspired by the microservice anti-pattern literature \cite{Taibi2018, Taibi2020}.}
     \label{tab:antipattern-dimensions}
 \end{table}
 
@@ -294,7 +294,7 @@ Bogner et al.\ conducted a systematic literature review investigating the assess
 
 Sharma and Spinellis provided a comprehensive survey on software smells and demonstrated the role of automated tools in detecting them \cite{Sharma2018}. DesigniteJava, presented as a large-scale multi-faceted code smell detection tool by Sharma \cite{Sharma2024}, detects code smells and computes object-oriented metrics for Java projects. While DesigniteJava operates at code level within individual projects, this dissertation uses the aggregate density of these smells as the code-quality signal that contributes to the composite health score, complementing the architectural-level analysis carried out through Spoon-based structural metrics and dependency-graph algorithms.
 
-Pigazzini et al.\ proposed an approach for detecting microservice smells by combining structural analysis with dependency extraction \cite{Pigazzini2020}. Their work focused on identifying smells such as Cyclic Dependencies, Hardcoded Endpoints, and Shared Persistence by analyzing dependency structure extracted from build files and Docker configurations. While their approach addresses inter-service structural smells, it does not incorporate intra-service code smell analysis and does not support the breadth of anti-patterns covered by this dissertation.
+Pigazzini et al.\ proposed an approach for detecting microservice smells by combining structural analysis with dependency extraction \cite{Pigazzini2020}. Their work focused on identifying smells such as Cyclic Dependencies, Hardcoded Endpoints, and Shared Persistence by analyzing dependency structure extracted from Docker and Spring configuration files (\texttt{docker-compose.yml}, \texttt{Dockerfile}, \texttt{application.yml}) together with source-code communication patterns such as Feign and \texttt{RestTemplate} usage. While their approach addresses inter-service structural smells, it does not incorporate intra-service code smell analysis and does not support the breadth of anti-patterns covered by this dissertation.
 
 Cerny et al.\ provided a contextual analysis of microservice architecture, surveying current research directions and identifying gaps in automated analysis capabilities \cite{Cerny2018}. They highlighted the need for tools that can automatically reconstruct microservice architectures from source code and detect anti-patterns without requiring manual configuration. The automated microservice detection mechanism implemented in this work directly addresses this need by scanning for build files and applying a deployability gate to identify service boundaries without manual configuration.
 
@@ -314,60 +314,60 @@ This dissertation focuses on static analysis to enable anti-pattern detection wi
 
 \par Arcan serves as a tool developed for detection and analysis of architectural smells in Java projects that supports dependency graph analysis and cycle detection \cite{Arcelli2017}. It detects architectural smells such as Cyclic Dependencies and Unstable Dependencies by constructing and analyzing a dependency graph from compiled Java bytecode. However, Arcan was primarily designed with monolithic Java applications in mind and does not specifically target microservice anti-patterns such as Shared Database (or Persistence), Chatty Service or Distributed Monolith. It also does not provide automated microservice boundary detection or a composite health score.
 
-\par MicroART reconstructs microservice architectures from source code and Docker configurations, providing visualization capabilities \cite{Granchelli2017}. It parses \texttt{Dockerfile} and \texttt{docker-compose.yml} files to identify services and their relationships, and it generates graphical representations of the reconstructed architecture. While MicroART does address the important problem of architecture recovery, it focuses on visualization rather than anti-pattern detection. It does not analyze source code for code smells, does not compute coupling metrics and does not provide remediation recommendations.
+\par MicroART recovers the architecture of microservice-based systems by combining static information from the source repository with dynamic analysis of the running system \cite{Granchelli2017}. It clones the project's repository to extract service metadata and then monitors the deployed containers at runtime, querying the Docker runtime and capturing inter-service network traffic to reconstruct the actual service interactions, which an architect can subsequently refine. While MicroART does address the important problem of architecture recovery, it focuses on visualization rather than anti-pattern detection. It does not analyze source code for code smells, does not compute coupling metrics and does not provide remediation recommendations.
 
-\par MSANose is a detection tool specifically designed for microservice smells, based on the catalog established by Taibi et al.\ \cite{Walker2020}. It detects smells such as Shared Database, Cyclic Dependencies, and Hardcoded Endpoints through static analysis for Spring Boot projects. MSANose represents the closest prior work to this dissertation. However, it differs in several respects: it does not integrate code-level smell detection (e.g. God Class analysis), it does not compute a composite health score, it does not support configurable detection thresholds and it does not detect anti-patterns such as API Versioning Absence or God Service.
+\par MSANose is a detection tool specifically designed for microservice smells, based on the catalog established by Taibi et al.\ \cite{Walker2020}. It detects smells such as Shared Database, Cyclic Dependencies, Hardcoded Endpoints, ESB Usage, Wrong Cuts, and API Versioning through static analysis for Spring Boot projects. MSANose represents the closest prior work to this dissertation. However, it differs in several respects: it does not integrate a general intra-service code-level smell catalogue (e.g. God Class analysis), it does not compute a composite health score, it exposes only a single user-adjustable connectivity threshold rather than broadly configurable detection parameters, and it does not target service-design or communication anti-patterns such as God Service or Chatty Service.
 
-Table~\ref{tab:related-tools-comparison} provides a detailed feature comparison of these tools against the system presented in this dissertation.
-
-\begin{table}[htbp]
-    \begin{center}
-        \small
-        \begin{tabular}{|p{100pt}|c|c|c|c|}
-            \hline
-            \textbf{Feature} & \textbf{Arcan} & \textbf{MicroART} & \textbf{MSANose} & \textbf{This Work} \\
-            \hline\hline
-            Targets microservices & $\times$ & \checkmark & \checkmark & \checkmark \\
-            \hline
-            General intra-service code smell detection & \checkmark & $\times$ & Partial & \checkmark \\
-            \hline
-            Cycle detection & \checkmark & $\times$ & \checkmark & \checkmark \\
-            \hline
-            Shared database detection & $\times$ & $\times$ & \checkmark & \checkmark \\
-            \hline
-            God service detection & $\times$ & $\times$ & $\times$ & \checkmark \\
-            \hline
-            Chatty service detection & $\times$ & $\times$ & $\times$ & \checkmark \\
-            \hline
-            Hardcoded endpoints & $\times$ & $\times$ & \checkmark & \checkmark \\
-            \hline
-            ESB misuse detection & $\times$ & $\times$ & $\times$ & \checkmark \\
-            \hline
-            Wrong cuts detection & $\times$ & $\times$ & $\times$ & \checkmark \\
-            \hline
-            API versioning check & $\times$ & $\times$ & $\times$ & \checkmark \\
-            \hline
-            Auto service discovery & $\times$ & Partial & $\times$ & \checkmark \\
-            \hline
-            Health score metric & $\times$ & $\times$ & $\times$ & \checkmark \\
-            \hline
-            Web interface / API & $\times$ & \checkmark & $\times$ & \checkmark \\
-            \hline
-            Configurable thresholds & $\times$ & $\times$ & $\times$ & \checkmark \\
-            \hline
-            Code snippet evidence & $\times$ & $\times$ & $\times$ & \checkmark \\
-            \hline
-            Remediation guidance & $\times$ & $\times$ & $\times$ & \checkmark \\
-            \hline
-            Target language & Java & Multi & Java & Java \\
-            \hline
-            Analysis technique & Static & Static & Static & Static \\
-            \hline
-        \end{tabular}
-    \end{center}
-    \caption{Feature comparison of related architectural analysis tools. \checkmark\ indicates the feature is supported, $\times$\ indicates it is not supported. ''Partial'' indicates limited support. For MSANose, ''Partial'' means that the tool detects microservice-specific smells, but does not integrate a general intra-service smell catalogue such as DesigniteJava or use smell density as a health-score dimension.}
-    \label{tab:related-tools-comparison}
-\end{table}
+% Table~\ref{tab:related-tools-comparison} provides a detailed feature comparison of these tools against the system presented in this dissertation.
+%
+% \begin{table}[htbp]
+%     \begin{center}
+%         \small
+%         \begin{tabular}{|p{100pt}|c|c|c|c|}
+%             \hline
+%             \textbf{Feature} & \textbf{Arcan} & \textbf{MicroART} & \textbf{MSANose} & \textbf{This Work} \\
+%             \hline\hline
+%             Targets microservices & $\times$ & \checkmark & \checkmark & \checkmark \\
+%             \hline
+%             General intra-service code smell detection & \checkmark & $\times$ & Partial & \checkmark \\
+%             \hline
+%             Cycle detection & \checkmark & $\times$ & \checkmark & \checkmark \\
+%             \hline
+%             Shared database detection & $\times$ & $\times$ & \checkmark & \checkmark \\
+%             \hline
+%             God service detection & $\times$ & $\times$ & $\times$ & \checkmark \\
+%             \hline
+%             Chatty service detection & $\times$ & $\times$ & $\times$ & \checkmark \\
+%             \hline
+%             Hardcoded endpoints & $\times$ & $\times$ & \checkmark & \checkmark \\
+%             \hline
+%             ESB misuse detection & $\times$ & $\times$ & \checkmark & \checkmark \\
+%             \hline
+%             Wrong cuts detection & $\times$ & $\times$ & \checkmark & \checkmark \\
+%             \hline
+%             API versioning check & $\times$ & $\times$ & \checkmark & \checkmark \\
+%             \hline
+%             Auto service discovery & $\times$ & Partial & $\times$ & \checkmark \\
+%             \hline
+%             Health score metric & $\times$ & $\times$ & $\times$ & \checkmark \\
+%             \hline
+%             Web interface / API & $\times$ & \checkmark & $\times$ & \checkmark \\
+%             \hline
+%             Configurable thresholds & $\times$ & $\times$ & Partial & \checkmark \\
+%             \hline
+%             Code snippet evidence & $\times$ & $\times$ & $\times$ & \checkmark \\
+%             \hline
+%             Remediation guidance & $\times$ & $\times$ & $\times$ & \checkmark \\
+%             \hline
+%             Target language & Java & Multi & Java & Java \\
+%             \hline
+%             Analysis technique & Static & Hybrid & Static & Static \\
+%             \hline
+%         \end{tabular}
+%     \end{center}
+%     \caption{Feature comparison of related architectural analysis tools. \checkmark\ indicates the feature is supported, $\times$\ indicates it is not supported. ''Partial'' indicates limited support. For MSANose, ''Partial'' in the intra-service code-smell row means it detects microservice-specific smells but does not integrate a general intra-service smell catalogue such as DesigniteJava or use smell density as a health-score dimension; ''Partial'' in the configurable-thresholds row reflects that it exposes only a single adjustable ESB connectivity threshold rather than broadly externalized configuration.}
+%     \label{tab:related-tools-comparison}
+% \end{table}
 
 \subsection{Positioning and Contributions of This Work}
 \label{subsec:positioning}

@@ -1,6 +1,7 @@
 package com.msadetector.service.detection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.msadetector.entity.AnalysisJob;
 import com.msadetector.entity.DetectedAntiPattern;
 import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
@@ -171,6 +172,33 @@ class EsbMisuseDetectorTest {
             assertTrue(results.stream().noneMatch(p -> p.getDescription().contains(gwName)),
                     "Gateway name '" + gwName + "' should be skipped");
         }
+    }
+
+    @Test
+    void detect_jobThresholdOverridesConfiguredDefault() {
+        Project project = createProject();
+        Microservice hub = createMs(1L, "orchestrator");
+        Microservice a = createMs(2L, "svc-a");
+        Microservice b = createMs(3L, "svc-b");
+        Microservice c = createMs(4L, "svc-c");
+        Microservice d = createMs(5L, "svc-d");
+        AnalysisJob job = AnalysisJob.builder()
+                .esbMediatorThreshold(0.2)
+                .build();
+
+        List<ServiceDependency> deps = List.of(
+                createDep(a, hub), createDep(hub, b),
+                createDep(a, b), createDep(b, a),
+                createDep(c, d), createDep(d, c),
+                createDep(a, c), createDep(c, a),
+                createDep(b, d), createDep(d, b)
+        );
+        when(dependencyRepository.findByAnalysisJobWithServices(job)).thenReturn(deps);
+
+        List<DetectedAntiPattern> results = detector.detect(project, List.of(hub, a, b, c, d), job);
+
+        assertTrue(results.stream().anyMatch(p -> p.getDescription().contains("orchestrator")));
+        verify(dependencyRepository).findByAnalysisJobWithServices(job);
     }
 }
 

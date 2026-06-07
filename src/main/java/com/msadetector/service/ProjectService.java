@@ -1,5 +1,6 @@
 package com.msadetector.service;
 
+import com.msadetector.dto.AnalysisOptionsRequest;
 import com.msadetector.dto.MicroserviceResponse;
 import com.msadetector.dto.ProjectResponse;
 import com.msadetector.dto.UploadResponse;
@@ -73,7 +74,8 @@ public class ProjectService {
     }
 
     @Transactional
-    public UploadResponse uploadAndAnalyze(MultipartFile file, String projectName, Long userId) {
+    public UploadResponse uploadAndAnalyze(MultipartFile file, String projectName,
+                                           AnalysisOptionsRequest options, Long userId) {
         validateFile(file);
 
         User owner = userRepository.findById(userId)
@@ -93,6 +95,7 @@ public class ProjectService {
         AnalysisJob job = AnalysisJob.builder()
                 .project(project)
                 .build();
+        applyAnalysisOptions(job, options);
         job = analysisJobRepository.saveAndFlush(job);
 
         Long jobId = job.getId();
@@ -108,7 +111,8 @@ public class ProjectService {
     }
 
     @Transactional
-    public UploadResponse cloneAndAnalyze(String repoUrl, String projectName, String branch, Long userId) {
+    public UploadResponse cloneAndAnalyze(String repoUrl, String projectName, String branch,
+                                          AnalysisOptionsRequest options, Long userId) {
         gitCloneService.validateRepoUrl(repoUrl);
 
         User owner = userRepository.findById(userId)
@@ -139,6 +143,7 @@ public class ProjectService {
         AnalysisJob job = AnalysisJob.builder()
                 .project(project)
                 .build();
+        applyAnalysisOptions(job, options);
         job = analysisJobRepository.saveAndFlush(job);
 
         Long jobId = job.getId();
@@ -200,7 +205,8 @@ public class ProjectService {
      */
     @Transactional
     public UploadResponse reanalyze(Long projectId, Long userId,
-                                    String repoUrl, String branch) {
+                                    String repoUrl, String branch,
+                                    AnalysisOptionsRequest options) {
         User owner = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
         Project project = projectRepository.findByIdAndOwner(projectId, owner)
@@ -228,7 +234,7 @@ public class ProjectService {
                     project.getSourceUrl(), project.getId(), project.getBranch());
             project.setLocalPath(projectDir.toString());
         }
-        return createReanalysisJob(project);
+        return createReanalysisJob(project, options);
     }
 
     /**
@@ -237,7 +243,8 @@ public class ProjectService {
      * (regardless of what it was before).
      */
     @Transactional
-    public UploadResponse reuploadAndAnalyze(Long projectId, MultipartFile file, Long userId) {
+    public UploadResponse reuploadAndAnalyze(Long projectId, MultipartFile file,
+                                             AnalysisOptionsRequest options, Long userId) {
         validateFile(file);
 
         User owner = userRepository.findById(userId)
@@ -253,10 +260,10 @@ public class ProjectService {
         project.setBranch(null);
         project.setLocalPath(projectDir.toString());
 
-        return createReanalysisJob(project);
+        return createReanalysisJob(project, options);
     }
 
-    private UploadResponse createReanalysisJob(Project project) {
+    private UploadResponse createReanalysisJob(Project project, AnalysisOptionsRequest options) {
         projectRepository.saveAndFlush(project);
 
         int nextNumber = analysisJobRepository.countByProject(project) + 1;
@@ -265,6 +272,7 @@ public class ProjectService {
                 .project(project)
                 .analysisNumber(nextNumber)
                 .build();
+        applyAnalysisOptions(job, options);
         job = analysisJobRepository.saveAndFlush(job);
 
         Long jobId = job.getId();
@@ -277,6 +285,45 @@ public class ProjectService {
         });
 
         return new UploadResponse(project.getId(), job.getId());
+    }
+
+    private void applyAnalysisOptions(AnalysisJob job, AnalysisOptionsRequest options) {
+        if (options == null) {
+            return;
+        }
+
+        if (options.runDesignite() != null) job.setRunDesignite(options.runDesignite());
+        if (options.detectCyclicDependencies() != null) job.setDetectCyclicDependencies(options.detectCyclicDependencies());
+        if (options.detectSharedDatabases() != null) job.setDetectSharedDatabases(options.detectSharedDatabases());
+        if (options.detectNanoServices() != null) job.setDetectNanoServices(options.detectNanoServices());
+        if (options.detectGodServices() != null) job.setDetectGodServices(options.detectGodServices());
+        if (options.detectChattyServices() != null) job.setDetectChattyServices(options.detectChattyServices());
+        if (options.detectHardcodedEndpoints() != null) job.setDetectHardcodedEndpoints(options.detectHardcodedEndpoints());
+        if (options.detectDistributedMonoliths() != null) job.setDetectDistributedMonoliths(options.detectDistributedMonoliths());
+        if (options.detectApiVersioningAbsence() != null) job.setDetectApiVersioningAbsence(options.detectApiVersioningAbsence());
+        if (options.detectWrongCuts() != null) job.setDetectWrongCuts(options.detectWrongCuts());
+        if (options.detectEsbMisuse() != null) job.setDetectEsbMisuse(options.detectEsbMisuse());
+
+        if (options.nanoServiceMaxLoc() != null) job.setNanoServiceMaxLoc(options.nanoServiceMaxLoc());
+        if (options.nanoServiceMaxEndpoints() != null) job.setNanoServiceMaxEndpoints(options.nanoServiceMaxEndpoints());
+        if (options.chattyServiceMinCalls() != null) job.setChattyServiceMinCalls(options.chattyServiceMinCalls());
+        if (options.godServiceFieldCount() != null) job.setGodServiceFieldCount(options.godServiceFieldCount());
+        if (options.godServicePublicMethods() != null) job.setGodServicePublicMethods(options.godServicePublicMethods());
+        if (options.godServiceLoc() != null) job.setGodServiceLoc(options.godServiceLoc());
+        if (options.godServiceImportDomains() != null) job.setGodServiceImportDomains(options.godServiceImportDomains());
+        if (options.godServiceConstructorParams() != null) job.setGodServiceConstructorParams(options.godServiceConstructorParams());
+        if (options.godServiceTccThreshold() != null) job.setGodServiceTccThreshold(options.godServiceTccThreshold());
+        if (options.godServiceMinMetrics() != null) job.setGodServiceMinMetrics(options.godServiceMinMetrics());
+        if (options.esbMediatorThreshold() != null) job.setEsbMediatorThreshold(options.esbMediatorThreshold());
+        if (options.distributedMonolithHighCoupling() != null) {
+            job.setDistributedMonolithHighCoupling(options.distributedMonolithHighCoupling());
+        }
+        if (options.distributedMonolithConnectedRatio() != null) {
+            job.setDistributedMonolithConnectedRatio(options.distributedMonolithConnectedRatio());
+        }
+        if (options.distributedMonolithModerateCoupling() != null) {
+            job.setDistributedMonolithModerateCoupling(options.distributedMonolithModerateCoupling());
+        }
     }
 
     private void cleanLocalPath(Project project) {

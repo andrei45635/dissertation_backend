@@ -1,5 +1,6 @@
 package com.msadetector.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 
 /**
@@ -17,6 +18,9 @@ public record ReanalyzeRequest(
         )
         String repoUrl,
 
-        String branch
+        String branch,
+
+        @Valid
+        AnalysisOptionsRequest options
 ) {}
 

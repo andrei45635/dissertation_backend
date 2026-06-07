@@ -1,6 +1,7 @@
 package com.msadetector.service.detection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.msadetector.entity.AnalysisJob;
 import com.msadetector.entity.DetectedAntiPattern;
 import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
@@ -140,5 +141,24 @@ class DistributedMonolithDetectorTest {
         List<DetectedAntiPattern> results = detector.detect(project, List.of(a, b, c));
 
         assertTrue(results.isEmpty());
+    }
+
+    @Test
+    void detect_jobThresholdOverridesConfiguredDefault() {
+        Project project = createProject();
+        Microservice a = createMs(1L, "a", null);
+        Microservice b = createMs(2L, "b", null);
+        Microservice c = createMs(3L, "c", null);
+        AnalysisJob job = AnalysisJob.builder()
+                .distributedMonolithHighCoupling(0.1)
+                .build();
+
+        when(dependencyRepository.findByAnalysisJobWithServices(job))
+                .thenReturn(List.of(createDep(a, b)));
+
+        List<DetectedAntiPattern> results = detector.detect(project, List.of(a, b, c), job);
+
+        assertEquals(1, results.size());
+        verify(dependencyRepository).findByAnalysisJobWithServices(job);
     }
 }

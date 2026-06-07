@@ -1,6 +1,7 @@
 package com.msadetector.service.detection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.msadetector.entity.AnalysisJob;
 import com.msadetector.entity.DetectedAntiPattern;
 import com.msadetector.entity.Microservice;
 import com.msadetector.entity.Project;
@@ -134,6 +135,25 @@ class ChattyServiceDetectorTest {
 
         assertEquals(1, results.size());
         assertNotNull(results.getFirst().getCodeSnippetsJson());
+    }
+
+    @Test
+    void detect_jobThresholdOverridesConfiguredDefault() {
+        Project project = createProject();
+        Microservice a = createMs("service-a");
+        Microservice b = createMs("service-b");
+        AnalysisJob job = AnalysisJob.builder()
+                .chattyServiceMinCalls(4)
+                .build();
+
+        ServiceDependency chattyDep = createChattyDep(a, b, 5);
+        when(dependencyRepository.findChattyDependenciesByAnalysisJob(job, 4))
+                .thenReturn(List.of(chattyDep));
+
+        List<DetectedAntiPattern> results = detector.detect(project, List.of(a, b), job);
+
+        assertEquals(1, results.size());
+        verify(dependencyRepository).findChattyDependenciesByAnalysisJob(job, 4);
     }
 }
 

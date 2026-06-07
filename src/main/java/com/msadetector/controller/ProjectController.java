@@ -1,6 +1,7 @@
 package com.msadetector.controller;
 
 import com.msadetector.dto.AnalysisResultResponse;
+import com.msadetector.dto.AnalysisOptionsRequest;
 import com.msadetector.dto.GitCloneRequest;
 import com.msadetector.dto.ProjectResponse;
 import com.msadetector.dto.ReanalyzeRequest;
@@ -35,9 +36,10 @@ public class ProjectController {
     public ResponseEntity<UploadResponse> uploadProject(
             @RequestParam("file") MultipartFile file,
             @RequestParam("name") @NotBlank String name,
+            @Valid @RequestPart(value = "options", required = false) AnalysisOptionsRequest options,
             @AuthenticationPrincipal UserPrincipal principal
     ) {
-        UploadResponse response = projectService.uploadAndAnalyze(file, name, principal.getId());
+        UploadResponse response = projectService.uploadAndAnalyze(file, name, options, principal.getId());
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 
@@ -50,6 +52,7 @@ public class ProjectController {
                 request.repoUrl(),
                 request.name(),
                 request.branch(),
+                request.options(),
                 principal.getId()
         );
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
@@ -95,7 +98,12 @@ public class ProjectController {
     ) {
         String repoUrl = request != null ? request.repoUrl() : null;
         String branch = request != null ? request.branch() : null;
-        UploadResponse response = projectService.reanalyze(id, principal.getId(), repoUrl, branch);
+        UploadResponse response = projectService.reanalyze(
+                id,
+                principal.getId(),
+                repoUrl,
+                branch,
+                request != null ? request.options() : null);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 
@@ -103,9 +111,10 @@ public class ProjectController {
     public ResponseEntity<UploadResponse> reuploadProject(
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file,
+            @Valid @RequestPart(value = "options", required = false) AnalysisOptionsRequest options,
             @AuthenticationPrincipal UserPrincipal principal
     ) {
-        UploadResponse response = projectService.reuploadAndAnalyze(id, file, principal.getId());
+        UploadResponse response = projectService.reuploadAndAnalyze(id, file, options, principal.getId());
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 }

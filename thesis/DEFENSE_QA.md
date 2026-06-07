@@ -97,7 +97,7 @@
 > A **Spoon** structural analysis over six per-class metrics (≥25 fields, ≥30 public methods, ≥1000 LOC, ≥20 import domains, ≥12 constructor params, TCC < 0.5); a class is a God Class if it exceeds at least **3 of the 6**, and a single God Class flags the service. Pure data holders (entities, DTOs, getter/setter classes) are excluded first.
 
 **5. Chatty Service — HIGH.** *How do you detect it?*
-> Two complementary approaches. From the dependency graph, any edge with a call count ≥ **10** (configurable), where each `@FeignClient` method counts as one call. Plus a Spoon source scan for chatty HTTP-client types the graph misses: Feign interfaces with ≥10 methods, non-Feign "client/api/http"-named interfaces with ≥10 HTTP-mapping methods, and classes with ≥10 calls on known client types (`RestTemplate`, `WebClient`, `HttpURLConnection`…). Server-side controllers are excluded to avoid false positives.
+> Two complementary approaches. From the dependency graph, any edge with a call count ≥ **5** (configurable), where each `@FeignClient` method counts as one call. Plus a Spoon source scan for chatty HTTP-client types the graph misses: Feign interfaces with ≥5 methods, non-Feign "client/api/http"-named interfaces with ≥5 HTTP-mapping methods, and classes with ≥5 calls on known client types (`RestTemplate`, `WebClient`, `HttpURLConnection`…). Server-side controllers are excluded to avoid false positives.
 
 **6. Hardcoded Endpoints — MEDIUM.** *How do you detect it?*
 > A line-by-line scan of each service's `.java` files for URL patterns (`http://`, `https://`, `localhost:`, `127.0.0.1`) that appear inside string literals, extracting the full URL with a regex. I skip comments, imports, package declarations and test files, and cap evidence at five snippets per service. These indicate calls bypassing service discovery.
@@ -122,7 +122,7 @@
 | Cyclic Dependency | CRITICAL | Tarjan SCC, component size > 1 |
 | Nano Service | MEDIUM | < 500 LOC **and** ≤ 2 endpoints |
 | God Service | HIGH | ≥1 God Class (Spoon: ≥3 of 6 structural metrics) |
-| Chatty Service | HIGH | call count ≥ 10 (per-method Feign) |
+| Chatty Service | HIGH | call count ≥ 5 (per-method Feign) |
 | Hardcoded Endpoints | MEDIUM | URL literal in `.java` (non-test) |
 | Distributed Monolith | CRITICAL | C>0.5, or R>0.8 & D>0, or R>0.8 & C>0.3 |
 | API Versioning Absence | MEDIUM | no endpoint matches `/v\d+[/.]` |

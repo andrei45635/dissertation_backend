@@ -58,6 +58,15 @@ public class DistributedMonolithDetector extends BaseDetector {
 
         int n = microservices.size();
         int maxPossibleEdges = n * (n - 1);
+        double effectiveHighCouplingThreshold = job != null && job.getDistributedMonolithHighCoupling() != null
+                ? job.getDistributedMonolithHighCoupling()
+                : highCouplingThreshold;
+        double effectiveConnectedRatioThreshold = job != null && job.getDistributedMonolithConnectedRatio() != null
+                ? job.getDistributedMonolithConnectedRatio()
+                : connectedRatioThreshold;
+        double effectiveModerateCouplingThreshold = job != null && job.getDistributedMonolithModerateCoupling() != null
+                ? job.getDistributedMonolithModerateCoupling()
+                : moderateCouplingThreshold;
 
         Set<String> uniqueEdges = allDeps.stream()
                 .map(dep -> dep.getSourceService().getId() + "->" + dep.getTargetService().getId())
@@ -80,9 +89,10 @@ public class DistributedMonolithDetector extends BaseDetector {
                 .filter(list -> list.size() > 1)
                 .count();
 
-        boolean isDistributedMonolith = couplingCoefficient > highCouplingThreshold
-                || (connectedRatio > connectedRatioThreshold && sharedDbCount > 0)
-                || (connectedRatio > connectedRatioThreshold && couplingCoefficient > moderateCouplingThreshold);
+        boolean isDistributedMonolith = couplingCoefficient > effectiveHighCouplingThreshold
+                || (connectedRatio > effectiveConnectedRatioThreshold && sharedDbCount > 0)
+                || (connectedRatio > effectiveConnectedRatioThreshold
+                        && couplingCoefficient > effectiveModerateCouplingThreshold);
 
         if (isDistributedMonolith) {
             List<String> allServiceNames = microservices.stream().map(Microservice::getName).toList();

@@ -2,6 +2,7 @@ package com.msadetector.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.Valid;
 
 public record GitCloneRequest(
 
@@ -15,6 +16,8 @@ public record GitCloneRequest(
         @NotBlank(message = "Project name is required")
         String name,
 
-        String branch
-) {}
+        String branch,
 
+        @Valid
+        AnalysisOptionsRequest options
+) {}
