@@ -199,8 +199,8 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             },
             {
                 x: 3.7,
-                title: "Existing tools are single-level",
-                body: "Arcan, MicroART, MSANose each cover a slice: code-level OR architectural-level, rarely both",
+                title: "Related tools vary in scope",
+                body: "Prior tools such as Arcan, MicroART, MSANose, and MARS address important slices of the problem, but differ in scope and output",
                 icon: icSearch, color: C.deepBlue,
             },
             {
@@ -252,7 +252,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "Talking points:\n" +
             "• Microservices have become the default for new large systems. But tooling for architectural quality hasn't kept up.\n" +
             "• Teams ship anti-patterns — shared DBs, cycles, services that are either too small or too big — and they only find out when deployment friction or cascading failures appear in production.\n" +
-            "• Existing academic tools each handle a slice: Arcan does code-level cycles, MicroART visualises architecture, MSANose detects some microservice smells. None combine code-level smells with architectural-level analysis.\n" +
+            "• Existing academic tools address important parts of the problem: Arcan detects architectural smells, MicroART visualises recovered architectures, MSANose detects microservice smells, and MARS covers a broader anti-pattern catalogue. They differ in the anti-patterns they cover and in how much developer-facing evidence, scoring, and workflow support they provide.\n" +
             "• Even when something IS detected, the output is usually an abstract warning. Developers don't act on warnings without code evidence and remediation guidance.\n\n" +
             "You can mention a concrete example: 'For instance, a shared database between two services looks harmless at first — both teams just point at the same Postgres instance. But over time, schema changes in one service silently break the other, and you've lost independent deployability — arguably the single biggest reason to use microservices in the first place.'\n\n" +
             "Pivot to next slide: 'So the goal of this work was a tool that bridges both levels and outputs actionable findings.'"
@@ -296,7 +296,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "Spend ~75 seconds here. Don't read the slide — talk to it.\n\n" +
             "What to actually say:\n" +
             "• 'The work has five contributions. The first is the multi-level analysis itself — using code-level structural metrics like class cohesion to flag architectural problems like God Service. That bridge between abstraction levels is the central novelty.'\n" +
-            "• 'Second, ten anti-patterns across four dimensions — broader coverage than any single existing tool.'\n" +
+            "• 'Second, ten selected anti-patterns across four dimensions — not the largest catalogue, since MARS covers more, but integrated with code-level smell density, evidence snippets, remediation guidance, and a health score.'\n" +
             "• 'Third, automated microservice boundary detection via a three-signal deployability gate — framework entry points, Dockerfiles, and main methods — with confidence levels. Most existing tools require manual configuration.'\n" +
             "• 'Fourth, a composite health score on 0–100, decomposed into four categories so you can see which dimension is dragging the score down.'\n" +
             "• 'Fifth, evidence-based reporting — every finding includes the actual code that triggered it.'\n\n" +
