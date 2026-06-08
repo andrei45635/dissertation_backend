@@ -26,7 +26,7 @@ While microservices offer benefits in scalability, team autonomy and technology 
 \section{Microservices Anti-Patterns}
 \label{sec:anti-patterns}
 
-\par An anti-pattern denotes a frequently used solution to a recurring problem that, rather than resolving it efficiently, introduces a set of negative consequences that may exacerbate the issue further \cite{Brown1998}. In the context of microservices, anti-patterns represent architectural or design decisions that undermine the benefits of the microservices pattern. This section defines and characterizes the anti-patterns targeted by this dissertation.
+\par An anti-pattern denotes a frequently used solution to a recurring problem that, rather than resolving it efficiently, introduces a set of negative consequences that may exacerbate the issue further \cite{Brown1998}. In the context of microservices, anti-patterns represent architectural or design decisions that undermine the benefits of the microservices pattern. This section defines and characterizes the anti-patterns targeted by this dissertation, whereas the specific implementation details are presented in Chapter~\ref{chap:ch3}.
 
 \subsection{Shared Database}
 \label{subsec:shared-database}
@@ -42,14 +42,14 @@ As illustrated in Figure~\ref{fig:shared-database}, when services A, B and C all
     \label{fig:shared-database}
 \end{figure}
 
-The concrete static detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-shared-database}.
+% The concretestatic detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-shared-database}.
 
 \subsection{Cyclic Dependency}
 \label{subsec:cyclic-dependency}
 
 \par Cyclic dependencies occur when two or more services form a circular chain of dependencies (e.g., in an online shopping application, the Order Service depends on the Payment Service, which depends on the Inventory Service, which in turn depends back on the Order Service, forming a circular dependency). Cycles in the service dependency graph violate the acyclic dependencies principle and create tight coupling, making it fairly difficult to deploy, test, or reason about services independently \cite{Martin2017}.
 
-The concrete graph-based detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-cyclic-dependency}.
+% The concretegraph-based detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-cyclic-dependency}.
 
 Figure~\ref{fig:cyclic-dependency} illustrates a cyclic dependency among three services, as presented in the introduction of this subsection.
 
@@ -65,7 +65,7 @@ Figure~\ref{fig:cyclic-dependency} illustrates a cyclic dependency among three s
 
 \par A service that is too fine-grained to justify its operational overhead is referred to in this work as a Nano Service, following microservice anti-pattern catalogues that describe nano services as the result of overly fine-grained decomposition \cite{Tighilt2023}. This concern is closely related to the Microservice Greedy smell reported by Taibi and Lenarduzzi, where teams create new microservices even when the resulting services provide very limited functionality \cite{Taibi2018}. Each microservice carries inherent costs: monitoring, deployment pipelines, network communication, and operational maintenance. When a service has very few lines of code and exposes only one or two endpoints, the overhead of running it as an independent process may outweigh the benefits of decomposition.
 
-The concrete threshold-based detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-nano-service}.
+% The concretethreshold-based detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-nano-service}.
 
 The recommended remediation for nano services is to reconsider the service boundary and, when separate deployment is not justified, merge the service with a related, functionally cohesive service \cite{Tighilt2023}.
 
@@ -74,14 +74,14 @@ The recommended remediation for nano services is to reconsider the service bound
 
 \par A God Service is the microservice counterpart of the well-known God Class code smell, also documented as the ''Blob'' anti-pattern \cite{Brown1998}. It refers to a service that handles too many responsibilities, spanning multiple business domains within a single deployable unit. God services grow over time as developers add functionality to an existing service rather than creating new ones, resulting in a service that is difficult to understand, test, and scale independently.
 
-The concrete structural detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-god-service}.
+% The concretestructural detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-god-service}.
 
 \subsection{Chatty Service}
 \label{subsec:chatty-service}
 
 \par The Chatty Service anti-pattern occurs when a service makes an excessive number of fine-grained remote calls to another service to complete a single business operation \cite{Richardson2018}. This increases network latency, reduces throughput, and makes the system fragile to network failures. The chatty communication pattern often indicates that the service boundaries were drawn incorrectly, and data that should be co-located is split across services.
 
-The concrete detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-chatty-service}.
+% The concretedetection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-chatty-service}.
 
 Figure~\ref{fig:chatty-services} contrasts a chatty communication pattern with a well-designed coarse-grained interaction. In the chatty pattern, Service A makes many fine-grained calls to Service B to complete a single operation, whereas the improved design consolidates these into fewer, coarser-grained requests.
 
@@ -97,14 +97,16 @@ Figure~\ref{fig:chatty-services} contrasts a chatty communication pattern with a
 
 \par The Hardcoded Endpoints anti-pattern occurs when service URLs are embedded directly in the source code instead of being resolved through a service discovery mechanism (e.g., Netflix Eureka, Consul, or Kubernetes DNS) \cite{Richardson2018}. Hardcoded endpoints create tight coupling between services and make the system inflexible to infrastructure changes such as scaling, failover, or environment migration.
 
-The concrete source-code detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-hardcoded-endpoint}.
+% The concretesource-code detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-hardcoded-endpoint}.
 
 \subsection{Distributed Monolith}
 \label{subsec:distributed-monolith}
 
 \par The Distributed Monolith anti-pattern describes a system that has been decomposed into multiple services but retains the tight coupling characteristics of a monolithic architecture \cite{Newman2015}. In such a system, services cannot be deployed, tested, or scaled independently, as a change in one service frequently requires coordinated changes and redeployments across several other services. The result is a system that combines the complexity of distributed systems (network latency, partial failures, operational overhead) with none of the benefits of microservices (independent deployability, team autonomy, technology heterogeneity).
 
-A distributed monolith typically arises when services share too many dependencies, communicate excessively, or rely on synchronous call chains to fulfill requests. The concrete metric-based detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-distributed-monolith}.
+A distributed monolith typically arises when services share too many dependencies, communicate excessively, or rely on synchronous call chains to fulfill requests.
+
+% The concretemetric-based detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-distributed-monolith}.
 
 The recommended remediation involves identifying and removing unnecessary inter-service dependencies, introducing asynchronous communication where possible, and ensuring that each service encapsulates a well-defined bounded context with minimal external dependencies \cite{Richardson2018}.
 
@@ -113,11 +115,17 @@ The recommended remediation involves identifying and removing unnecessary inter-
 
 \par Beyond the primary anti-patterns described in the preceding subsections, this work targets three additional anti-patterns that address gaps in API governance, service boundary design, and communication topology.
 
-\par API Versioning Absence occurs when services expose REST endpoints without a versioning strategy (e.g.\ a \texttt{/v1/} path prefix), making it harder to introduce breaking API changes while preserving compatibility for existing consumers \cite{Taibi2018, Walker2020}. In rapidly evolving microservice systems, the absence of versioning can force coordinated deployments across consumer services whenever an endpoint's contract changes, undermining the independent deployability that microservices are designed to provide. The concrete detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-versioning-absence}.
+\par API Versioning Absence occurs when services expose REST endpoints without a versioning strategy (e.g.\ a \texttt{/v1/} path prefix), making it harder to introduce breaking API changes while preserving compatibility for existing consumers \cite{Taibi2018, Walker2020}. In rapidly evolving microservice systems, the absence of versioning can force coordinated deployments across consumer services whenever an endpoint's contract changes, undermining the independent deployability that microservices are designed to provide.
 
-\par Wrong Cuts refers to service boundaries that do not align with business domain boundaries, resulting in high coupling and low cohesion across services \cite{Taibi2018}. When functionality that belongs to a single bounded context is split across multiple services, the resulting inter-service communication overhead and tight coupling negate the benefits of decomposition. The concrete detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-wrong-cuts}.
+% The concretedetection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-versioning-absence}.
 
-\par ESB Misuse occurs when a single service mediates most inter-service communication, effectively recreating the Enterprise Service Bus pattern within a microservices architecture \cite{Richards2015}. This centralisation introduces a single point of failure, a performance bottleneck, and a deployment coupling point that contradicts the decentralised communication principle of microservices. The concrete detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-esb-misuse}.
+\par Wrong Cuts refers to service boundaries that do not align with business domain boundaries, resulting in high coupling and low cohesion across services \cite{Taibi2018}. When functionality that belongs to a single bounded context is split across multiple services, the resulting inter-service communication overhead and tight coupling negate the benefits of decomposition.
+
+% The concretedetection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-wrong-cuts}.
+
+\par ESB Misuse occurs when a single service mediates most inter-service communication, effectively recreating the Enterprise Service Bus pattern within a microservices architecture \cite{Richards2015}. This centralisation introduces a single point of failure, a performance bottleneck, and a deployment coupling point that contradicts the decentralised communication principle of microservices.
+
+% The concretedetection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-esb-misuse}.
 
 Table~\ref{tab:anti-patterns-summary} summarizes all the anti-patterns targeted by this dissertation, along with their severity levels and the Chapter~\ref{chap:ch3} sections that describe their detection methodology.
 
@@ -310,7 +318,7 @@ Third, the tool provides automated microservice detection by automatically ident
 
 Fourth, detection thresholds for metrics-based anti-patterns are externalized as configurable detection parameters (via Spring Boot's \texttt{application.yml}), allowing calibration to project-specific norms. For instance, the LOC threshold for nano service detection or the call count threshold for chatty service detection can be adjusted without modifying the source code.
 
-Fifth, a composite health score provides a single numeric metric (0-100) for architectural quality, accompanied by a letter grade (A through F). Unlike a simple aggregate, the score is decomposed into four weighted categories, anti-pattern severity, code quality, architectural coupling, and service sizing, each with an itemized list of deductions. This category-based breakdown enables teams to identify \textit{which} quality dimension is degraded, track architectural health trends over successive analysis runs, and measure the concrete impact of refactoring efforts.
+Fifth, a composite health score provides a single numeric metric (0-100) for architectural quality, accompanied by a letter grade (A through F). Unlike a simple aggregate, the score is decomposed into four weighted categories, anti-pattern severity, code quality, architectural coupling, and service sizing, each with an itemized list of deductions. Because each deduction is attributed to a specific finding within one of these categories, a low score can be traced back to the dimension that caused it rather than read as a single opaque number, and the per-category scores can be compared across successive analysis runs.
 
 Sixth, unlike existing tools that report anti-patterns as abstract findings, this work supports evidence-based reporting with code snippets attached to each detected anti-pattern. When a cyclic dependency is detected, the tool extracts and presents the relevant \texttt{@FeignClient} annotation or \texttt{RestTemplate} invocation from the source code, providing developers with immediate context for understanding and remediating the issue.
 
