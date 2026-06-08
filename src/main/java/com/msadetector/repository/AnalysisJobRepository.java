@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,6 +25,8 @@ public interface AnalysisJobRepository extends JpaRepository<AnalysisJob, Long> 
     Page<AnalysisJob> findByProject(Project project, Pageable pageable);
 
     Optional<AnalysisJob> findFirstByProjectOrderByCreatedAtDesc(Project project);
+
+    boolean existsByProjectAndStatusIn(Project project, Collection<JobStatus> statuses);
 
     List<AnalysisJob> findByStatus(JobStatus status);
 

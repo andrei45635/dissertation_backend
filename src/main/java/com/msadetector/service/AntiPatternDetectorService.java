@@ -94,7 +94,7 @@ public class AntiPatternDetectorService {
         int mediumCount = (int) antiPatterns.stream().filter(ap -> ap.getSeverity() == Severity.MEDIUM).count();
         int lowCount = (int) antiPatterns.stream().filter(ap -> ap.getSeverity() == Severity.LOW).count();
 
-        List<ServiceDependency> allDeps = dependencyRepository.findByAnalysisJob(job);
+        List<ServiceDependency> allDeps = dependencyRepository.findByAnalysisJobWithServices(job);
 
         int cycleCount = (int) antiPatterns.stream()
                 .filter(ap -> ap.getPatternType() == AntiPatternType.CYCLIC_DEPENDENCY)
@@ -162,7 +162,7 @@ public class AntiPatternDetectorService {
                     ))
                     .toList();
 
-            List<ServiceDependency> dependencies = dependencyRepository.findByAnalysisJob(job);
+            List<ServiceDependency> dependencies = dependencyRepository.findByAnalysisJobWithServices(job);
             List<Map<String, Object>> edges = dependencies.stream()
                     .map(dep -> Map.<String, Object>of(
                             "source", dep.getSourceService().getId().toString(),

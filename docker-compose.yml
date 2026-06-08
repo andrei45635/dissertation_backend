@@ -33,6 +33,7 @@ services:
       - DB_NAME=msadetector
       - DB_USERNAME=postgres
       - DB_PASSWORD=postgres
+      - FLYWAY_REPAIR_ON_MIGRATE=${FLYWAY_REPAIR_ON_MIGRATE:-false}
       - JWT_SECRET=your-super-secret-jwt-key-change-in-production-please
       - WORKSPACE_DIR=/app/workspace
       - DESIGNITE_JAR_PATH=/app/lib/DesigniteJava.jar

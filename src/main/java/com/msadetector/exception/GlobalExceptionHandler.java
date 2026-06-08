@@ -37,6 +37,15 @@ public class GlobalExceptionHandler {
         ));
     }
 
+    @ExceptionHandler(AnalysisInProgressException.class)
+    public ResponseEntity<Map<String, Object>> handleAnalysisInProgress(AnalysisInProgressException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "error", "ANALYSIS_IN_PROGRESS",
+                "message", ex.getMessage(),
+                "timestamp", LocalDateTime.now()
+        ));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleBadRequest(IllegalArgumentException ex) {
         return ResponseEntity.badRequest().body(Map.of(

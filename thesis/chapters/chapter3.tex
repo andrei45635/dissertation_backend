@@ -122,7 +122,7 @@ Figure~\ref{fig:dependency-graph-example} shows an example dependency graph for 
 
 \par The final score is clamped to $[0, 100]$ and mapped to a letter grade: A~($\geq 90$), B~($\geq 80$), C~($\geq 65$), D~($\geq 50$), F~($< 50$). This category-based decomposition enables teams to identify which quality dimension contributes most to architectural debt and to track improvements per category over time.
 
-Table~\ref{tab:severity-weights} details the severity levels, their corresponding penalty weights in the anti-pattern category, and examples of anti-patterns assigned to each level.
+Table~\ref{tab:severity-weights} details the severity levels, their corresponding penalty weights in the anti-pattern category, and examples of anti-patterns assigned to each level within that category. Nano Service and God Service still retain severities in the generated reports, but they are scored exclusively under the Service Sizing category described above.
 
 \begin{table}[htbp]
     \centering
@@ -133,14 +133,14 @@ Table~\ref{tab:severity-weights} details the severity levels, their correspondin
         \hline\hline
         Critical & $-8$ per issue & Cyclic Dependency, Distributed Monolith \\
         \hline
-        High & $-5$ per issue & Shared Database, God Service, Wrong Cuts, Chatty Service, ESB Misuse \\
+        High & $-5$ per issue & Shared Database, Wrong Cuts, Chatty Service, ESB Misuse \\
         \hline
-        Medium & $-3$ per issue & Nano Service, Hardcoded Endpoints, API Versioning Absence \\
+        Medium & $-3$ per issue & Hardcoded Endpoints, API Versioning Absence \\
         \hline
         Low & $-1$ per issue & --- \\
         \hline
     \end{tabular}
-    \caption{Severity levels with their penalty deductions in the anti-pattern category of the health score computation (Equation~\ref{eq:health-score}).}
+    \caption{Severity levels with their penalty deductions in the anti-pattern category of the health score computation (Equation~\ref{eq:health-score}), excluding service-sizing findings.}
     \label{tab:severity-weights}
 \end{table}
 

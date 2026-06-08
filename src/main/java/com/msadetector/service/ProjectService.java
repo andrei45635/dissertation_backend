@@ -7,7 +7,9 @@ import com.msadetector.dto.UploadResponse;
 import com.msadetector.entity.AnalysisJob;
 import com.msadetector.entity.Project;
 import com.msadetector.entity.User;
+import com.msadetector.enums.JobStatus;
 import com.msadetector.enums.SourceType;
+import com.msadetector.exception.AnalysisInProgressException;
 import com.msadetector.exception.InvalidFileException;
 import com.msadetector.exception.ResourceNotFoundException;
 import com.msadetector.repository.AnalysisJobRepository;
@@ -29,7 +31,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -37,6 +41,14 @@ import java.util.zip.ZipInputStream;
 public class ProjectService {
 
     private static final int ZIP_BUFFER_SIZE = 8192;
+    private static final Set<JobStatus> ACTIVE_JOB_STATUSES = EnumSet.of(
+            JobStatus.PENDING,
+            JobStatus.CLONING,
+            JobStatus.DETECTING_SERVICES,
+            JobStatus.ANALYZING_SERVICES,
+            JobStatus.BUILDING_GRAPH,
+            JobStatus.DETECTING_PATTERNS
+    );
 
     private final ProjectRepository projectRepository;
     private final AnalysisJobRepository analysisJobRepository;
@@ -209,8 +221,8 @@ public class ProjectService {
                                     AnalysisOptionsRequest options) {
         User owner = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
-        Project project = projectRepository.findByIdAndOwner(projectId, owner)
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found: " + projectId));
+        Project project = findProjectForUpdate(projectId, owner);
+        ensureNoActiveAnalysis(project);
 
         if (repoUrl != null && !repoUrl.isBlank()) {
             gitCloneService.validateRepoUrl(repoUrl);
@@ -249,8 +261,8 @@ public class ProjectService {
 
         User owner = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
-        Project project = projectRepository.findByIdAndOwner(projectId, owner)
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found: " + projectId));
+        Project project = findProjectForUpdate(projectId, owner);
+        ensureNoActiveAnalysis(project);
 
         cleanLocalPath(project);
 
@@ -261,6 +273,19 @@ public class ProjectService {
         project.setLocalPath(projectDir.toString());
 
         return createReanalysisJob(project, options);
+    }
+
+    private Project findProjectForUpdate(Long projectId, User owner) {
+        return projectRepository.findByIdAndOwnerForUpdate(projectId, owner)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found: " + projectId));
+    }
+
+    private void ensureNoActiveAnalysis(Project project) {
+        if (analysisJobRepository.existsByProjectAndStatusIn(project, ACTIVE_JOB_STATUSES)) {
+            throw new AnalysisInProgressException(
+                    "Project already has an analysis in progress. Wait for it to finish before starting another one."
+            );
+        }
     }
 
     private UploadResponse createReanalysisJob(Project project, AnalysisOptionsRequest options) {
