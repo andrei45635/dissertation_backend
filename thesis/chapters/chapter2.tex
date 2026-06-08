@@ -42,24 +42,14 @@ As illustrated in Figure~\ref{fig:shared-database}, when services A, B and C all
     \label{fig:shared-database}
 \end{figure}
 
-Detection of this anti-pattern can be performed through static analysis of service configuration files. Particularly, in Java Spring Boot applications, the \texttt{application.yml} or \texttt{application.properties} files contain datasource connection URLs (e.g. \texttt{spring\-.datasource.url}). By comparing these URLs across all detected microservices within a project, instances of shared databases can be identified automatically.
+The concrete static detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-shared-database}.
 
 \subsection{Cyclic Dependency}
 \label{subsec:cyclic-dependency}
 
 \par Cyclic dependencies occur when two or more services form a circular chain of dependencies (e.g., in an online shopping application, the Order Service depends on the Payment Service, which depends on the Inventory Service, which in turn depends back on the Order Service, forming a circular dependency). Cycles in the service dependency graph violate the acyclic dependencies principle and create tight coupling, making it fairly difficult to deploy, test, or reason about services independently \cite{Martin2017}.
 
-Cycle detection in directed graphs is a well-studied problem in computer science. A common approach used when endeavouring to find strongly connected components (SCCs) is Tarjan's algorithm, which operates in $O(V+E)$ time, where $V$ is the number of vertices, i.e. services, and $E$ is the number of edges, i.e. dependencies \cite{Tarjan1972}. Any strongly connected component with more than one vertex represents a cycle in the dependency graph.
-
-The dependency graph itself is constructed by analyzing inter-service communication patterns. In Java-based microservices, dependencies can be identified through static analysis of:
-
-\begin{itemize}
-    \item \texttt{@FeignClient} annotations (Spring Cloud OpenFeign)
-    \item \texttt{RestTemplate} usage patterns
-    \item \texttt{WebClient} invocations (Spring WebFlux)
-%     \item gRPC client stubs
-%     \item Message queue producers and consumers
-\end{itemize}
+The concrete graph-based detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-cyclic-dependency}.
 
 Figure~\ref{fig:cyclic-dependency} illustrates a cyclic dependency among three services, as presented in the introduction of this subsection.
 
@@ -75,14 +65,7 @@ Figure~\ref{fig:cyclic-dependency} illustrates a cyclic dependency among three s
 
 \par A service that is too fine-grained to justify its operational overhead is referred to in this work as a Nano Service, following microservice anti-pattern catalogues that describe nano services as the result of overly fine-grained decomposition \cite{Tighilt2023}. This concern is closely related to the Microservice Greedy smell reported by Taibi and Lenarduzzi, where teams create new microservices even when the resulting services provide very limited functionality \cite{Taibi2018}. Each microservice carries inherent costs: monitoring, deployment pipelines, network communication, and operational maintenance. When a service has very few lines of code and exposes only one or two endpoints, the overhead of running it as an independent process may outweigh the benefits of decomposition.
 
-The detection of nano services requires defining quantitative thresholds. In this work, a service is classified as a nano service when it satisfies the conjunction of two conditions:
-
-\begin{equation}
-    \text{LOC}(s) < \theta_{\text{LOC}} \wedge \text{endpoints}(s) \leq \theta_{\text{endpoints}}
-    \label{eq:nano-service}
-\end{equation}
-
-\noindent where $\theta_{\text{LOC}}$ is the maximum lines-of-code threshold (default: 500) and $\theta_{\text{endpoints}}$ is the maximum endpoint count threshold (default: 2). These thresholds are configurable and should be calibrated based on the specific project context.
+The concrete threshold-based detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-nano-service}.
 
 The recommended remediation for nano services is to reconsider the service boundary and, when separate deployment is not justified, merge the service with a related, functionally cohesive service \cite{Tighilt2023}.
 
@@ -91,21 +74,14 @@ The recommended remediation for nano services is to reconsider the service bound
 
 \par A God Service is the microservice counterpart of the well-known God Class code smell, also documented as the ''Blob'' anti-pattern \cite{Brown1998}. It refers to a service that handles too many responsibilities, spanning multiple business domains within a single deployable unit. God services grow over time as developers add functionality to an existing service rather than creating new ones, resulting in a service that is difficult to understand, test, and scale independently.
 
-Detection of god services in this work is based on code-level structural indicators. A microservice is flagged as a god service when it contains at least one class that exhibits God Class characteristics, assessed through a combination of structural metrics such as field count, number of public methods, size, and class cohesion. The precise metrics, thresholds, and analysis procedure are presented in Chapter~\ref{chap:ch3}.
+The concrete structural detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-god-service}.
 
 \subsection{Chatty Service}
 \label{subsec:chatty-service}
 
 \par The Chatty Service anti-pattern occurs when a service makes an excessive number of fine-grained remote calls to another service to complete a single business operation \cite{Richardson2018}. This increases network latency, reduces throughput, and makes the system fragile to network failures. The chatty communication pattern often indicates that the service boundaries were drawn incorrectly, and data that should be co-located is split across services.
 
-Detection involves analyzing the dependency graph and identifying edges with a call count exceeding a configurable threshold:
-
-\begin{equation}
-    \text{callCount}(s_1, s_2) \geq \theta_{\text{chatty}}
-    \label{eq:chatty-service}
-\end{equation}
-
-\noindent where $\theta_{\text{chatty}}$ is the minimum call count threshold (default: 5).
+The concrete detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-chatty-service}.
 
 Figure~\ref{fig:chatty-services} contrasts a chatty communication pattern with a well-designed coarse-grained interaction. In the chatty pattern, Service A makes many fine-grained calls to Service B to complete a single operation, whereas the improved design consolidates these into fewer, coarser-grained requests.
 
@@ -121,21 +97,14 @@ Figure~\ref{fig:chatty-services} contrasts a chatty communication pattern with a
 
 \par The Hardcoded Endpoints anti-pattern occurs when service URLs are embedded directly in the source code instead of being resolved through a service discovery mechanism (e.g., Netflix Eureka, Consul, or Kubernetes DNS) \cite{Richardson2018}. Hardcoded endpoints create tight coupling between services and make the system inflexible to infrastructure changes such as scaling, failover, or environment migration.
 
-Detection involves scanning the source code for patterns such as \texttt{http://}, \texttt{https://}, \texttt{localhost:}, or explicit IP addresses in REST client configurations.
+The concrete source-code detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-hardcoded-endpoint}.
 
 \subsection{Distributed Monolith}
 \label{subsec:distributed-monolith}
 
 \par The Distributed Monolith anti-pattern describes a system that has been decomposed into multiple services but retains the tight coupling characteristics of a monolithic architecture \cite{Newman2015}. In such a system, services cannot be deployed, tested, or scaled independently, as a change in one service frequently requires coordinated changes and redeployments across several other services. The result is a system that combines the complexity of distributed systems (network latency, partial failures, operational overhead) with none of the benefits of microservices (independent deployability, team autonomy, technology heterogeneity).
 
-A distributed monolith typically arises when services share too many dependencies, communicate excessively, or rely on synchronous call chains to fulfill requests. The coupling coefficient $C$ (Equation~\ref{eq:distributed-monolith}) serves as a quantitative indicator: when a large proportion of all possible inter-service dependencies actually exist, the system behaves more like a monolith rather than a suite of decoupled services, each maintaining a high degree of operational independence. In this work, a system is flagged as a potential distributed monolith when the coupling coefficient exceeds a configurable threshold:
-
-\begin{equation}
-    C = \frac{|E|}{|V| \times (|V| - 1)} > \theta_{\text{monolith}}
-    \label{eq:distributed-monolith}
-\end{equation}
-
-\noindent where $\theta_{\text{monolith}}$ is the coupling coefficient threshold above which the system is considered excessively coupled. The coupling coefficient is only one of the signals the detector uses in practice. The complete decision rule also incorporates the connected service ratio and the number of shared databases, and is presented in full in Chapter~\ref{chap:ch3}.
+A distributed monolith typically arises when services share too many dependencies, communicate excessively, or rely on synchronous call chains to fulfill requests. The concrete metric-based detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-distributed-monolith}.
 
 The recommended remediation involves identifying and removing unnecessary inter-service dependencies, introducing asynchronous communication where possible, and ensuring that each service encapsulates a well-defined bounded context with minimal external dependencies \cite{Richardson2018}.
 
@@ -144,88 +113,45 @@ The recommended remediation involves identifying and removing unnecessary inter-
 
 \par Beyond the primary anti-patterns described in the preceding subsections, this work targets three additional anti-patterns that address gaps in API governance, service boundary design, and communication topology.
 
-\par API Versioning Absence occurs when services expose REST endpoints without a versioning strategy (e.g.\ a \texttt{/v1/} path prefix), making it harder to introduce breaking API changes while preserving compatibility for existing consumers \cite{Taibi2018, Walker2020}. In rapidly evolving microservice systems, the absence of versioning can force coordinated deployments across consumer services whenever an endpoint's contract changes, undermining the independent deployability that microservices are designed to provide.
+\par API Versioning Absence occurs when services expose REST endpoints without a versioning strategy (e.g.\ a \texttt{/v1/} path prefix), making it harder to introduce breaking API changes while preserving compatibility for existing consumers \cite{Taibi2018, Walker2020}. In rapidly evolving microservice systems, the absence of versioning can force coordinated deployments across consumer services whenever an endpoint's contract changes, undermining the independent deployability that microservices are designed to provide. The concrete detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-versioning-absence}.
 
-\par Wrong Cuts refers to service boundaries that do not align with business domain boundaries, resulting in high coupling and low cohesion across services \cite{Taibi2018}. When functionality that belongs to a single bounded context is split across multiple services, the resulting inter-service communication overhead and tight coupling negate the benefits of decomposition. An indicator of wrong cuts is the presence of bidirectional dependencies between service pairs, which suggests that two services are too tightly coupled to operate independently.
+\par Wrong Cuts refers to service boundaries that do not align with business domain boundaries, resulting in high coupling and low cohesion across services \cite{Taibi2018}. When functionality that belongs to a single bounded context is split across multiple services, the resulting inter-service communication overhead and tight coupling negate the benefits of decomposition. The concrete detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-wrong-cuts}.
 
-\par ESB Misuse occurs when a single service mediates most inter-service communication, effectively recreating the Enterprise Service Bus pattern within a microservices architecture \cite{Richards2015}. This centralisation introduces a single point of failure, a performance bottleneck, and a deployment coupling point that contradicts the decentralised communication principle of microservices. Detection involves identifying services with disproportionately high incoming and outgoing dependency counts relative to the rest of the system.
+\par ESB Misuse occurs when a single service mediates most inter-service communication, effectively recreating the Enterprise Service Bus pattern within a microservices architecture \cite{Richards2015}. This centralisation introduces a single point of failure, a performance bottleneck, and a deployment coupling point that contradicts the decentralised communication principle of microservices. The concrete detection method used for this anti-pattern is presented in Chapter~\ref{chap:ch3}, Section~\ref{subsec:detect-esb-misuse}.
 
-Table~\ref{tab:anti-patterns-summary} summarizes all the anti-patterns targeted by this dissertation, along with their severity levels and detection approaches.
+Table~\ref{tab:anti-patterns-summary} summarizes all the anti-patterns targeted by this dissertation, along with their severity levels and the Chapter~\ref{chap:ch3} sections that describe their detection methodology.
 
 \begin{table}[!ht]
     \begin{center}
         \begin{tabular}{|l|l|p{180pt}|}
             \hline
-            \textbf{Anti-Pattern} & \textbf{Severity} & \textbf{Detection Approach} \\
+            \textbf{Anti-Pattern} & \textbf{Severity} & \textbf{Detection Methodology} \\
             \hline\hline
-            Shared Database & High & Comparison of datasource URLs across services \\
+            Shared Database & High & Section~\ref{subsec:detect-shared-database} \\
             \hline
-            Cyclic Dependency & Critical & Tarjan's SCC algorithm on the dependency graph \\
+            Cyclic Dependency & Critical & Section~\ref{subsec:detect-cyclic-dependency} \\
             \hline
-            Nano Service & Medium & LOC and endpoint count thresholds \\
+            Nano Service & Medium & Section~\ref{subsec:detect-nano-service} \\
             \hline
-            God Service & High & Structural class metrics via Spoon AST analysis \\
+            God Service & High & Section~\ref{subsec:detect-god-service} \\
             \hline
-            Chatty Service & High & Call count analysis on dependency edges \\
+            Chatty Service & High & Section~\ref{subsec:detect-chatty-service} \\
             \hline
-            Hardcoded Endpoints & Medium & Pattern matching in source files \\
+            Hardcoded Endpoints & Medium & Section~\ref{subsec:detect-hardcoded-endpoint} \\
             \hline
-            Distributed Monolith & Critical & Composite coupling and connectivity metrics \\
+            Distributed Monolith & Critical & Section~\ref{subsec:detect-distributed-monolith} \\
             \hline
-            API Versioning Absence & Medium & Endpoint path analysis for version indicators \\
+            API Versioning Absence & Medium & Section~\ref{subsec:detect-versioning-absence} \\
             \hline
-            Wrong Cuts & High & Bidirectional inter-service dependencies \\
+            Wrong Cuts & High & Section~\ref{subsec:detect-wrong-cuts} \\
             \hline
-            ESB Misuse & High & Centrality analysis of the dependency graph \\
+            ESB Misuse & High & Section~\ref{subsec:detect-esb-misuse} \\
             \hline
         \end{tabular}
     \end{center}
-    \caption{Summary of targeted microservice anti-patterns.}
+    \caption{Summary of targeted microservice anti-patterns and references to their detection methodology.}
     \label{tab:anti-patterns-summary}
 \end{table}
-
-% \section{Tools and Technologies}
-% \label{sec:tools-and-technologies}
-
-% \textcolor{red}{sectiunea asta nu se potriveste aici. Rupe firul logic al prezentarii. In plus, nu cred ca e cazul sa prezentam intr-o lucrare de dizertatie, SpringBoot etc. Singurul tool care ar trebui descris e DesigniteJava si as pune ca si subsectiune in Cap.4 la Technology stack }
-
-%  \par This section provides an overview of the tools and technologies used to support the development of the anti-pattern detection system presented in this dissertation.
-
-% \subsection{Spring Boot}
-% \label{subsec:spring-boot}
-
-%  \par Spring Boot is a widely adopted framework for developing enterprise-grade Java applications requiring minimal setup overhead \footnote{\href{https://spring.io/projects/spring-boot}{Spring Boot}}. It offers auto-configuration, integrated serve support, and a comprehensive suite of supporting tools and libraries for building web applications, RESTful APIs, and data access layers. In this work, Spring Boot 4.0 serves as the application framework, providing:
-% \begin{itemize}
-%     \item \textbf{Spring Web:} RESTful API endpoints for project upload - either through a zip file or GitHub \/ GitLab source code URL, analysis job management and result retrieval.
-%     \item \textbf{Spring Data JPA:} Object-relational mapping and repository abstractions for PostgreSQL persistence.
-%     \item \textbf{Spring Security:} JWT-based authentication and authorization.
-%     \item \textbf{Spring Async:} Asynchronous task execution for long-running analysis jobs.
-% \end{itemize}
-
-% \subsection{PostgreSQL}
-% \label{subsec:postgresql}
-
-%  \par PostgreSQL is an open-source relational database management system widely recognised for its reliability, comprehensive functionality and architectural extensibility \footnote{\href{https://www.postgresql.org/}{PostgreSQL}}. It is used in this disseration to persist metadata, microservice information, code smell reports, code snippets, detected anti-patterns, and analysis results. The database schema supports queries for aggregation and reporting, such as counting anti-patterns by severity or computing per-service code smell frequencies.
-
-% \subsection{Spoon}
-% \label{subsec:spoon}
-
-%  \par Spoon is used for Java source code analysis, as it provides a complete metamodel of the Java language and supports visitor-based and query-traversal of the Abstract Syntax Tree \cite{Pawlak2016}.
-
-% \subsection{JGit}
-% \label{subsec:jgit}
-
-%  \par JGit is a pure Java implementation of the Git version control system \footnote{\href{https://www.eclipse.org/jgit/}{JGit}}. It is used in this work to clone Git repositories submitted for analysis, enabling users to provide a repository URL rather than uploading source archives manually.
-
-% \subsection{DesigniteJava}
-% \label{subsec:designite-java}
-
-%  \par DesigniteJava is a command-line tool that performs design smell detection on Java projects \cite{Sharma2018}. It accepts a source directory as input and produces CSV files containing detected smells. In this dissertation, it is invoked as a Java subprocess with configurable timeout settings.
-
-% \subsection{Docker}
-% \label{subsec:docker}
-
-%  \par Docker is used for containerized deployment of the application and its dependencies. Both the Backend and the Frontend projects in this dissertation define a \texttt{docker-compose.yml} file, which outlines the multi-container setup including the Spring Boot application and PostgreSQL database.
 
 \section{Related Work}
 \label{sec:related-work}
