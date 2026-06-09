@@ -8,7 +8,7 @@
 \section{Dataset Selection}
 \label{sec:dataset-selection}
 
-\par The evaluation of the MSA Detector requires open-source Java-based microservice projects of sufficient size and complexity to exercise the detection pipeline. This section describes the criteria used for dataset selection and characterizes the selected projects.
+\par The evaluation of the MSA Detector requires open-source Java-based microservice projects of sufficient size and complexity to exercise the detection pipeline.
 
 \subsection{Selection Criteria}
 \label{subsec:selection-criteria}
@@ -82,7 +82,7 @@
 \section{Results}
 \label{sec:results}
 
-\par This section presents the detection results produced by the MSA Detector for each evaluated dataset. For each project, the detected anti-patterns, health score, code smell summary and dependency graph metrics are reported.
+\par This section presents the detection results produced by the MSA Detector for each evaluated dataset.
 
 \subsection{Overview of Detection Results}
 \label{subsec:results-overview}
@@ -388,7 +388,7 @@
 \subsection{Results Discussion}
 \label{subsec:discussion-results}
 
-\par This section presents the detailed detection results for a representative evaluated project, microservice-recruit, including the detected microservices, anti-pattern evidence, and the health score breakdown.
+\par This subsection presents the detailed detection results for a representative evaluated project, microservice-recruit, illustrating how the per-finding evidence and the health score breakdown are derived.
 
 \subsubsection{microservice-recruit}
 \label{subsubsec:results-microservice-recruit}
@@ -493,8 +493,6 @@
 \subsection{Practical Implications}
 \label{subsec:practical-implications}
 
-\par The results of this evaluation suggest several practical implications for development teams working with microservice architectures.
-
 \par First, in a CI setting the REST API exposed by the backend (see Chapter~\ref{chap:ch4}, Section~\ref{subsec:rest-api}) could be used as a quality gate: a post-build step could submit the project for analysis and fail the pipeline if the health score falls below a configured threshold or a critical anti-pattern is detected, much as SonarQube enforces quality gates on code-level metrics. The current implementation would, however, need its thresholds calibrated to a team's own conventions before such a gate could safely block builds, since the defaults favour recall over precision.
 
 \par Second, the diff feature (see Chapter~\ref{chap:ch4}, Section~\ref{subsec:analysis-diff}) compares two analysis runs of the same project: after a shared database anti-pattern is resolved, the re-analysis reports the resulting change in the health score and whether any new anti-patterns appeared. Third, because each finding stores the source snippet and the affected service list, a developer is shown the specific \texttt{@FeignClient} annotation or \texttt{RestTemplate} invocation that creates a cycle, together with the affected services and a remediation suggestion, rather than an abstract warning such as \textit{cyclic dependency detected}.
@@ -555,12 +553,6 @@
 \section{Summary}
 \label{sec:ch5-summary}
 
-\par This chapter presented the evaluation of the MSA Detector system on a set of open-source Java-based microservice projects. The evaluation aimed to characterize the tool's detection behaviour and the kinds of architectural anti-pattern candidates it reports on diverse microservice codebases.
+\par This chapter evaluated the MSA Detector on eleven open-source Java microservice projects spanning domains from IoT platforms and ticket booking to e-commerce, recruitment and personal finance, and ranging in scale from teaching demos to production-grade systems. Across a total of 130 detected microservices and approximately 274\,000 lines of code, the pipeline identified 98 anti-pattern instances across nine distinct types. The health score and its category breakdown proved useful for comparing detector-derived architectural health, while the microservice-recruit case study showed how individual deductions accumulate into a final grade.
 
-\par Eleven projects were selected for evaluation, meeting the criteria of being Java Spring Boot applications with multiple microservices. The selected projects included a total of 130 detected microservices across approximately 274\,000 lines of code, and represented various domains including IoT platforms, ticket booking, cloud storage, e-commerce, intelligent recruitment, food-delivery, personal finance management, enterprise application development and learning projects. The detection pipeline identified 98 anti-pattern instances across nine distinct anti-pattern types, with varying implications for architectural quality.
-
-\par The results showed that the MSA Detector can identify candidate instances of common microservice anti-patterns such as shared databases, API versioning absences, and nano services. The health scores provided a useful summary metric for comparing detector-derived architectural health, with detailed breakdowns available for deeper analysis.
-
-\par The evaluation also identified several limitations and threats to validity, including the restriction to Java Spring Boot projects, the reliance on static analysis, and the limited representativeness of the evaluation datasets. These factors may affect the generalizability of the results, and caution is advised in interpreting the findings as definitive measures of architectural quality.
-
-\par Overall, the evaluation provided positive indications of the MSA Detector's capabilities, while also highlighting areas for improvement and further research. The next chapter will conclude this dissertation with a summary of contributions, reflections on the research process, and suggestions for future work in the area of microservice architecture analysis and improvement.
+\par These findings should be read with the chapter's threats to validity in mind: the results are specific to Java Spring Boot projects analysed statically, the penalty weights and thresholds favour recall over precision and have not been empirically calibrated, and open-source sample projects may not represent the scale and anti-pattern distribution of enterprise systems. The next chapter concludes the dissertation with a summary of contributions and directions for future work.
