@@ -75,7 +75,7 @@ Table~\ref{tab:tech-stack} summarizes the technologies used in each layer of the
         \cline{2-3}
         & Eclipse Temurin 25 (Alpine)                       & JDK/JRE base images                   \\
         \hline
-        API Doc               & SpringDoc OpenAPI 3.0.x                           & Swagger UI and OpenAPI spec           \\
+        API Doc               & SpringDoc OpenAPI 3.0.1                           & Swagger UI and OpenAPI spec           \\
         \hline
         Testing                         & JUnit 5, Mockito, Testcontainers 1.20.4            & Unit and integration testing          \\
         \hline
@@ -324,7 +324,7 @@ public void processJob(Long jobId) {
 \end{figure}
 
 
-In the first phase, Microservice Detection (\texttt{DETECTING\_SERVICES}), the \texttt{Micro\-ser\-vice\-De\-tec\-tor} identifies service boundaries using the deployability gate described in Chapter~\ref{chap:ch3}, Section~\ref{subsec:microservice-detection}. The \texttt{MicroserviceDetector} applies the boundary detection method described in Section~\ref{subsec:microservice-detection}, identifying deployable service modules from build files and deployability signals while filtering obvious non-service modules. For each accepted service, the backend persists a \texttt{Microservice} entity containing its name, relative path, size metrics, detection confidence and the signal that justified its inclusion.
+In the first phase, Microservice Detection (\texttt{DETECTING\_SERVICES}), the \texttt{Micro\-ser\-vice\-De\-tec\-tor} applies the deployability gate described in Chapter~\ref{chap:ch3}, Section~\ref{subsec:microservice-detection}, identifying deployable service modules from build files and deployability signals while filtering obvious non-service modules. For each accepted service, the backend persists a \texttt{Microservice} entity containing its name, relative path, size metrics, detection confidence and the signal that justified its inclusion.
 
 The second phase, Intra-Service Analysis (\texttt{ANALYZING\_SERVICES}), invokes DesigniteJava as a subprocess for each microservice when enabled. The service passes the microservice's source directory to DesigniteJava and parses the available CSV smell reports produced in the output directory.
 These files are parsed line by line and the detected smells are stored as \texttt{CodeSmell} entities with severity levels mapped from the smell type. The number of classes is extracted from the \texttt{TypeMetrics.csv} output when available. A configurable timeout (default: 1800 seconds) prevents runaway hanging subprocesses. Progress is reported per-service, allowing the frontend to display which service is currently being analyzed and what fraction is complete.

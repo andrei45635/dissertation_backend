@@ -494,6 +494,8 @@
 \subsection{Practical Implications}
 \label{subsec:practical-implications}
 
+\par The results of this evaluation suggest several practical implications for development teams working with microservice architectures.
+
 \par First, in a CI setting the REST API exposed by the backend (see Chapter~\ref{chap:ch4}, Section~\ref{subsec:rest-api}) could be used as a quality gate: a post-build step could submit the project for analysis and fail the pipeline if the health score falls below a configured threshold or a critical anti-pattern is detected, much as SonarQube enforces quality gates on code-level metrics. The current implementation would, however, need its thresholds calibrated to a team's own conventions before such a gate could safely block builds, since the defaults favour recall over precision.
 
 \par Second, the diff feature (see Chapter~\ref{chap:ch4}, Section~\ref{subsec:analysis-diff}) compares two analysis runs of the same project: after a shared database anti-pattern is resolved, the re-analysis reports the resulting change in the health score and whether any new anti-patterns appeared. Third, because each finding stores the source snippet and the affected service list, a developer is shown the specific \texttt{@FeignClient} annotation or \texttt{RestTemplate} invocation that creates a cycle, together with the affected services and a remediation suggestion, rather than an abstract warning such as \textit{cyclic dependency detected}.

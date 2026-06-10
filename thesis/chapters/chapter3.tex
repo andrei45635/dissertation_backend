@@ -1,7 +1,7 @@
 \chapter{Detection Methodology}
 \label{chap:ch3}
 
-\par This chapter presents the detection methodology employed by the system developed in this dissertation. It begins with an overview of the analysis pipeline and the foundational techniques, i.e. static code analysis, AST-based source code inspection and code smell detection, then describes the construction and analysis of the interservice dependency graph and the composite health score computation. The chapter concludes with a detailed description algorithm for each individual anti-pattern.
+\par This chapter presents the detection methodology employed by the system developed in this dissertation. It begins with an overview of the analysis pipeline and the foundational techniques, i.e. static code analysis, AST-based source code inspection and code smell detection, then describes the construction and analysis of the interservice dependency graph and the composite health score computation. The chapter concludes with a detailed description of the detection algorithm for each individual anti-pattern.
 
 \section{Detection Techniques}
 \label{sec:detection-techniques}
@@ -172,7 +172,7 @@ The deployability gate significantly reduces false positives compared to a build
 
 \par The Shared Database detector operates by comparing the datasource connection URLs configured across all detected microservices. The algorithm proceeds in two phases.
 
-In the first phase, the configuration files of each microservice are parsed to extract the datasource URL. For Spring Boot applications, the detector reads \texttt{app\-li\-ca\-tion.yml}, \texttt{application.yaml}, or \texttt{application.properties} configuration files located in the \texttt{/resources} directory of each service. From YAML files, the nested property \texttt{spring.datasource.url} is extract using a recursive map traversal, whereas from properties files, the same key is read directly. Spring property placeholders with default values (e.g., \texttt{\$\{DB\_HOST:localhost\}}) are resolved to their defaults to enable meaningful comparison.
+In the first phase, the configuration files of each microservice are parsed to extract the datasource URL. For Spring Boot applications, the detector reads \texttt{app\-li\-ca\-tion.yml}, \texttt{application.yaml}, or \texttt{application.properties} configuration files located in the \texttt{/resources} directory of each service. From YAML files, the nested property \texttt{spring.datasource.url} is extracted using a recursive map traversal, whereas from properties files, the same key is read directly. Spring property placeholders with default values (e.g., \texttt{\$\{DB\_HOST:localhost\}}) are resolved to their defaults to enable meaningful comparison.
 
 In the second phase, microservices are grouped by their resolved datasource URL. Any group containing more than one service indicates a shared database instance. Formally, let $\mathcal{S}$ denote the set of all microservices and $\mathit{dsUrl}$ denote the resolved datasource URL of service $s$. The detector reports a Shared Database anti-pattern for each equivalence class:
 
