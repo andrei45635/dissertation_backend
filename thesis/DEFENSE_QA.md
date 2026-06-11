@@ -3,6 +3,7 @@
 **Title:** Diagnosing the Distributed: A Static Analysis Approach to Microservice Anti-Pattern Detection
 **Tool:** MSA Detector — Spring Boot + Angular + PostgreSQL, Dockerized.
 **Format:** ~5 min Q&A. Usually 1 theoretical + 1 practical + 1 source-code question.
+**Where questions come from:** mostly from what YOU present — the committee reacts to the slides and demo; only the official reviewer will have read the thesis closely. So every slide you show is a question you invite: scoring slide → weights/clamping; pipeline slide → boundary detection; demo → diff & evidence. Rehearse the answers attached to your own slides first.
 
 ---
 
@@ -165,6 +166,15 @@
 **Q: Why is API Versioning Absence considered an anti-pattern?**
 > Because microservices evolve independently. Without explicit versioning, a provider change can break consumers and force coordinated releases. It is less severe in a small prototype, but in long-lived independently deployed services it increases coupling between teams and release cycles.
 
+**Q: How did you choose the health-score category weights (40/25/20/15)?**
+> Engineering judgement informed by how composite metrics work in the literature — SonarQube's maintainability rating, SQALE, and the ISO 25010 quality model. Anti-Patterns gets the largest budget because architectural issues are the focus of the work and the most expensive to fix after deployment. I state explicitly in the limitations that the weights are not empirically calibrated — that's listed as future work.
+
+**Q: Doesn't clamping a category at zero lose information?**
+> Yes — a project with penalty 49 and one with penalty 90 both show Anti-Patterns at 0. That's a known limitation of the category-cap design, noted in Threats to Validity. The per-issue counts are still preserved in the breakdown, so nothing is hidden from the user. A density-style scaled penalty, like the Code Quality category already uses, would fix it and is future work.
+
+**Q: Why does a single God Class flag the whole service?**
+> The default is intentionally sensitive: a false positive costs a developer a minute to dismiss; a false negative is architectural debt growing undetected. Even one class concentrating that many responsibilities is worth a look. The threshold is configurable, and in production a team would calibrate it.
+
 ### Extra practical questions
 
 **Q: If a company used your tool, what should they fix first?**
@@ -184,6 +194,18 @@
 
 **Q: How does a developer know whether a finding is a false positive?**
 > Each finding includes affected services, severity, explanation, remediation advice, and evidence snippets. The tool does not ask developers to trust a black box; it gives them the concrete source or graph evidence so they can accept, reject, or tune the finding.
+
+**Q: How exactly does each health-score category compute its penalty?**
+> **Code Quality (20):** smell density per KLOC, scaled — `min(20, round(20 × density / 80))`, where 80 smells/KLOC is the configurable full-penalty point. microservice-recruit: 31.4 density → 8-point penalty.
+> **Architecture (25):** coupling coefficient above 0.1 costs `min(15, round(coupling × 15))`, plus `min(10, 5 per cycle)` for dependency cycles.
+> **Service Sizing (15):** `min(8, 3 per nano service)` plus `min(10, 5 per god service)`.
+> **Anti-Patterns (40):** flat −8/−5/−3/−1 by severity for everything else.
+
+**Q: What do the HIGH/MEDIUM/LOW confidence levels actually do?**
+> Each detected service records which signal admitted it — framework entry point is HIGH, Dockerfile MEDIUM, `main()` LOW — and that's surfaced with the result, so the user can judge how trustworthy the boundary detection was. There are also graceful fallbacks: if the gate rejects every candidate, or the project is single-module, the tool falls back to a LOW-confidence service rather than failing the analysis with zero services.
+
+**Q: What does the diff show if a service was renamed between analyses?**
+> Findings are matched by a stable key — anti-pattern type plus affected service plus a type-specific signature — so a renamed service won't match its old findings: they show up as resolved + new rather than unchanged. That's honest behaviour (the tool doesn't guess identity), but I'd document it as a known limitation of the matching.
 
 ### Extra source-code questions
 
@@ -210,6 +232,15 @@
 
 **Q: Where is the system extensible in code?**
 > The main extension point is the `AntiPatternDetector` interface. A new detector implements `detect(Project, List<Microservice>)`, is annotated as a Spring component, and is automatically included because the orchestrator receives a `List<AntiPatternDetector>`. That keeps the pipeline independent of individual detector classes.
+
+**Q: How is the re-analysis diff implemented?** (open `AnalysisDiffService`)
+> `buildDiff()` indexes the previous analysis's findings into a map keyed by an **issue key**: anti-pattern type + primary affected service + a type-specific signature (for God Service, the canonical list of god-class names from the details JSON). Each current finding looks up that key — match found means **unchanged** (and is consumed from a `Deque`, so duplicates are matched one-to-one, not all-to-one), no match means **new**, and whatever remains unmatched on the previous side is **resolved**. Per-category score deltas are recomputed through the same `HealthScoreCalculator`, so the diff and the score can't disagree.
+
+**Q: Where does the deployability gate live in code?** (open `MicroserviceDetector`)
+> `detectServicesWithConfidence()` returns `DetectedService` records — path, confidence enum, and the **name of the signal that admitted it** (e.g. framework entry point vs Dockerfile vs main method). The pipeline is: scan for build files → drop excluded folders by keyword → drop aggregator modules → apply the three-signal gate. Three explicit fallbacks (`single-module-fallback`, `no-candidates-fallback`, `all-gated-fallback`) ensure a usable LOW-confidence result instead of an empty analysis.
+
+**Q: Where are the score weights and thresholds defined in code?**
+> Category budgets are constants in `HealthScoreCalculator`; tunable values are injected via `@Value` from `application.yml` — for example `app.thresholds.code-smell-density-threshold` (default 80) controls the Code Quality scaling. Detector thresholds (nano LOC, chatty call count, coupling cutoffs…) live in the same externalized configuration, which is what makes the "configurable thresholds" claim concrete.
 
 ---
 
