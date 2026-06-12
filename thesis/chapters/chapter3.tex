@@ -160,7 +160,7 @@ A candidate that does not match any of the three signals is discarded. When the 
 
 Each detected service is assigned a \texttt{DetectionConfidence} level (HIGH, MEDIUM, or LOW) and a human-readable signal label (e.g.\ \texttt{framework-entry-point}, \texttt{docker\-file}, \texttt{main-method}), which are persisted alongside the microservice entity. This metadata enables users to understand \textit{why} each module was classified as a service and to assess detection quality.
 
-The deployability gate significantly reduces false positives compared to a build-file-only heuristic, particularly in large monorepository projects where utility libraries, shared kernels, and test modules all contain build files but are not independently deployable services.
+The deployability gate is designed to reduce false positives compared to a build-file-only heuristic, particularly in large monorepository projects where utility libraries, shared kernels, and test modules all contain build files but are not independently deployable services.
 
 \section{Per-Anti-Pattern Detection Methodology}
 \label{sec:per-anti-pattern-detection}
@@ -260,7 +260,7 @@ For each SCC with $|\text{scc}| > 1$, the detector constructs a human-readable c
 \subsection{Nano Service Detection}
 \label{subsec:detect-nano-service}
 
-\par The Nano Service detector identifies services whose size is too small to justify the operational overhead of running them as independent microservices \cite{Taibi2018}. Detection is based on two configurable metrics: the lines of code (LOC) and the number of REST endpoints exposed by the service.
+\par The Nano Service detector identifies services whose size is too small to justify the operational overhead of running them as independent microservices \cite{Tighilt2023}. Detection is based on two configurable metrics: the lines of code (LOC) and the number of REST endpoints exposed by the service.
 
 A microservice $s$ is flagged as a nano service when the following conjunction holds:
 
@@ -278,7 +278,7 @@ As evidence, the detector attempts to locate the service's main application clas
 \subsection{God Service Detection}
 \label{subsec:detect-god-service}
 
-\par The God Service detector identifies microservices that handle too many responsibilities \cite{Taibi2018}. A service is flagged as a god service when it contains at least one class that exhibits God Class characteristics:
+\par The God Service detector identifies microservices that handle too many responsibilities \cite{Brown1998}. A service is flagged as a god service when it contains at least one class that exhibits God Class characteristics:
 
 \begin{equation}
     \exists\, c \in \mathit{classes}(s) : \mathit{isGodClass}(c)
@@ -330,7 +330,7 @@ This structural approach highlights the multi-level analysis contribution of thi
 \subsection{Chatty Service Detection}
 \label{subsec:detect-chatty-service}
 
-\par The Chatty Service detector identifies services that communicate excessively through fine-grained remote calls \cite{Taibi2018, Richardson2018}. Detection uses two complementary approaches.
+\par The Chatty Service detector identifies services that communicate excessively through fine-grained remote calls \cite{Taibi2018, Richardson2018, AzureChattyIO}. Detection uses two complementary approaches.
 
 Firstly, the detector queries the persisted dependency graph for edges whose call count exceeds a configurable threshold:
 

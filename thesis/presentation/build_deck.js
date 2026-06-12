@@ -297,7 +297,7 @@ async function iconPng(IconComponent, color = "#FFFFFF", size = 256) {
             "What to actually say:\n" +
             "• 'The work has five contributions. The first is the multi-level analysis itself — using code-level structural metrics like class cohesion to flag architectural problems like God Service. That bridge between abstraction levels is the central novelty.'\n" +
             "• 'Second, ten selected anti-patterns across four dimensions — not the largest catalogue, since MARS covers more, but integrated with code-level smell density, evidence snippets, remediation guidance, and a health score.'\n" +
-            "• 'Third, automated microservice boundary detection via a three-signal deployability gate — framework entry points, Dockerfiles, and main methods — with confidence levels. Most existing tools require manual configuration.'\n" +
+            "• 'Third, automated microservice boundary detection via a three-signal deployability gate — framework entry points, Dockerfiles, and main methods — with confidence levels. Existing tools tend to need a running system, manual curation of which modules are services, or work below the service-boundary level.'\n" +
             "• 'Fourth, a composite health score on 0–100, decomposed into four categories so you can see which dimension is dragging the score down.'\n" +
             "• 'Fifth, evidence-based reporting — every finding includes the actual code that triggered it.'\n\n" +
             "Bridge to next slide: 'To give you a clearer picture of how these pieces fit together, let me walk you through the analysis pipeline — from the moment a project is uploaded to the final report.'\n\n" +

@@ -375,7 +375,7 @@
 % \end{table}
 
 
-\par The evaluation results show substantial variation in detector-derived architectural health across the selected projects. Health scores ranged from 40 to 83 (Figure~\ref{fig:health-scores}), suggesting that the detection pipeline can distinguish between projects with relatively few reported issues and those with a much higher concentration of reported anti-pattern candidates.
+\par The evaluation results show substantial variation in health scores across the selected projects, ranging from 40 to 83 (Figure~\ref{fig:health-scores}). The pipeline distinguishes between projects with few detected issues and those with a much higher concentration of anti-patterns.
 
 \par As shown in Figure~\ref{fig:antipattern-frequency}, API Versioning Absence was the most frequently detected anti-pattern, with 37 instances across nine projects, with NetworkDisk contributing 8 and microservice-recruit contributing 6 (as shown in the per-project breakdown in Table~\ref{tab:antipattern-distribution}). Nano Service was the second most common finding, appearing 23 times across nine projects. Hardcoded Endpoints was detected 15 times across six of the eleven evaluated projects. Chatty Service (4 instances, all in Train-Ticket) and ESB Misuse (9 instances across Site-Where, microservice-recruit, PiggyMetrics and piomin) appeared less frequently. God Service was detected in three projects (Site-Where, mall-swarm and RuoYi-Cloud, 4 instances total), and Shared Database was found in MicroservicesSocial, Train-Ticket and mall-swarm (3 instances total). Notably, the addition of NetworkDisk and microservice-recruit to the evaluation corpus activated detectors that had previously produced zero results: Cyclic Dependency was detected once in microservice-recruit, and Wrong Cuts was detected twice in the same project, providing evidence that a broader evaluation corpus can exercise a wider range of detection capabilities.
 
@@ -524,6 +524,8 @@
 
 \par The composite health score formula (Equation~\ref{eq:health-score}) aggregates multiple quality dimensions into a single numeric value. Any such aggregation involves a loss of information, and the chosen penalty weights may not reflect the relative importance of different anti-patterns in all contexts. The category-based breakdown provided by \texttt{HealthScoreCalculator} partially addresses this by preserving per-category scores.
 
+\par A further effect arises between the Cyclic Dependency and Wrong Cuts detectors: a bidirectional dependency between two services is simultaneously a two-node cycle, so the same structural coupling can be penalised under both anti-patterns within the Anti-Patterns category. Unlike the Nano Service and God Service findings, which are deliberately charged to a single category to avoid double counting, this overlap is not deduplicated, so the anti-pattern penalty for tightly coupled service pairs should be read as an upper bound rather than an exact measure.
+
 \subsection{Internal Validity}
 \label{subsec:internal-validity}
 
@@ -556,6 +558,6 @@
 \section{Summary}
 \label{sec:ch5-summary}
 
-\par This chapter evaluated the MSA Detector on eleven open-source Java microservice projects spanning domains from IoT platforms and ticket booking to e-commerce, recruitment and personal finance, and ranging in scale from teaching demos to production-grade systems. Across a total of 130 detected microservices and approximately 274\,000 lines of code, the pipeline identified 98 anti-pattern instances across nine distinct types. The health score and its category breakdown proved useful for comparing detector-derived architectural health, while the microservice-recruit case study showed how individual deductions accumulate into a final grade.
+\par This chapter evaluated the MSA Detector on eleven open-source Java microservice projects spanning domains from IoT platforms and ticket booking to e-commerce, recruitment and personal finance, and ranging in scale from teaching demos to production-grade systems. Across a total of 130 detected microservices and approximately 274\,000 lines of code, the pipeline identified 98 anti-pattern instances across nine distinct types. The health score and its category breakdown proved useful for comparing architectural health across projects, while the microservice-recruit case study showed how individual deductions accumulate into a final grade.
 
-\par These findings should be read with the chapter's threats to validity in mind: the results are specific to Java Spring Boot projects analysed statically, the penalty weights and thresholds favour recall over precision and have not been empirically calibrated, and open-source sample projects may not represent the scale and anti-pattern distribution of enterprise systems. The next chapter concludes the dissertation with a summary of contributions and directions for future work.
+\par These findings should be read with the chapter's threats to validity in mind: the results are specific to Java Spring Boot projects analysed statically, the penalty weights and thresholds have not been empirically calibrated, and open-source sample projects may not represent the scale and anti-pattern distribution of enterprise systems. The next chapter concludes the dissertation with a summary of contributions and directions for future work.
