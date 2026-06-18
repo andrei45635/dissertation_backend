@@ -13,7 +13,7 @@
 - **Lead with the term or the number, then say why.** That's all a good answer is.
 - Keep each answer **30–60 seconds**. Don't over-explain.
 - If you don't recall an exact value: *"I'd have to check the exact number, but the mechanism is…"* — the mechanism matters more.
-- Have the repo open to **`SharedDatabaseDetector`** and **`GodServiceDetector`** before walking in.
+- Have the repo open to **`SharedDatabaseDetector`**, **`GodServiceDetector`**, **`DependencyGraphBuilder`**, and **`HealthScoreCalculator`** before walking in.
 
 **One-line summary of the whole thesis (say if asked "what did you do?"):**
 *"I built a static-analysis tool that detects ten microservice anti-patterns in Java/Spring projects by combining code-level smell detection with inter-service dependency analysis, and summarizes architectural quality as a 0–100 health score. I evaluated it on eleven open-source projects."*
@@ -41,6 +41,18 @@
 
 **Q: How does ESB Misuse detection work?**
 > I look for a service that mediates a disproportionate share of communication, using three signals: high caller+callee ratios, a volume-based mediator ratio, and normalized **betweenness centrality** (Brandes' algorithm). Threshold 0.4; gateways are excluded since they're meant to be central.
+
+**Q: Why did you choose these ten anti-patterns?**
+> I chose anti-patterns that are common in the microservice literature and observable from source code or configuration without runtime tracing. They also cover the main dimensions of microservice quality: service size and responsibility, communication coupling, data ownership, and independent deployment. I deliberately preferred a smaller catalogue with evidence and scoring over a larger catalogue with weak signals.
+
+**Q: Which microservice principles do these anti-patterns violate?**
+> Shared Database violates decentralized data ownership. Cyclic Dependency, Wrong Cuts and Distributed Monolith violate independent deployability. Chatty Service and ESB Misuse violate loose coupling and lightweight communication. God Service and Nano Service point to poor service boundary design.
+
+**Q: How is your tool different from MSANose or MARS?**
+> MSANose is the closest prior static Java microservice smell detector, but it does not integrate general code-smell density, a composite health score, or God Service and Chatty Service as implemented here. MARS covers more anti-patterns and reports strong precision/recall, but my work is positioned differently: a smaller catalogue integrated with evidence snippets, remediation, health scoring, re-analysis diff, and a web/API workflow.
+
+**Q: What is Tight Class Cohesion (TCC), and why does it matter?**
+> TCC measures the fraction of public-method pairs in a class that access at least one common instance field. If TCC is low, the methods operate on mostly disjoint state, which suggests unrelated responsibilities are packed into the same class. In my God Service detector, TCC is one of six structural metrics; it is not enough alone, but combined with size, field count, method count and dependency breadth it strengthens the God Class signal.
 
 ---
 
@@ -107,7 +119,7 @@
 > A system-level check using three metrics: the **coupling coefficient** C, the **connected ratio** R (fraction of services in at least one dependency), and the **shared-database count** D. I flag the system if `C > 0.5`, **or** `R > 0.8 and D > 0`, **or** `R > 0.8 and C > 0.3`. Only runs with ≥3 services. It's intentionally sensitive because an undetected distributed monolith is costly — thresholds are configurable if a team finds it too aggressive.
 
 **8. API Versioning Absence — MEDIUM.** *How do you detect it?*
-> During endpoint extraction I test each path against the regex `/v\d+[/.]` (matches `/v1/`, `/v2/`, etc.) and set a `hasVersioning` flag. A service is flagged when **none** of its endpoints carry a version indicator. Evidence is the `@RestController`/`@RequestMapping` of an unversioned controller, showing where a `/v1/` prefix could go.
+> During endpoint extraction I set a `hasVersioning` flag when any recognized strategy appears: URL path versioning like `/v1/`, version headers such as `X-API-Version`, vendor media types such as `application/vnd.example.v1+json`, or query parameters such as `version=`. A service is flagged when **none** of its endpoints carry any recognized version indicator. Evidence is the `@RestController`/`@RequestMapping` of an unversioned controller.
 
 **9. Wrong Cuts — HIGH.** *How do you detect it?*
 > **Bidirectional dependencies**: a pair of services calling each other in both directions, which signals they're too tightly coupled to be separate. Each pair is reported once, with the call declarations from both directions as evidence. In microservice-recruit these were the pf-recruit/pf-resume and pf-recruit/pf-user pairs.
@@ -126,7 +138,7 @@
 | Chatty Service | HIGH | call count ≥ 5 (per-method Feign) |
 | Hardcoded Endpoints | MEDIUM | URL literal in `.java` (non-test) |
 | Distributed Monolith | CRITICAL | C>0.5, or R>0.8 & D>0, or R>0.8 & C>0.3 |
-| API Versioning Absence | MEDIUM | no endpoint matches `/v\d+[/.]` |
+| API Versioning Absence | MEDIUM | no endpoint has recognized path/header/media/query versioning |
 | Wrong Cuts | HIGH | Bidirectional dependencies between a service pair |
 | ESB Misuse | HIGH | any signal ≥ 0.4 (gateways excluded) |
 
@@ -189,8 +201,20 @@
 **Q: Why did no project receive an A grade?**
 > Because the score combines multiple dimensions. A project can avoid severe cyclic dependencies and still lose points for API versioning, hardcoded endpoints, code-smell density, or service sizing. The goal is not to label projects as bad, but to show where architectural debt accumulates.
 
+**Q: Is eleven projects enough for evaluation?**
+> Enough for a feasibility evaluation, not for a statistical claim. The corpus is intentionally heterogeneous — small demos, reference applications, benchmark systems, and larger enterprise-style projects — so it exercises different detectors. A full precision/recall study would require a labelled microservice anti-pattern dataset, which is not currently available in a mature form.
+
+**Q: Why did respected reference projects like FTGO or PiggyMetrics only get C grades?**
+> The score measures conformance to this tool's catalogue and conventions, not overall software excellence. FTGO mainly loses points for API versioning absence; that does not mean it is badly designed, only that it does not expose a versioning strategy recognized by the detector. This is why the category breakdown and evidence matter more than the letter grade alone.
+
+**Q: What if API versioning is handled at a gateway or through contracts?**
+> Then the detector may report a candidate finding even though the team has a valid external versioning strategy. The implementation recognizes several source-level strategies — path, header, media-type, and query-parameter versioning — but it cannot prove gateway-level or consumer-contract versioning from service code alone. So this finding should be interpreted as "no recognized service-level versioning evidence."
+
 **Q: What would you change before deploying this in an enterprise environment?**
 > I would add organization-specific threshold profiles, better support for Spring Cloud Config and Kubernetes manifests, and eventually runtime telemetry. Static analysis is good for early detection, but traces and metrics would improve confidence for Chatty Service and real coupling.
+
+**Q: What is the most important future improvement?**
+> Multi-language support. Real microservice systems are often polyglot, so the next step would be a language-agnostic dependency graph from Docker Compose, Kubernetes manifests or gateway configuration, plus language-specific analyzers for Python, Go, .NET or Node.js.
 
 **Q: How does a developer know whether a finding is a false positive?**
 > Each finding includes affected services, severity, explanation, remediation advice, and evidence snippets. The tool does not ask developers to trust a black box; it gives them the concrete source or graph evidence so they can accept, reject, or tune the finding.
@@ -207,7 +231,22 @@
 **Q: What does the diff show if a service was renamed between analyses?**
 > Findings are matched by a stable key — anti-pattern type plus affected service plus a type-specific signature — so a renamed service won't match its old findings: they show up as resolved + new rather than unchanged. That's honest behaviour (the tool doesn't guess identity), but I'd document it as a known limitation of the matching.
 
+**Q: What does the frontend add beyond showing raw JSON?**
+> It turns the analysis result into an actionable workflow: upload or clone a project, monitor asynchronous progress, inspect the health score and category breakdown, expand anti-pattern cards with evidence snippets, view the dependency graph, export JSON, and compare re-analyses through the history/diff views.
+
+**Q: How is the application deployed?**
+> With Docker Compose: Spring Boot backend, Angular/Nginx frontend, and PostgreSQL. The development setup exposes services locally; the production setup exposes only the frontend, reverse-proxies API calls internally, keeps PostgreSQL private, and externalizes secrets like the database password and JWT signing key.
+
 ### Extra source-code questions
+
+**Q: What are the main REST API groups?**
+> Three groups: `/api/auth` for registration, login and current-user info; `/api/projects` for upload, clone, listing, history, re-analysis and deletion; and `/api/jobs` for job status, results, diff, recent jobs and cancellation.
+
+**Q: How is the application secured?**
+> The backend uses stateless JWT authentication with Spring Security. Public endpoints are limited to login/register, Swagger and actuator health/info. Protected requests pass through a JWT filter, passwords are stored with BCrypt, and controller methods operate on the authenticated user.
+
+**Q: Why does each analysis job own its own microservice snapshot?**
+> To preserve history. Re-analysis should not overwrite previous service, endpoint, dependency, smell, or anti-pattern records. Each `AnalysisJob` gets its own snapshot, so the diff feature can compare two completed runs accurately and old results remain reproducible.
 
 **Q: Why do you start the analysis worker after transaction commit?**
 > Uploading or cloning creates the project and job rows in a transaction. The worker is started through an `afterCommit()` callback, so the async thread cannot read a job that has not been committed yet. That avoids a race condition between the request thread and the background analysis.
@@ -220,6 +259,9 @@
 
 **Q: How does the dependency graph resolve a call target to a service?**
 > It builds aliases from service directory names, `spring.application.name`, and configured ports. Then it resolves Feign clients, `RestTemplate` calls, and `WebClient` calls using exact name matching, port matching, and fallback fuzzy matching. Each resolved call becomes a directed edge in the service dependency graph.
+
+**Q: Where is API versioning detected in the code?**
+> The versioning signal is created in `DependencyGraphBuilder` during endpoint extraction. It checks the full endpoint path, mapping headers, media types, and query-parameter conditions, then stores `hasVersioning` and `apiVersion` on each `Endpoint`. `ApiVersioningDetector` is intentionally simple after that: it loads endpoints per service and flags the service only if `versionedCount == 0`.
 
 **Q: Why use Spoon instead of regular expressions everywhere?**
 > Spoon understands Java structure: annotations, methods, invocations, types, and class relationships. That is more reliable for endpoint extraction, Feign clients, TCC metrics, and God Service detection. Regex is only used where the signal is naturally textual, such as hardcoded URL literals.
@@ -241,6 +283,82 @@
 
 **Q: Where are the score weights and thresholds defined in code?**
 > Category budgets are constants in `HealthScoreCalculator`; tunable values are injected via `@Value` from `application.yml` — for example `app.thresholds.code-smell-density-threshold` (default 80) controls the Code Quality scaling. Detector thresholds (nano LOC, chatty call count, coupling cutoffs…) live in the same externalized configuration, which is what makes the "configurable thresholds" claim concrete.
+
+**Q: How did you test the tool?**
+> Each detector has dedicated tests for positive, negative and threshold-boundary cases. Shared helper logic is tested through a concrete `BaseDetector` subclass. Controller integration tests use `@WebMvcTest`, `MockMvc`, and mocked service beans to verify validation, security and JSON responses.
+
+---
+
+## FINAL CHALLENGE QUESTIONS (cover the remaining angles)
+
+**Q: What is the exact research gap?**
+> Existing tools either focus on code-level smells or architecture-level dependency structure. My gap is combining both into one workflow: code smells, structural metrics, dependency graph analysis, evidence snippets, a health score, and re-analysis diff.
+
+**Q: What is the main novelty of your dissertation?**
+> Not a single algorithm. The novelty is the integration: multi-level static analysis plus evidence-based reporting and a composite score that can be tracked over time.
+
+**Q: Why should developers trust the health score?**
+> They should not treat it as absolute truth. It is a summary indicator. The real value is the transparent breakdown: each deduction is traceable to a detector, severity, affected services, and source evidence.
+
+**Q: Why not report precision and recall?**
+> There is no mature labelled benchmark dataset for these microservice anti-patterns. I performed manual validation instead. Precision/recall would require multiple reviewers and labelled ground truth, which is future work.
+
+**Q: What is your strongest technical decision?**
+> Separating detectors behind the `AntiPatternDetector` interface. It keeps the pipeline extensible: the orchestrator does not know detector internals, and new detectors can be added as Spring components.
+
+**Q: What is your weakest assumption?**
+> That static source-level signals are good proxies for runtime architectural behaviour. For example, static Feign method count approximates chatty communication, but real traffic volume requires runtime telemetry.
+
+**Q: Why use source code instead of bytecode?**
+> Source code gives access to configuration files, annotations, endpoint mappings, snippets, and remediation evidence. Bytecode analysis is useful for dependency structure, but less convenient for developer-facing explanations.
+
+**Q: What happens with asynchronous messaging, Kafka, RabbitMQ?**
+> The current dependency graph mainly targets REST-style communication: Feign, RestTemplate and WebClient. Messaging-based dependencies are a limitation and a natural future detector extension.
+
+**Q: What if services use Kubernetes or Docker Compose names instead of Spring config?**
+> The current tool can miss those dependencies. Future work would build a language-agnostic dependency graph from Docker Compose, Kubernetes manifests, ingress/gateway config and service discovery metadata.
+
+**Q: Why PostgreSQL?**
+> The data is structured and relational: users, projects, jobs, services, endpoints, dependencies, smells, results and anti-patterns. PostgreSQL fits that model well and gives persistence for historical analysis and diffs.
+
+**Q: Why persist snippets instead of reading files later?**
+> Because uploaded or cloned workspaces may be cleaned up or changed. Persisting snippets during analysis makes the report reproducible even if the source directory is later removed.
+
+**Q: What is the risk of false positives?**
+> The tool favors recall in several detectors. That is acceptable because findings are candidates for inspection, not automatic refactoring commands. Evidence snippets let developers accept or reject findings quickly.
+
+**Q: What is the risk of false negatives?**
+> Dynamic URLs, external config servers, runtime-only traffic, messaging systems and non-Java services can hide dependencies from static analysis.
+
+**Q: Which detector is most context-sensitive?**
+> Nano Service and API Versioning Absence. A small service may be valid if it owns a critical capability, and API versioning may be handled outside the service. Those findings require human interpretation.
+
+**Q: Which detector is most objective?**
+> Shared Database and Cyclic Dependency. Shared Database is based on matching datasource URLs, and Cyclic Dependency is graph-based through strongly connected components.
+
+**Q: Why does the presentation focus on God Service?**
+> Because it clearly demonstrates the thesis contribution: code-level metrics, especially cohesion and class structure, become evidence for an architectural-level finding.
+
+**Q: Why does the presentation use microservice-recruit as the worked example?**
+> It is the most anti-pattern-dense evaluated project and triggers several important detectors: Cyclic Dependency, Wrong Cuts, ESB Misuse, API Versioning Absence, Hardcoded Endpoint and Nano Service. It shows the scoring system better than a mostly clean project.
+
+**Q: What would you do differently if you started again?**
+> I would design threshold calibration and reviewer validation earlier, so the evaluation could include stronger empirical claims. The implementation works, but the validation could be expanded with labelled findings and multiple reviewers.
+
+**Q: What is the enterprise risk before using this as a quality gate?**
+> Thresholds must be calibrated first. I would not fail builds on all findings immediately. I would start with "no new critical findings" and "health score must not regress."
+
+**Q: What if a committee member says this is just a wrapper around existing tools?**
+> DesigniteJava is only one input. The contribution is the full pipeline: service boundary detection, Spoon-based endpoint/dependency extraction, graph-based detectors, custom detectors, evidence extraction, scoring, persistence, diffing and UI workflow.
+
+**Q: What if they say the health score is subjective?**
+> It is subjective in the same way most composite quality scores are. The value is not that 75 is universally "correct," but that the scoring is transparent, decomposed, repeatable and useful for comparing runs over time.
+
+**Q: What if they ask why not machine learning?**
+> Lack of labelled data and need for explainability. A rule-based detector can explain exactly which threshold fired and show the source evidence. ML would be interesting later, after collecting enough labelled findings.
+
+**Answer structure if the wording is unexpected:**
+> Use **input → method → tradeoff → limitation**. For example: "The input is the dependency graph; the method is Tarjan SCC; the tradeoff is static calls rather than runtime traffic; the limitation is that dynamic or message-based calls can be missed."
 
 ---
 
