@@ -1,5 +1,5 @@
 // MSA Detector Master's Dissertation Defense — 15-minute presentation
-// v2: adds a selected bibliography slide and writes a separate PPTX.
+// v2: adds a selected bibliography slide and annex backup slides, then writes a separate PPTX.
 // Redesigned deck: typography-driven, single accent colour, strict layout grid.
 //
 // Layout system (16:9, 10" x 5.625"):
@@ -57,6 +57,14 @@ const FONT = "Calibri";
     function pageNum(slide, n, light = false) {
         slide.addText(`${n} / 15`, {
             x: 8.7, y: 5.32, w: 0.7, h: 0.25,
+            fontSize: 9, fontFace: FONT, color: light ? C.ice : C.muted,
+            align: "right", margin: 0,
+        });
+    }
+
+    function appendixNum(slide, n, light = false) {
+        slide.addText(`Appendix ${n}`, {
+            x: 8.15, y: 5.32, w: 1.25, h: 0.25,
             fontSize: 9, fontFace: FONT, color: light ? C.ice : C.muted,
             align: "right", margin: 0,
         });
@@ -1247,6 +1255,343 @@ const FONT = "Calibri";
         s.addNotes(
             "Reference slide only — do not spend presentation time here unless the committee asks about sources.\n\n" +
             "If asked, say: 'These are the selected works that shaped the microservice definition, anti-pattern catalogue, static analysis approach, related tools, and graph algorithms used in the implementation. The complete bibliography is in the dissertation.'"
+        );
+    }
+
+    // ============================================================
+    // APPENDIX A — CORE DEFINITIONS
+    // ============================================================
+    {
+        const s = pres.addSlide();
+        s.background = { color: C.bg };
+        addHeader(s, "Annex: core definitions");
+
+        const defs = [
+            {
+                term: "Microservice",
+                text: "A small, independently deployable service organised around a business capability, communicating with other services through lightweight APIs.",
+            },
+            {
+                term: "Architectural anti-pattern",
+                text: "A recurring architectural decision that appears useful locally, but creates long-term coupling, fragility, or operational cost.",
+            },
+            {
+                term: "Service boundary",
+                text: "The deployable unit recovered from a repository: build module plus framework entry point, Dockerfile, or main method signal.",
+            },
+            {
+                term: "Evidence-based finding",
+                text: "A detected issue linked to affected services, source snippets, graph evidence, severity, and remediation guidance.",
+            },
+            {
+                term: "Multi-level analysis",
+                text: "Combining intra-service code metrics and smells with inter-service dependency graph analysis.",
+            },
+            {
+                term: "Health score",
+                text: "A 0-100 composite quality indicator decomposed into Anti-Patterns, Code Quality, Architecture, and Service Sizing.",
+            },
+        ];
+
+        defs.forEach((d, i) => {
+            const col = i % 2;
+            const row = Math.floor(i / 2);
+            const x = col === 0 ? ML : 5.05;
+            const y = 1.12 + row * 1.22;
+            rule(s, x, y, 0.45, col === 0 ? C.teal : C.deepBlue, 0.04);
+            s.addText(d.term, {
+                x, y: y + 0.14, w: 4.05, h: 0.28,
+                fontSize: 12.5, fontFace: FONT, color: C.navy, bold: true, margin: 0,
+            });
+            s.addText(d.text, {
+                x, y: y + 0.48, w: 4.05, h: 0.55,
+                fontSize: 10.2, fontFace: FONT, color: C.text, margin: 0,
+            });
+            rule(s, x, y + 1.08, 4.05, C.hairline, 0.01);
+        });
+
+        rule(s, ML, 4.92, 0.5, C.teal, 0.04);
+        s.addText("Use this slide only if the committee asks for terminology or scope clarification.", {
+            x: ML, y: 5.02, w: CW, h: 0.26,
+            fontSize: 9.5, fontFace: FONT, color: C.muted, italic: true, margin: 0,
+        });
+
+        appendixNum(s, "A");
+
+        s.addNotes(
+            "Backup slide only.\n\n" +
+            "Use this if someone asks what you mean by microservice, architectural anti-pattern, service boundary, or evidence-based reporting. Keep the answer short: define the term, then connect it to the implementation."
+        );
+    }
+
+    // ============================================================
+    // APPENDIX B — METRIC FORMULAS
+    // ============================================================
+    {
+        const s = pres.addSlide();
+        s.background = { color: C.bg };
+        addHeader(s, "Annex: formulas & metrics");
+
+        const formulas = [
+            {
+                name: "Tight Class Cohesion",
+                formula: "TCC = NDC / NP",
+                detail: "NDC = directly connected method pairs; NP = all possible method pairs. Low TCC means methods operate on disjoint state.",
+            },
+            {
+                name: "Code smell density",
+                formula: "smellDensity = smellCount / (LOC / 1000)",
+                detail: "Normalises DesigniteJava smell count by service size, so larger codebases are not punished only for being larger.",
+            },
+            {
+                name: "Graph coupling coefficient",
+                formula: "coupling = E / (N × (N - 1))",
+                detail: "E = directed dependency edges; N = detected services. Higher values mean denser inter-service coupling.",
+            },
+            {
+                name: "Dependency edge weight",
+                formula: "weight(A, B) = distinct call sites from A to B",
+                detail: "Recovered from Feign clients, RestTemplate calls, and WebClient invocations in the Spoon AST.",
+            },
+            {
+                name: "Service size ratio",
+                formula: "sizeRatio = LOC(service) / medianLOC(project)",
+                detail: "Used as supporting evidence for Nano Service and God Service-style sizing findings.",
+            },
+        ];
+
+        formulas.forEach((f, i) => {
+            const y = 1.12 + i * 0.75;
+            s.addText(f.name, {
+                x: ML, y, w: 2.65, h: 0.28,
+                fontSize: 11.2, fontFace: FONT, color: C.navy, bold: true, margin: 0,
+            });
+            s.addText(f.formula, {
+                x: 3.35, y, w: 2.7, h: 0.28,
+                fontSize: 10.8, fontFace: FONT, color: C.teal, bold: true, margin: 0,
+                fit: "shrink",
+            });
+            s.addText(f.detail, {
+                x: 6.25, y: y - 0.02, w: 3.15, h: 0.42,
+                fontSize: 8.8, fontFace: FONT, color: C.text, margin: 0,
+                fit: "shrink",
+            });
+            rule(s, ML, y + 0.52, CW, C.hairline, 0.01);
+        });
+
+        rule(s, ML, 4.92, 0.5, C.teal, 0.04);
+        s.addText("TCC follows Bieman & Kang's cohesion interpretation; graph metrics use the recovered directed service dependency graph.", {
+            x: ML, y: 5.02, w: CW, h: 0.26,
+            fontSize: 9.5, fontFace: FONT, color: C.muted, italic: true, margin: 0,
+        });
+
+        appendixNum(s, "B");
+
+        s.addNotes(
+            "Backup slide only.\n\n" +
+            "Use this for questions such as 'how is cohesion measured?', 'what does edge weight mean?', or 'how do you avoid punishing larger codebases?'. The key answer is that raw counts are normalised when size would otherwise bias the result."
+        );
+    }
+
+    // ============================================================
+    // APPENDIX C — HEALTH SCORE FORMULA
+    // ============================================================
+    {
+        const s = pres.addSlide();
+        s.background = { color: C.bg };
+        addHeader(s, "Annex: health score computation");
+
+        s.addText("Overall score", {
+            x: ML, y: 1.1, w: CW, h: 0.3,
+            fontSize: 13, fontFace: FONT, color: C.navy, bold: true, margin: 0,
+        });
+        s.addText("score = AP + CQ + ARCH + SIZE", {
+            x: ML, y: 1.48, w: CW, h: 0.42,
+            fontSize: 20, fontFace: FONT, color: C.teal, bold: true, align: "center", margin: 0,
+        });
+
+        const rows = [
+            ["AP", "Anti-Patterns", "40", "max(0, 40 - severity penalties)"],
+            ["CQ", "Code Quality", "20", "max(0, 20 - smell-density penalty)"],
+            ["ARCH", "Architecture", "25", "max(0, 25 - coupling/cycle penalties)"],
+            ["SIZE", "Service Sizing", "15", "max(0, 15 - nano/god service penalties)"],
+        ];
+        const cols = [
+            { x: ML, w: 0.75, label: "Term" },
+            { x: 1.45, w: 2.0, label: "Category" },
+            { x: 3.55, w: 0.85, label: "Budget" },
+            { x: 4.65, w: 4.75, label: "Computation" },
+        ];
+        cols.forEach(c => {
+            s.addText(c.label.toUpperCase(), {
+                x: c.x, y: 2.2, w: c.w, h: 0.24,
+                fontSize: 8.2, fontFace: FONT, color: C.navy, bold: true, charSpacing: 1.2, margin: 0,
+            });
+        });
+        rule(s, ML, 2.5, CW, C.hairline, 0.015);
+        rows.forEach((r, i) => {
+            const y = 2.67 + i * 0.43;
+            r.forEach((txt, j) => {
+                const c = cols[j];
+                s.addText(txt, {
+                    x: c.x, y, w: c.w, h: 0.28,
+                    fontSize: j === 0 ? 10.5 : 9.4,
+                    fontFace: FONT,
+                    color: j === 0 ? C.teal : C.text,
+                    bold: j <= 1,
+                    margin: 0,
+                    fit: "shrink",
+                });
+            });
+            rule(s, ML, y + 0.33, CW, C.hairline, 0.01);
+        });
+
+        const grades = [
+            ["A", "90-100"],
+            ["B", "80-89"],
+            ["C", "65-79"],
+            ["D", "50-64"],
+            ["F", "< 50"],
+        ];
+        s.addText("Grade mapping", {
+            x: ML, y: 4.55, w: 1.8, h: 0.25,
+            fontSize: 11, fontFace: FONT, color: C.navy, bold: true, margin: 0,
+        });
+        grades.forEach((g, i) => {
+            const x = 2.2 + i * 1.28;
+            s.addText(g[0], {
+                x, y: 4.5, w: 0.35, h: 0.28,
+                fontSize: 12, fontFace: FONT, color: C.navy, bold: true, margin: 0,
+            });
+            s.addText(g[1], {
+                x: x + 0.38, y: 4.53, w: 0.75, h: 0.24,
+                fontSize: 9, fontFace: FONT, color: C.muted, margin: 0,
+            });
+        });
+
+        appendixNum(s, "C");
+
+        s.addNotes(
+            "Backup slide only.\n\n" +
+            "Use this if someone asks whether the score is reproducible. Emphasise that each category is capped independently, so a bad category cannot consume points from another category. Also acknowledge that weights are engineering judgement and should be calibrated on industrial data in future work."
+        );
+    }
+
+    // ============================================================
+    // APPENDIX D — DETECTOR THRESHOLDS
+    // ============================================================
+    {
+        const s = pres.addSlide();
+        s.background = { color: C.bg };
+        addHeader(s, "Annex: detector thresholds");
+
+        const rows = [
+            ["Shared DB", "same datasource URL in >1 service", ">1 service", "High", "lost data ownership"],
+            ["Cyclic Dep.", "Tarjan SCC in service graph", "SCC size >1", "Crit.", "deployability blocked"],
+            ["Chatty Service", "edge call volume or wide Feign client", ">=5 calls/methods", "High", "runtime coupling"],
+            ["Hardcoded EP", "literal URL/IP/localhost in Java", "regex match", "Med.", "environment lock-in"],
+            ["ESB Misuse", "mediator-like caller/callee ratio", "volume ratio rule", "High", "central bottleneck"],
+            ["Distributed Mono.", "high graph density + shared data", "composite rule", "Crit.", "system-wide coupling"],
+            ["API Versioning", "endpoint path lacks /vN", "no version token", "Med.", "client breakage risk"],
+            ["Wrong Cuts", "bidirectional service pair", "A->B and B->A", "High", "poor boundaries"],
+            ["Nano Service", "very small deployable service", "LOC below floor", "Med.", "operational overhead"],
+            ["God Service", "contains God Class evidence", ">=3 of 6 metrics", "High", "too many responsibilities"],
+        ];
+        const cols = [
+            { label: "Detector", x: ML, w: 1.35 },
+            { label: "Signal", x: 1.85, w: 2.65 },
+            { label: "Threshold", x: 4.65, w: 1.45 },
+            { label: "Severity", x: 6.25, w: 0.75 },
+            { label: "Rationale", x: 7.15, w: 2.25 },
+        ];
+
+        cols.forEach(c => {
+            s.addText(c.label.toUpperCase(), {
+                x: c.x, y: 1.1, w: c.w, h: 0.25,
+                fontSize: 7.8, fontFace: FONT, color: C.navy, bold: true, charSpacing: 1.1, margin: 0,
+            });
+        });
+        rule(s, ML, 1.42, CW, C.hairline, 0.015);
+
+        rows.forEach((r, i) => {
+            const y = 1.54 + i * 0.34;
+            r.forEach((txt, j) => {
+                const c = cols[j];
+                const sevColor = txt === "Crit." ? C.bad : txt === "High" ? C.warn : txt === "Med." ? C.deepBlue : C.text;
+                s.addText(txt, {
+                    x: c.x, y, w: c.w, h: 0.24,
+                    fontSize: j === 0 ? 8.7 : 7.7,
+                    fontFace: FONT,
+                    color: j === 3 ? sevColor : C.text,
+                    bold: j === 0 || j === 3,
+                    margin: 0,
+                    fit: "shrink",
+                });
+            });
+            rule(s, ML, y + 0.27, CW, C.hairline, 0.008);
+        });
+
+        rule(s, ML, 5.03, 0.5, C.teal, 0.04);
+        s.addText("Thresholds are configurable and intentionally conservative for a dissertation prototype; production use should calibrate them per organisation.", {
+            x: ML, y: 5.12, w: CW, h: 0.22,
+            fontSize: 8.5, fontFace: FONT, color: C.muted, italic: true, margin: 0,
+        });
+
+        appendixNum(s, "D");
+
+        s.addNotes(
+            "Backup slide only.\n\n" +
+            "Use this if someone asks 'what exactly triggers detector X?'. Avoid reading the full table. Point to the detector they asked about, state the signal and threshold, then explain that thresholds are configurable and would be calibrated for production use."
+        );
+    }
+
+    // ============================================================
+    // APPENDIX E — GRAPH ANALYSIS DEFINITIONS
+    // ============================================================
+    {
+        const s = pres.addSlide();
+        s.background = { color: C.bg };
+        addHeader(s, "Annex: graph analysis terms");
+
+        const terms = [
+            ["Directed dependency graph", "G = (V, E), where V is the set of detected services and E contains directed calls between services."],
+            ["Edge weight", "The number of distinct source-level call sites from one service to another."],
+            ["Strongly connected component", "A maximal service set where each service can reach every other service through directed paths."],
+            ["Cycle", "An SCC with more than one service; used as evidence for Cyclic Dependency."],
+            ["Fan-in / fan-out", "Incoming and outgoing service dependency counts; useful for spotting central services and mediator behaviour."],
+            ["Bidirectional dependency", "A pair A->B and B->A; used as evidence for Wrong Cuts and poor service boundaries."],
+            ["Connected ratio", "Fraction of services participating in dependencies; used as part of Distributed Monolith evidence."],
+            ["Betweenness centrality", "How often a service lies on shortest paths between other services; useful for identifying broker-like nodes."],
+        ];
+
+        terms.forEach((t, i) => {
+            const col = i < 4 ? 0 : 1;
+            const row = col === 0 ? i : i - 4;
+            const x = col === 0 ? ML : 5.05;
+            const y = 1.12 + row * 0.92;
+            s.addText(t[0], {
+                x, y, w: 4.05, h: 0.25,
+                fontSize: 10.7, fontFace: FONT, color: C.navy, bold: true, margin: 0,
+            });
+            s.addText(t[1], {
+                x, y: y + 0.28, w: 4.05, h: 0.42,
+                fontSize: 8.8, fontFace: FONT, color: C.text, margin: 0,
+                fit: "shrink",
+            });
+            rule(s, x, y + 0.78, 4.05, C.hairline, 0.01);
+        });
+
+        rule(s, ML, 4.92, 0.5, C.teal, 0.04);
+        s.addText("Graph algorithms are deterministic over the recovered service dependency graph; uncertainty comes mainly from static call resolution.", {
+            x: ML, y: 5.02, w: CW, h: 0.26,
+            fontSize: 9.5, fontFace: FONT, color: C.muted, italic: true, margin: 0,
+        });
+
+        appendixNum(s, "E");
+
+        s.addNotes(
+            "Backup slide only.\n\n" +
+            "Use this if someone asks about Tarjan, cycles, graph construction, or why graph analysis is relevant. The concise answer is that microservice anti-patterns are often not visible inside one service; they emerge from the shape of dependencies between services."
         );
     }
 
