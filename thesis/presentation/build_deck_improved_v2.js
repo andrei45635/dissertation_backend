@@ -1478,7 +1478,61 @@ const FONT = "Calibri";
     }
 
     // ============================================================
-    // APPENDIX D — DETECTOR THRESHOLDS
+    // APPENDIX D — ANTI-PATTERN DEFINITIONS
+    // ============================================================
+    {
+        const s = pres.addSlide();
+        s.background = { color: C.bg };
+        addHeader(s, "Annex: anti-pattern definitions");
+
+        const patterns = [
+            ["Shared Database", "Multiple services read from or write to the same database schema, weakening data ownership and independent deployment."],
+            ["Cyclic Dependency", "Two or more services depend on each other through a directed cycle, making isolated deployment and reasoning harder."],
+            ["Chatty Service", "Services communicate through many fine-grained remote calls, increasing latency, network fragility, and runtime coupling."],
+            ["Hardcoded Endpoints", "Service URLs, IP addresses, ports, or localhost values are embedded in source code instead of external configuration."],
+            ["ESB Misuse", "A service behaves as a central mediator for many calls, recreating an enterprise-service-bus bottleneck inside a microservice system."],
+            ["Distributed Monolith", "The system is split into services, but dense coupling, cycles, or shared data force it to change and deploy like one unit."],
+            ["API Versioning Absence", "Public endpoints lack explicit version markers, making incompatible API evolution risky for existing clients."],
+            ["Wrong Cuts", "Service boundaries split responsibilities poorly, visible through bidirectional dependencies or strongly coupled service pairs."],
+            ["Nano Service", "A service is so small that deployment, monitoring, and operational overhead outweigh its autonomy benefits."],
+            ["God Service", "A service concentrates too many responsibilities, often evidenced by very large or low-cohesion classes inside it."],
+        ];
+
+        patterns.forEach((p, i) => {
+            const col = i < 5 ? 0 : 1;
+            const row = col === 0 ? i : i - 5;
+            const x = col === 0 ? ML : 5.05;
+            const y = 1.08 + row * 0.76;
+            const accent = i < 5 ? C.teal : C.deepBlue;
+            rule(s, x, y + 0.02, 0.33, accent, 0.035);
+            s.addText(p[0], {
+                x, y: y + 0.13, w: 4.05, h: 0.23,
+                fontSize: 10.5, fontFace: FONT, color: C.navy, bold: true, margin: 0,
+            });
+            s.addText(p[1], {
+                x, y: y + 0.38, w: 4.05, h: 0.32,
+                fontSize: 8.3, fontFace: FONT, color: C.text, margin: 0,
+                fit: "shrink",
+            });
+            rule(s, x, y + 0.7, 4.05, C.hairline, 0.008);
+        });
+
+        rule(s, ML, 4.92, 0.5, C.teal, 0.04);
+        s.addText("Use this slide when asked what a detector is conceptually; use the next annex when asked how it is detected.", {
+            x: ML, y: 5.02, w: CW, h: 0.26,
+            fontSize: 9.5, fontFace: FONT, color: C.muted, italic: true, margin: 0,
+        });
+
+        appendixNum(s, "D");
+
+        s.addNotes(
+            "Backup slide only.\n\n" +
+            "Use this if someone asks what a specific anti-pattern means. Give the definition first, then move to Appendix E only if they ask how the tool detects it. This keeps conceptual and implementation questions separate."
+        );
+    }
+
+    // ============================================================
+    // APPENDIX E — DETECTOR THRESHOLDS
     // ============================================================
     {
         const s = pres.addSlide();
@@ -1537,7 +1591,7 @@ const FONT = "Calibri";
             fontSize: 8.5, fontFace: FONT, color: C.muted, italic: true, margin: 0,
         });
 
-        appendixNum(s, "D");
+        appendixNum(s, "E");
 
         s.addNotes(
             "Backup slide only.\n\n" +
@@ -1546,7 +1600,7 @@ const FONT = "Calibri";
     }
 
     // ============================================================
-    // APPENDIX E — GRAPH ANALYSIS DEFINITIONS
+    // APPENDIX F — GRAPH ANALYSIS DEFINITIONS
     // ============================================================
     {
         const s = pres.addSlide();
@@ -1587,11 +1641,296 @@ const FONT = "Calibri";
             fontSize: 9.5, fontFace: FONT, color: C.muted, italic: true, margin: 0,
         });
 
-        appendixNum(s, "E");
+        appendixNum(s, "F");
 
         s.addNotes(
             "Backup slide only.\n\n" +
             "Use this if someone asks about Tarjan, cycles, graph construction, or why graph analysis is relevant. The concise answer is that microservice anti-patterns are often not visible inside one service; they emerge from the shape of dependencies between services."
+        );
+    }
+
+    // ============================================================
+    // APPENDIX G — SERVICE BOUNDARY DETECTION
+    // ============================================================
+    {
+        const s = pres.addSlide();
+        s.background = { color: C.bg };
+        addHeader(s, "Annex: service boundary detection");
+
+        s.addText("Candidate modules", {
+            x: ML, y: 1.08, w: 4.1, h: 0.3,
+            fontSize: 13, fontFace: FONT, color: C.navy, bold: true, margin: 0,
+        });
+        s.addText([
+            { text: "Scan repository for Maven/Gradle build files", options: { bullet: true, breakLine: true } },
+            { text: "Exclude aggregators, generated modules, examples, docs, and tests", options: { bullet: true, breakLine: true } },
+            { text: "Keep modules with at least one deployability signal", options: { bullet: true } },
+        ], {
+            x: ML + 0.18, y: 1.5, w: 4.0, h: 1.15,
+            fontSize: 10.5, fontFace: FONT, color: C.text, margin: 0, paraSpaceAfter: 4,
+        });
+
+        const signals = [
+            ["HIGH", "Spring Boot entry point", "@SpringBootApplication / framework annotation", C.good],
+            ["MEDIUM", "Dockerfile", "Module has its own deployment container", C.teal],
+            ["LOW", "main() method", "Executable Java entry point without stronger framework signal", C.warn],
+        ];
+        s.addText("Deployability gate", {
+            x: 5.05, y: 1.08, w: 4.35, h: 0.3,
+            fontSize: 13, fontFace: FONT, color: C.navy, bold: true, margin: 0,
+        });
+        signals.forEach((r, i) => {
+            const y = 1.5 + i * 0.72;
+            rule(s, 5.05, y + 0.03, 0.38, r[3], 0.04);
+            s.addText(r[0], {
+                x: 5.05, y: y + 0.16, w: 0.8, h: 0.24,
+                fontSize: 8.8, fontFace: FONT, color: r[3], bold: true, margin: 0,
+            });
+            s.addText(r[1], {
+                x: 5.95, y, w: 3.45, h: 0.25,
+                fontSize: 10.5, fontFace: FONT, color: C.navy, bold: true, margin: 0,
+            });
+            s.addText(r[2], {
+                x: 5.95, y: y + 0.27, w: 3.45, h: 0.32,
+                fontSize: 8.9, fontFace: FONT, color: C.text, margin: 0,
+                fit: "shrink",
+            });
+            rule(s, 5.05, y + 0.62, 4.35, C.hairline, 0.01);
+        });
+
+        rule(s, ML, 3.72, 0.5, C.teal, 0.04);
+        s.addText("Why this matters", {
+            x: ML, y: 3.84, w: CW, h: 0.3,
+            fontSize: 12.5, fontFace: FONT, color: C.navy, bold: true, margin: 0,
+        });
+        s.addText("The tool does not require a manually supplied service list. It recovers likely deployable services from source structure, then attaches a confidence level so uncertain boundaries can be inspected instead of hidden.", {
+            x: ML, y: 4.18, w: CW, h: 0.62,
+            fontSize: 10.5, fontFace: FONT, color: C.text, margin: 0,
+        });
+        s.addText("Main limitation: unusual build layouts or services hidden behind dynamic runtime configuration can still be missed.", {
+            x: ML, y: 4.88, w: CW, h: 0.26,
+            fontSize: 9.5, fontFace: FONT, color: C.muted, italic: true, margin: 0,
+        });
+
+        appendixNum(s, "G");
+
+        s.addNotes(
+            "Backup slide only.\n\n" +
+            "Use this if someone asks how services are identified automatically. The core answer: the tool first finds candidate build modules, then applies a deployability gate with HIGH, MEDIUM, and LOW confidence signals."
+        );
+    }
+
+    // ============================================================
+    // APPENDIX H — STATIC VS DYNAMIC ANALYSIS
+    // ============================================================
+    {
+        const s = pres.addSlide();
+        s.background = { color: C.bg };
+        addHeader(s, "Annex: static vs dynamic analysis");
+
+        const cols = [
+            { title: "Static analysis", x: ML, color: C.teal, items: [
+                "Runs on a fresh repository checkout",
+                "No deployment, traffic, credentials, or tracing setup needed",
+                "Finds source-level evidence and configuration issues",
+                "Good fit for CI/CD and early design feedback",
+            ] },
+            { title: "Dynamic analysis", x: 5.05, color: C.deepBlue, items: [
+                "Observes real runtime calls and frequencies",
+                "Requires deployed system and representative workload",
+                "Captures dynamic routing and production behaviour",
+                "Useful for validating or calibrating static findings",
+            ] },
+        ];
+
+        cols.forEach(c => {
+            rule(s, c.x, 1.12, 0.5, c.color, 0.04);
+            s.addText(c.title, {
+                x: c.x, y: 1.25, w: 4.1, h: 0.32,
+                fontSize: 14, fontFace: FONT, color: C.navy, bold: true, margin: 0,
+            });
+            s.addText(c.items.map((it, i) => ({ text: it, options: { bullet: true, breakLine: i < c.items.length - 1 } })), {
+                x: c.x + 0.18, y: 1.75, w: 4.0, h: 1.55,
+                fontSize: 10.3, fontFace: FONT, color: C.text, margin: 0, paraSpaceAfter: 5,
+            });
+        });
+
+        s.addText("Chosen tradeoff", {
+            x: ML, y: 3.75, w: CW, h: 0.32,
+            fontSize: 13, fontFace: FONT, color: C.navy, bold: true, margin: 0,
+        });
+        s.addText("MSA Detector prioritises applicability over runtime precision: it can analyse systems before they are running, making it useful during development, review, and CI. Runtime traces would improve call-frequency accuracy, but would reduce portability and require operational setup.", {
+            x: ML, y: 4.12, w: CW, h: 0.72,
+            fontSize: 10.5, fontFace: FONT, color: C.text, margin: 0,
+        });
+
+        appendixNum(s, "H");
+
+        s.addNotes(
+            "Backup slide only.\n\n" +
+            "Use this if someone asks why you did not use distributed tracing. The concise answer is: dynamic analysis is more precise for runtime behaviour, but static analysis works before deployment and gives source-level evidence."
+        );
+    }
+
+    // ============================================================
+    // APPENDIX I — THREATS TO VALIDITY
+    // ============================================================
+    {
+        const s = pres.addSlide();
+        s.background = { color: C.bg };
+        addHeader(s, "Annex: threats to validity");
+
+        const threats = [
+            ["Construct validity", "The health score approximates architectural quality; it is not a direct measurement of maintainability, reliability, or business impact."],
+            ["Internal validity", "Static call resolution may miss dynamic URLs, generated clients, reflection, service discovery indirection, or framework-specific routing."],
+            ["External validity", "Evaluation covers 11 Java/Spring Boot open-source systems, so results may not generalise to industrial, polyglot, or cloud-native systems."],
+            ["Conclusion validity", "No labelled benchmark exists for these microservice anti-patterns, so the evaluation demonstrates feasibility rather than precision/recall."],
+            ["Threshold validity", "Detector thresholds and score weights are engineering choices informed by literature, but not calibrated on a large industrial corpus."],
+        ];
+
+        threats.forEach((t, i) => {
+            const y = 1.08 + i * 0.78;
+            rule(s, ML, y + 0.02, 0.42, i % 2 === 0 ? C.warn : C.teal, 0.04);
+            s.addText(t[0], {
+                x: ML, y: y + 0.14, w: 2.25, h: 0.25,
+                fontSize: 10.8, fontFace: FONT, color: C.navy, bold: true, margin: 0,
+            });
+            s.addText(t[1], {
+                x: 2.95, y: y + 0.08, w: 6.45, h: 0.44,
+                fontSize: 9.2, fontFace: FONT, color: C.text, margin: 0,
+                fit: "shrink",
+            });
+            rule(s, ML, y + 0.62, CW, C.hairline, 0.01);
+        });
+
+        rule(s, ML, 4.92, 0.5, C.teal, 0.04);
+        s.addText("Positioning: the dissertation claims an explainable end-to-end prototype and feasibility study, not a statistically validated detector benchmark.", {
+            x: ML, y: 5.02, w: CW, h: 0.26,
+            fontSize: 9.5, fontFace: FONT, color: C.muted, italic: true, margin: 0,
+        });
+
+        appendixNum(s, "I");
+
+        s.addNotes(
+            "Backup slide only.\n\n" +
+            "Use this if someone challenges the evaluation. Do not overclaim. Say clearly that the work demonstrates feasibility over heterogeneous repositories, while labelled benchmark validation and threshold calibration are future work."
+        );
+    }
+
+    // ============================================================
+    // APPENDIX J — ARCHITECTURE INTERNALS
+    // ============================================================
+    {
+        const s = pres.addSlide();
+        s.background = { color: C.bg };
+        addHeader(s, "Annex: tool architecture internals");
+
+        const stages = [
+            ["API layer", "Upload ZIP / clone URL, create analysis job, expose polling and results endpoints"],
+            ["Async orchestration", "Spring @Async worker starts after transaction commit and updates job status"],
+            ["Repository workspace", "Extracts or clones project into temporary analysis workspace"],
+            ["Service discovery", "Build-file scan plus deployability gate with confidence levels"],
+            ["Analysis engines", "DesigniteJava subprocess for smells; Spoon AST for structural and dependency analysis"],
+            ["Detector layer", "AntiPatternDetector Strategy components run over services, metrics, and graph"],
+            ["Scoring/reporting", "Health score, category breakdown, evidence snippets, remediation, graph JSON"],
+            ["Persistence/UI", "Results stored in database and rendered in dashboard, finding cards, diff view, graph view"],
+        ];
+
+        stages.forEach((st, i) => {
+            const col = i < 4 ? 0 : 1;
+            const row = col === 0 ? i : i - 4;
+            const x = col === 0 ? ML : 5.05;
+            const y = 1.08 + row * 0.84;
+            s.addText(String(i + 1), {
+                x, y: y + 0.02, w: 0.34, h: 0.3,
+                fontSize: 12, fontFace: FONT, color: C.teal, bold: true, margin: 0,
+            });
+            s.addText(st[0], {
+                x: x + 0.45, y, w: 3.65, h: 0.25,
+                fontSize: 10.8, fontFace: FONT, color: C.navy, bold: true, margin: 0,
+            });
+            s.addText(st[1], {
+                x: x + 0.45, y: y + 0.28, w: 3.65, h: 0.38,
+                fontSize: 8.4, fontFace: FONT, color: C.text, margin: 0,
+                fit: "shrink",
+            });
+            rule(s, x, y + 0.72, 4.05, C.hairline, 0.008);
+        });
+
+        rule(s, ML, 4.92, 0.5, C.teal, 0.04);
+        s.addText("Design principle: detectors are pluggable Strategy components, so extending the catalogue does not require rewriting the pipeline orchestrator.", {
+            x: ML, y: 5.02, w: CW, h: 0.26,
+            fontSize: 9.5, fontFace: FONT, color: C.muted, italic: true, margin: 0,
+        });
+
+        appendixNum(s, "J");
+
+        s.addNotes(
+            "Backup slide only.\n\n" +
+            "Use this if someone asks about implementation architecture. Walk left-to-right conceptually: API creates a job, async worker analyses the workspace, engines collect metrics, detectors create findings, scoring and persistence feed the UI."
+        );
+    }
+
+    // ============================================================
+    // APPENDIX K — COMPARISON WITH EXISTING TOOLS
+    // ============================================================
+    {
+        const s = pres.addSlide();
+        s.background = { color: C.bg };
+        addHeader(s, "Annex: comparison with existing tools");
+
+        const rows = [
+            ["Arcan", "Architectural smells", "Strong smell detection", "Not focused on evidence-based microservice workflow"],
+            ["MicroART", "Architecture recovery", "Useful system visualisation", "Requires project metadata; not a detector/reporting workflow"],
+            ["MSANose", "Microservice smells", "Microservice-specific catalogue", "Less emphasis on source snippets and composite scoring"],
+            ["MARS", "Anti-pattern catalogue", "Broad microservice anti-pattern coverage", "Different scope; not the same integrated repository-to-report pipeline"],
+            ["MSA Detector", "Multi-level diagnosis", "Automated boundaries, snippets, graph evidence, health score, remediation", "Prototype scope: Java/Spring Boot only"],
+        ];
+        const cols = [
+            { label: "Tool", x: ML, w: 1.25 },
+            { label: "Focus", x: 1.8, w: 1.8 },
+            { label: "Strength", x: 3.75, w: 2.65 },
+            { label: "Difference / limitation", x: 6.55, w: 2.85 },
+        ];
+
+        cols.forEach(c => {
+            s.addText(c.label.toUpperCase(), {
+                x: c.x, y: 1.12, w: c.w, h: 0.24,
+                fontSize: 7.8, fontFace: FONT, color: C.navy, bold: true, charSpacing: 1.1, margin: 0,
+            });
+        });
+        rule(s, ML, 1.42, CW, C.hairline, 0.015);
+
+        rows.forEach((r, i) => {
+            const y = 1.6 + i * 0.65;
+            const isOwn = i === rows.length - 1;
+            if (isOwn) rule(s, ML, y - 0.1, CW, C.teal, 0.035);
+            r.forEach((txt, j) => {
+                const c = cols[j];
+                s.addText(txt, {
+                    x: c.x, y, w: c.w, h: 0.42,
+                    fontSize: j === 0 ? 9.5 : 8.2,
+                    fontFace: FONT,
+                    color: isOwn && j === 0 ? C.teal : C.text,
+                    bold: isOwn || j === 0,
+                    margin: 0,
+                    fit: "shrink",
+                });
+            });
+            rule(s, ML, y + 0.5, CW, C.hairline, 0.008);
+        });
+
+        rule(s, ML, 5.0, 0.5, C.teal, 0.04);
+        s.addText("Positioning: the contribution is integration and actionable reporting, not claiming that every individual detector is novel.", {
+            x: ML, y: 5.1, w: CW, h: 0.24,
+            fontSize: 9, fontFace: FONT, color: C.muted, italic: true, margin: 0,
+        });
+
+        appendixNum(s, "K");
+
+        s.addNotes(
+            "Backup slide only.\n\n" +
+            "Use this if someone asks how the work differs from related tools. Be precise: the novelty is the integrated workflow from source repository to service boundary recovery, graph/code analysis, evidence snippets, scoring, and remediation."
         );
     }
 
