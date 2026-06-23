@@ -1518,7 +1518,7 @@ const FONT = "Calibri";
         });
 
         rule(s, ML, 4.92, 0.5, C.teal, 0.04);
-        s.addText("Use this slide when asked what a detector is conceptually; use the next annex when asked how it is detected.", {
+        s.addText("Use this slide when asked what a detector means conceptually; use the detector-detail annex when asked how it is implemented.", {
             x: ML, y: 5.02, w: CW, h: 0.26,
             fontSize: 9.5, fontFace: FONT, color: C.muted, italic: true, margin: 0,
         });
@@ -1527,7 +1527,7 @@ const FONT = "Calibri";
 
         s.addNotes(
             "Backup slide only.\n\n" +
-            "Use this if someone asks what a specific anti-pattern means. Give the definition first, then move to Appendix E only if they ask how the tool detects it. This keeps conceptual and implementation questions separate."
+            "Use this if someone asks what a specific anti-pattern means. Give the definition first, then move to the detector-detail annex only if they ask how the tool detects it. This keeps conceptual and implementation questions separate."
         );
     }
 
@@ -1600,7 +1600,75 @@ const FONT = "Calibri";
     }
 
     // ============================================================
-    // APPENDIX F — GRAPH ANALYSIS DEFINITIONS
+    // APPENDIX F — DETECTION LOGIC BY ANTI-PATTERN
+    // ============================================================
+    {
+        const s = pres.addSlide();
+        s.background = { color: C.bg };
+        addHeader(s, "Annex: how each detector works");
+
+        const rows = [
+            ["Shared DB", "Parse Spring datasource config and group services by resolved database URL.", "Datasource line"],
+            ["Cyclic Dep.", "Run Tarjan SCC over the directed service dependency graph; SCC size > 1 is a cycle.", "Call edge snippet"],
+            ["Chatty Service", "Combine high edge call count with source scan for wide Feign/client interfaces.", "Client method/call"],
+            ["Hardcoded EP", "Scan Java string literals for http, localhost, IP, or port-based URL constants.", "URL literal"],
+            ["ESB Misuse", "Compute caller/callee ratios, mediator volume, and betweenness centrality; exclude gateways.", "Central edges"],
+            ["Distributed Mono.", "Evaluate system coupling coefficient, connected-service ratio, and shared database count.", "Graph metrics"],
+            ["API Versioning", "Extract endpoints with Spoon and flag services where no endpoint has path/header/media/query versioning.", "Controller mapping"],
+            ["Wrong Cuts", "Find bidirectional service pairs in the dependency graph: A calls B and B calls A.", "Both directions"],
+            ["Nano Service", "Flag services below both size thresholds: low Java LOC and very few endpoints.", "Main class"],
+            ["God Service", "Use Spoon class metrics; one class exceeding at least 3 of 6 God-Class thresholds flags the service.", "Class metrics"],
+        ];
+
+        const cols = [
+            { label: "Detector", x: ML, w: 1.35 },
+            { label: "Detection logic", x: 1.82, w: 5.3 },
+            { label: "Evidence", x: 7.35, w: 2.05 },
+        ];
+
+        cols.forEach(c => {
+            s.addText(c.label.toUpperCase(), {
+                x: c.x, y: 1.1, w: c.w, h: 0.25,
+                fontSize: 7.8, fontFace: FONT, color: C.navy, bold: true, charSpacing: 1.1, margin: 0,
+            });
+        });
+        rule(s, ML, 1.42, CW, C.hairline, 0.015);
+
+        rows.forEach((r, i) => {
+            const y = 1.54 + i * 0.34;
+            const accent = i < 5 ? C.teal : C.deepBlue;
+            rule(s, ML, y + 0.04, 0.24, accent, 0.03);
+            r.forEach((txt, j) => {
+                const c = cols[j];
+                s.addText(txt, {
+                    x: c.x + (j === 0 ? 0.32 : 0), y, w: c.w - (j === 0 ? 0.32 : 0), h: 0.25,
+                    fontSize: j === 0 ? 8.3 : 7.45,
+                    fontFace: FONT,
+                    color: j === 0 ? C.navy : C.text,
+                    bold: j === 0,
+                    margin: 0,
+                    fit: "shrink",
+                });
+            });
+            rule(s, ML, y + 0.27, CW, C.hairline, 0.008);
+        });
+
+        rule(s, ML, 5.03, 0.5, C.teal, 0.04);
+        s.addText("Common pattern: input signal -> rule or graph algorithm -> stored evidence snippet, so each finding is inspectable rather than a black-box warning.", {
+            x: ML, y: 5.12, w: CW, h: 0.22,
+            fontSize: 8.5, fontFace: FONT, color: C.muted, italic: true, margin: 0,
+        });
+
+        appendixNum(s, "F");
+
+        s.addNotes(
+            "Backup slide only.\n\n" +
+            "Use this if someone asks for more detail than the threshold table but does not need a full detector walkthrough. Read only the row they asked about: signal, rule, evidence. If they ask for deeper implementation detail, go to the graph, service-boundary, or architecture-internals annex."
+        );
+    }
+
+    // ============================================================
+    // APPENDIX G — GRAPH ANALYSIS DEFINITIONS
     // ============================================================
     {
         const s = pres.addSlide();
@@ -1641,7 +1709,7 @@ const FONT = "Calibri";
             fontSize: 9.5, fontFace: FONT, color: C.muted, italic: true, margin: 0,
         });
 
-        appendixNum(s, "F");
+        appendixNum(s, "G");
 
         s.addNotes(
             "Backup slide only.\n\n" +
@@ -1650,7 +1718,7 @@ const FONT = "Calibri";
     }
 
     // ============================================================
-    // APPENDIX G — SERVICE BOUNDARY DETECTION
+    // APPENDIX H — SERVICE BOUNDARY DETECTION
     // ============================================================
     {
         const s = pres.addSlide();
@@ -1712,7 +1780,7 @@ const FONT = "Calibri";
             fontSize: 9.5, fontFace: FONT, color: C.muted, italic: true, margin: 0,
         });
 
-        appendixNum(s, "G");
+        appendixNum(s, "H");
 
         s.addNotes(
             "Backup slide only.\n\n" +
@@ -1721,7 +1789,7 @@ const FONT = "Calibri";
     }
 
     // ============================================================
-    // APPENDIX H — STATIC VS DYNAMIC ANALYSIS
+    // APPENDIX I — STATIC VS DYNAMIC ANALYSIS
     // ============================================================
     {
         const s = pres.addSlide();
@@ -1764,7 +1832,7 @@ const FONT = "Calibri";
             fontSize: 10.5, fontFace: FONT, color: C.text, margin: 0,
         });
 
-        appendixNum(s, "H");
+        appendixNum(s, "I");
 
         s.addNotes(
             "Backup slide only.\n\n" +
@@ -1773,7 +1841,7 @@ const FONT = "Calibri";
     }
 
     // ============================================================
-    // APPENDIX I — THREATS TO VALIDITY
+    // APPENDIX J — THREATS TO VALIDITY
     // ============================================================
     {
         const s = pres.addSlide();
@@ -1809,7 +1877,7 @@ const FONT = "Calibri";
             fontSize: 9.5, fontFace: FONT, color: C.muted, italic: true, margin: 0,
         });
 
-        appendixNum(s, "I");
+        appendixNum(s, "J");
 
         s.addNotes(
             "Backup slide only.\n\n" +
@@ -1818,7 +1886,7 @@ const FONT = "Calibri";
     }
 
     // ============================================================
-    // APPENDIX J — ARCHITECTURE INTERNALS
+    // APPENDIX K — ARCHITECTURE INTERNALS
     // ============================================================
     {
         const s = pres.addSlide();
@@ -1863,7 +1931,7 @@ const FONT = "Calibri";
             fontSize: 9.5, fontFace: FONT, color: C.muted, italic: true, margin: 0,
         });
 
-        appendixNum(s, "J");
+        appendixNum(s, "K");
 
         s.addNotes(
             "Backup slide only.\n\n" +
@@ -1872,7 +1940,7 @@ const FONT = "Calibri";
     }
 
     // ============================================================
-    // APPENDIX K — COMPARISON WITH EXISTING TOOLS
+    // APPENDIX L — COMPARISON WITH EXISTING TOOLS
     // ============================================================
     {
         const s = pres.addSlide();
@@ -1926,7 +1994,7 @@ const FONT = "Calibri";
             fontSize: 9, fontFace: FONT, color: C.muted, italic: true, margin: 0,
         });
 
-        appendixNum(s, "K");
+        appendixNum(s, "L");
 
         s.addNotes(
             "Backup slide only.\n\n" +

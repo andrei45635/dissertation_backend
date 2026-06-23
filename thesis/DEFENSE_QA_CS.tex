@@ -22,7 +22,7 @@
 \setlist[itemize]{leftmargin=*, itemsep=0.2em, topsep=0.2em}
 \setlist[description]{style=nextline, leftmargin=0pt, font=\normalfont\bfseries, itemsep=0.5em}
 
-\title{\textbf{Thesis Defense --- Q\&A Cheat Sheet}}
+\title{\textbf{Thesis Defense --- Q\&A}}
 \author{}
 \date{}
 
@@ -33,86 +33,6 @@
 \vspace{0.5em}
 
 \begin{multicols}{2}
-
-\section{Theoretical Questions}
-
-\begin{description}
-    \item[Q: What is an anti-pattern, and which ones do you detect?]
-    An \textbf{anti-pattern} is a common solution to a recurring problem that does more harm than good. I detect ten, across four dimensions: \textbf{service design} (Nano Service, God Service), \textbf{communication} (Chatty Service, Cyclic Dependency, Hardcoded Endpoints, ESB Misuse), \textbf{data management} (Shared Database), and \textbf{deployment \& coupling} (Distributed Monolith, API Versioning Absence, Wrong Cuts).
-
-    \item[Q: Why static analysis instead of dynamic/runtime analysis?]
-    \textbf{Static analysis} needs no running system, so it works at any stage of development and integrates into \textbf{CI/CD} or code review. The tradeoff is I lose \textbf{runtime call frequencies} --- I acknowledge this in my Threats to Validity.
-
-    \item[Q: What makes your approach ``multi-level''?]
-    Existing tools work at one level --- either \textbf{code smells} or \textbf{architecture}. I bridge both: code-level structural metrics computed with \textbf{Spoon} --- class cohesion, field and method counts, size --- become signals for architectural-level anti-patterns like \textbf{God Service}, and \textbf{DesigniteJava}'s code-smell density feeds the \textbf{code-quality} dimension of the health score.
-
-    \item[Q: Explain Tarjan's algorithm / how you detect cyclic dependencies.]
-    I model services as a \textbf{directed graph} and run \textbf{Tarjan's algorithm} to find \textbf{strongly connected components}. Any component with more than one service is a cycle. It's a \textbf{DFS} tracking an index and a lowlink per node; runs in  \(O(V+E)\).
-
-    \item[Q: What is the coupling coefficient?]
-    It's the ratio of \textbf{actual dependency edges} to the \textbf{maximum possible}:
-
-    $$C = \frac{|E|}{|V| \times (|V| - 1)}$$
-
-    A high value means most services depend on most others --- a sign of a \textbf{distributed monolith}.
-
-    \item[Q: How does ESB Misuse detection work?]
-    I look for a service that mediates a disproportionate share of communication, using three signals: high \textbf{caller+callee ratios}, a volume-based \textbf{mediator ratio}, and normalized \textbf{betweenness centrality} (Brandes' algorithm). Threshold \textbf{0.4}; gateways are excluded.
-
-    \item[Q: What is the exact research gap / novelty?]
-    Existing tools usually focus on either \textbf{code-level smells} or \textbf{architecture-level dependencies}. My novelty is the \textbf{integration}: multi-level static analysis, evidence snippets, remediation, health score, and re-analysis diff in one developer-facing workflow.
-
-    \item[Q: Which microservice principles do the anti-patterns violate?]
-    \textbf{Shared DB}: decentralized data ownership. \textbf{Cycles, Wrong Cuts, Distributed Monolith}: independent deployability. \textbf{Chatty/ESB}: loose coupling and lightweight communication. \textbf{God/Nano}: poor service boundary design.
-
-    \item[Q: How is this different from MSANose or MARS?]
-    \textbf{MSANose} is closest, but lacks general DesigniteJava smell density, composite health score, and my God/Chatty implementation. \textbf{MARS} covers more anti-patterns, but my focus is depth: evidence snippets, scoring, re-analysis diff, and web/API workflow.
-
-    \item[Q: What is TCC?]
-    \textbf{Tight Class Cohesion} is the fraction of public-method pairs sharing at least one instance field. Low TCC means methods work on disjoint state, suggesting unrelated responsibilities in one class. It is one of six God Class metrics.
-\end{description}
-
-\section{Practical Questions}
-
-\begin{description}
-    \item[Q: Walk me through what happens when a user uploads a project.]
-    The project is ingested by \textbf{ZIP upload} or \textbf{Git clone}. Then the pipeline runs asynchronously in five phases: (1) \textbf{detect microservices}, (2) run \textbf{DesigniteJava} per service, (3) build the \textbf{inter-service dependency graph} with Spoon, (4) run all \textbf{anti-pattern detectors}, (5) \textbf{assemble the result} and compute the \textbf{health score}. The frontend polls job status throughout.
-
-    \item[Q: How is the health score computed? Give an example.]
-    100 points split across four capped categories: \textbf{Anti-Patterns (40), Code Quality (20), Architecture (25), Service Sizing (15)}. Each detected issue subtracts points; the score is clamped to 0--100 and mapped to a letter grade.
-
-    \textbf{Example --- microservice-recruit scored 40 (F):} anti-pattern penalties exceeded the 40-point budget \(\rightarrow\) 0; Code Quality 12/20; Architecture 16/25; Service Sizing 12/15.
-
-    $$0 + 12 + 16 + 12 = 40$$
-
-    \item[Q: How do you decide what is a microservice vs.\ just a module?]
-    A \textbf{deployability gate}. I scan for build files (\texttt{pom.xml}, \texttt{build.gradle}), filter out non-service folders, then require one of three signals: \texttt{@SpringBootApplication} (\textbf{HIGH}), a \textbf{Dockerfile} (\textbf{MEDIUM}), or a \texttt{main()} method (\textbf{LOW}).
-
-    \item[Q: What does the re-analysis diff feature do?]
-    It compares a new analysis to the previous one: which anti-patterns were \textbf{resolved, new, or unchanged}, plus per-metric and per-category deltas and the \textbf{health-score change}. It's inspired by \textbf{SonarQube}'s ``Clean as You Code.''
-
-    \item[Q: How do you collect evidence for a finding?]
-    Each detector extracts the relevant \textbf{source snippet} --- for a cycle, the actual \texttt{@FeignClient} or \texttt{RestTemplate} call --- with the line highlighted, plus affected services and remediation advice. It's stored as \textbf{JSON} and shown in the UI.
-\end{description}
-
-\section{Source-Code Questions}
-
-\begin{description}
-    \item[Q: Show me / explain how a detector is implemented.]
-    Every detector implements the \texttt{AntiPatternDetector} interface with one method: \texttt{detect(Project, List<Microservice>)}. It's the \textbf{Strategy pattern}. Each is a Spring \texttt{@Component}, and Spring auto-collects them by injecting \texttt{List<AntiPatternDetector>} into the orchestrator. A \texttt{BaseDetector} superclass provides shared helpers.
-
-    \item[Q: How would you add an eleventh detector?]
-    Implement the interface, annotate the class \texttt{@Component}, done. Spring discovers and registers it automatically --- no orchestrator changes.
-
-    \item[Q: Explain the God Service detection.]
-    A \textbf{Spoon structural analysis} evaluates every class in the service against six metrics: \textbf{field count, public methods, LOC, import domains, constructor params, and TCC}. A class is a \textbf{God Class} if it exceeds at least \textbf{3 of the 6}, and a single God Class flags the service. Pure \textbf{data-holder classes} are excluded first.
-
-    \item[Q: Per-method Feign counting.]
-    Each method in a \texttt{@FeignClient} interface counts as a separate call, so a 50-method client produces a call count of \textbf{50} --- that feeds \textbf{Chatty Service} detection accurately.
-
-    \item[Q: Async correctness.]
-    I start the analysis worker via Spring's \texttt{afterCommit()} callback so the job row is committed before the background thread reads it, and progress updates run in \texttt{REQUIRES\_NEW} transactions so polling clients see them immediately.
-\end{description}
 
 \section{Detector-by-Detector Q\&A}
 
@@ -136,19 +56,7 @@
     A line-by-line scan of \texttt{.java} files for URL patterns (\texttt{http://}, \texttt{https://}, \texttt{localhost:}, \texttt{127.0.0.1}) inside string literals, extracting the full URL with a \textbf{regex}. I skip comments, imports, package declarations, and test files.
 
     \item[Q: Distributed Monolith --- How do you detect it?]
-    A system-level check using three metrics: \textbf{coupling coefficient} \(C\), \textbf{connected ratio} \(R\), and \textbf{shared-database count} \(D\). I flag the system if
-
-    $$C > 0.5$$
-
-    or
-
-    $$R > 0.8 \text{ and } D > 0$$
-
-    or
-
-    $$R > 0.8 \text{ and } C > 0.3$$
-
-    Only runs with at least 3 services.
+    A system-level check using three metrics: \textbf{coupling coefficient} \(C\), \textbf{connected ratio} \(R\), and \textbf{shared-database count} \(D\). I flag the system if $C > 0.5$ or $R > 0.8 \text{ and } D > 0$ or $R > 0.8 \text{ and } C > 0.3$. Only runs with at least 3 services.
 
     \item[Q: API Versioning Absence --- How do you detect it?]
     During endpoint extraction I set \texttt{hasVersioning} when any recognized strategy appears: URL path (\texttt{/v1/}), version headers, vendor media types, or query parameters like \texttt{version=}. A service is flagged when \textbf{none} of its endpoints carry a recognized version indicator.
@@ -160,17 +68,97 @@
     I look for a \textbf{central mediator} using three signals against a \textbf{0.4 threshold}: high caller and callee ratios, a volume-based mediator ratio, or normalized betweenness centrality. Any one triggers a flag. \textbf{Gateway}-named services are excluded.
 \end{description}
 
-\section{Likely ``Sneak-In'' Questions}
+\section{Theoretical Questions}
 
 \begin{description}
-    \item[Q: What's the biggest limitation?]
-    It's \textbf{Java/Spring-only}; it can't resolve \textbf{dynamically-configured URLs} (e.g.\ Spring Cloud Config); and the boundary heuristic can misclassify a shared library as a nano service.
+    % \item[Q: What is an anti-pattern, and which ones do you detect?]
+    % An \textbf{anti-pattern} is a common solution to a recurring problem that does more harm than good. I detect ten, across four dimensions: \textbf{service design} (Nano Service, God Service), \textbf{communication} (Chatty Service, Cyclic Dependency, Hardcoded Endpoints, ESB Misuse), \textbf{data management} (Shared Database), and \textbf{deployment \& coupling} (Distributed Monolith, API Versioning Absence, Wrong Cuts).
 
-    \item[Q: Why was no Distributed Monolith detected?]
-    The evaluated projects showed \textbf{moderate coupling}, not the pervasive coupling required for a distributed monolith. None crossed the thresholds.
+    \item[Q: Why static analysis instead of dynamic/runtime analysis?]
+    \textbf{Static analysis} needs no running system, so it works at any stage of development and integrates into \textbf{CI/CD} or code review. The tradeoff is I lose \textbf{runtime call frequencies} --- I acknowledge this in my Threats to Validity.
 
-    \item[Q: How did you validate the results?]
-    \textbf{Manual inspection} of the 98 instances --- checking datasource URLs, controller mappings, call graphs, and so on. A single reviewer (me) is a known bias.
+    % \item[Q: What makes your approach ``multi-level''?]
+    % Existing tools work at one level --- either \textbf{code smells} or \textbf{architecture}. I bridge both: code-level structural metrics computed with \textbf{Spoon} --- class cohesion, field and method counts, size --- become signals for architectural-level anti-patterns like \textbf{God Service}, and \textbf{DesigniteJava}'s code-smell density feeds the \textbf{code-quality} dimension of the health score.
+
+    \item[Q: Explain Tarjan's algorithm / how you detect cyclic dependencies.]
+    I model services as a \textbf{directed graph} and run \textbf{Tarjan's algorithm} to find \textbf{strongly connected components}. Any component with more than one service is a cycle. It's a \textbf{DFS} tracking an index and a lowlink per node; runs in  \(O(V+E)\).
+
+    \item[Q: What is the coupling coefficient?]
+    It's the ratio of \textbf{actual dependency edges} to the \textbf{maximum possible}:
+
+    $$C = \frac{|E|}{|V| \times (|V| - 1)}$$
+
+    A high value means most services depend on most others --- a sign of a \textbf{distributed monolith}.
+
+    \item[Q: How does ESB Misuse detection work?]
+    I look for a service that mediates a disproportionate share of communication, using three signals: high \textbf{caller+callee ratios}, a volume-based \textbf{mediator ratio}, and normalized \textbf{betweenness centrality} (Brandes' algorithm). Threshold \textbf{0.4}; gateways are excluded.
+
+    \item[Q: What is the exact research gap / novelty?]
+    Existing tools usually focus on either \textbf{code-level smells} or \textbf{architecture-level dependencies}. My novelty is the \textbf{integration}: multi-level static analysis, evidence snippets, remediation, health score, and re-analysis diff in one developer-facing workflow.
+
+    % \item[Q: Which microservice principles do the anti-patterns violate?]
+    % \textbf{Shared DB}: decentralized data ownership. \textbf{Cycles, Wrong Cuts, Distributed Monolith}: independent deployability. \textbf{Chatty/ESB}: loose coupling and lightweight communication. \textbf{God/Nano}: poor service boundary design.
+
+    \item[Q: How is this different from MSANose or MARS?]
+    \textbf{MSANose} is closest, but lacks general DesigniteJava smell density, composite health score, and my God/Chatty implementation. \textbf{MARS} covers more anti-patterns, but my focus is depth: evidence snippets, scoring, re-analysis diff, and web/API workflow.
+
+    % \item[Q: What is TCC?]
+    % \textbf{Tight Class Cohesion} is the fraction of public-method pairs sharing at least one instance field. Low TCC means methods work on disjoint state, suggesting unrelated responsibilities in one class. It is one of six God Class metrics.
+\end{description}
+
+\section{Practical Questions}
+
+\begin{description}
+    % \item[Q: Walk me through what happens when a user uploads a project.]
+    % The project is ingested by \textbf{ZIP upload} or \textbf{Git clone}. Then the pipeline runs asynchronously in five phases: (1) \textbf{detect microservices}, (2) run \textbf{DesigniteJava} per service, (3) build the \textbf{inter-service dependency graph} with Spoon, (4) run all \textbf{anti-pattern detectors}, (5) \textbf{assemble the result} and compute the \textbf{health score}. The frontend polls job status throughout.
+
+    % \item[Q: How is the health score computed? Give an example.]
+    % 100 points split across four capped categories: \textbf{Anti-Patterns (40), Code Quality (20), Architecture (25), Service Sizing (15)}. Each detected issue subtracts points; the score is clamped to 0--100 and mapped to a letter grade.
+
+    % \textbf{Example --- microservice-recruit scored 40 (F):} anti-pattern penalties exceeded the 40-point budget \(\rightarrow\) 0; Code Quality 12/20; Architecture 16/25; Service Sizing 12/15.
+
+    % $$0 + 12 + 16 + 12 = 40$$
+
+    % \item[Q: How do you decide what is a microservice vs.\ just a module?]
+    % A \textbf{deployability gate}. I scan for build files (\texttt{pom.xml}, \texttt{build.gradle}), filter out non-service folders, then require one of three signals: \texttt{@SpringBootApplication} (\textbf{HIGH}), a \textbf{Dockerfile} (\textbf{MEDIUM}), or a \texttt{main()} method (\textbf{LOW}).
+
+    \item[Q: What does the re-analysis diff feature do?]
+    It compares a new analysis to the previous one: which anti-patterns were \textbf{resolved, new, or unchanged}, plus per-metric and per-category deltas and the \textbf{health-score change}. It's inspired by \textbf{SonarQube}'s ``Clean as You Code.''
+
+    \item[Q: How do you collect evidence for a finding?]
+    Each detector extracts the relevant \textbf{source snippet} --- for a cycle, the actual \texttt{@FeignClient} or \texttt{RestTemplate} call --- with the line highlighted, plus affected services and remediation advice. It's stored as \textbf{JSON} and shown in the UI.
+\end{description}
+
+% \section{Likely ``Sneak-In'' Questions}
+
+% \begin{description}
+%     \item[Q: What's the biggest limitation?]
+%     It's \textbf{Java/Spring-only}; it can't resolve \textbf{dynamically-configured URLs} (e.g.\ Spring Cloud Config); and the boundary heuristic can misclassify a shared library as a nano service.
+
+%     \item[Q: Why was no Distributed Monolith detected?]
+%     The evaluated projects showed \textbf{moderate coupling}, not the pervasive coupling required for a distributed monolith. None crossed the thresholds.
+
+%     \item[Q: How did you validate the results?]
+%     \textbf{Manual inspection} of the 98 instances --- checking datasource URLs, controller mappings, call graphs, and so on. A single reviewer (me) is a known bias.
+% \end{description}
+
+\section{Source-Code Questions}
+
+\begin{description}
+    \item[Q: Show me / explain how a detector is implemented.]
+    Every detector implements the \texttt{AntiPatternDetector} interface with one method: \texttt{detect(Project, List<Microservice>)}. It's the \textbf{Strategy pattern}. Each is a Spring \texttt{@Component}, and Spring auto-collects them by injecting \texttt{List<AntiPatternDetector>} into the orchestrator. A \texttt{BaseDetector} superclass provides shared helpers.
+
+    \item[Q: How would you add an eleventh detector?]
+    Implement the interface, annotate the class \texttt{@Component}, done. Spring discovers and registers it automatically --- no orchestrator changes.
+
+    % \item[Q: Explain the God Service detection.]
+    % A \textbf{Spoon structural analysis} evaluates every class in the service against six metrics: \textbf{field count, public methods, LOC, import domains, constructor params, and TCC}. A class is a \textbf{God Class} if it exceeds at least \textbf{3 of the 6}, and a single God Class flags the service. Pure \textbf{data-holder classes} are excluded first.
+
+    \item[Q: Per-method Feign counting.]
+    Each method in a \texttt{@FeignClient} interface counts as a separate call, so a 50-method client produces a call count of \textbf{50} --- that feeds \textbf{Chatty Service} detection accurately.
+
+    \item[Q: Async correctness.]
+    I start the analysis worker via Spring's \texttt{afterCommit()} callback so the job row is committed before the background thread reads it, and progress updates run in \texttt{REQUIRES\_NEW} transactions so polling clients see them immediately.
 \end{description}
 
 \section{Additional Commission-Style Questions}
@@ -236,33 +224,22 @@
     \item[Q: How does a developer know whether a finding is a false positive?]
     Each finding includes \textbf{affected services, severity, explanation, remediation advice, and evidence snippets}. The tool gives concrete evidence, not just a black-box verdict.
 
-    \item[Q: How exactly does each health-score category compute its penalty?]
-    \textbf{Code Quality (20):} smell density per KLOC, scaled:
+    % \item[Q: How exactly does each health-score category compute its penalty?]
+    % \textbf{Code Quality (20):} smell density per KLOC, scaled: $\min(20, \operatorname{round}(20 \times \text{density} / 80))$
+    % \textbf{Architecture (25):} coupling coefficient above 0.1 costs
+    % $\min(15, \operatorname{round}(\text{coupling} \times 15))$ plus $\min(10, 5 \text{ per cycle})$
+    % \textbf{Service Sizing (15):}
+    % $\min(8, 3 \text{ per nano service}) + \min(10, 5 \text{ per god service})$
+    % \textbf{Anti-Patterns (40):} flat \(-8/-5/-3/-1\) by severity for everything else.
 
-    $$\min(20, \operatorname{round}(20 \times \text{density} / 80))$$
-
-    \textbf{Architecture (25):} coupling coefficient above 0.1 costs
-
-    $$\min(15, \operatorname{round}(\text{coupling} \times 15))$$
-
-    plus
-
-    $$\min(10, 5 \text{ per cycle})$$
-
-    \textbf{Service Sizing (15):}
-
-    $$\min(8, 3 \text{ per nano service}) + \min(10, 5 \text{ per god service})$$
-
-    \textbf{Anti-Patterns (40):} flat \(-8/-5/-3/-1\) by severity for everything else.
-
-    \item[Q: What do the HIGH/MEDIUM/LOW confidence levels actually do?]
-    Each detected service records which signal admitted it --- \textbf{framework entry point} is HIGH, \textbf{Dockerfile} MEDIUM, \texttt{main()} LOW --- and that is surfaced in the result. There are also \textbf{fallbacks} to avoid an empty analysis.
+    % \item[Q: What do the HIGH/MEDIUM/LOW confidence levels actually do?]
+    % Each detected service records which signal admitted it --- \textbf{framework entry point} is HIGH, \textbf{Dockerfile} MEDIUM, \texttt{main()} LOW --- and that is surfaced in the result. There are also \textbf{fallbacks} to avoid an empty analysis.
 
     \item[Q: What does the diff show if a service was renamed between analyses?]
     Findings are matched by a \textbf{stable key} --- anti-pattern type plus affected service plus a type-specific signature --- so a renamed service appears as \textbf{resolved + new}, not unchanged.
 
-    \item[Q: What does the frontend add beyond raw JSON?]
-    It gives the workflow: upload/clone, progress tracking, health score, category breakdown, expandable evidence snippets, dependency graph, JSON export, history, and re-analysis diffs.
+    % \item[Q: What does the frontend add beyond raw JSON?]
+    % It gives the workflow: upload/clone, progress tracking, health score, category breakdown, expandable evidence snippets, dependency graph, JSON export, history, and re-analysis diffs.
 
     \item[Q: How is the application deployed?]
     Docker Compose: \textbf{Spring Boot backend}, \textbf{Angular/Nginx frontend}, and \textbf{PostgreSQL}. Production exposes only the frontend, reverse-proxies API calls internally, keeps PostgreSQL private, and externalizes secrets.
@@ -316,8 +293,124 @@
     \item[Q: Where are the score weights and thresholds defined in code?]
     Category budgets are constants in \texttt{HealthScoreCalculator}; tunable values are injected via \texttt{@Value} from \texttt{application.yml}. Detector thresholds also live in this \textbf{externalized configuration}.
 
-    \item[Q: How did you test the tool?]
-    Dedicated tests per detector: positive, negative and threshold-boundary cases. \texttt{BaseDetector} helpers are tested through a concrete subclass. Controller tests use \texttt{@WebMvcTest}, \texttt{MockMvc}, and mocked services.
+    % \item[Q: How did you test the tool?]
+    % Dedicated tests per detector: positive, negative and threshold-boundary cases. \texttt{BaseDetector} helpers are tested through a concrete subclass. Controller tests use \texttt{@WebMvcTest}, \texttt{MockMvc}, and mocked services.
+\end{description}
+
+\section{Additional Edge-Case Questions}
+
+\subsection{Theoretical}
+
+\begin{description}
+    \item[Q: How sensitive are the results to default thresholds?]
+    They are sensitive, especially for Nano Service, Chatty Service, God Service and ESB Misuse. The thresholds are \textbf{configurable heuristics}, not universal truth; enterprise use should calibrate them.
+
+    \item[Q: Can one structural problem be penalized twice?]
+    Yes. A bidirectional dependency can be both a \textbf{two-node cycle} and evidence of \textbf{Wrong Cuts}. I avoid double-counting Nano/God through Service Sizing, but cycle/wrong-cut overlap remains visible and should be read as an upper-bound penalty.
+
+    \item[Q: Why use the same 0.4 ESB threshold for different signals?]
+    The ESB signals are normalized to a 0--1 range, so 0.4 means a service participates in a large share of communication. It is a pragmatic default; small graphs can produce candidate mediators more easily.
+
+    \item[Q: Could God Service detection miss a broad service with no God Class?]
+    Yes. The detector catches responsibility concentration visible in one oversized/low-cohesion class. A service with many medium-sized but unrelated classes would need service-level cohesion or domain analysis.
+
+    \item[Q: What does the coupling coefficient hide?]
+    It compresses the graph to density, so it loses dependency type, business criticality and runtime frequency. It is one signal, not a full architectural judgment.
+
+    \item[Q: Can DesigniteJava overestimate smell density?]
+    Yes. Since each service is analyzed separately, cross-service DTOs or abstractions may look unused. I treat smell density as a \textbf{proxy} and possible upper bound.
+
+    \item[Q: What claims does the evaluation support?]
+    It supports \textbf{feasibility}: the tool analyzes real projects and produces differentiated, evidence-backed findings. It does not prove statistical precision/recall or industry-wide prevalence.
+
+    \item[Q: Why include a polyglot repository?]
+    Real microservice repositories are often mixed-language. The tool analyzes the Java-visible part and exposes the limitation that non-Java services are outside scope.
+
+    \item[Q: Does gateway exclusion hide real ESB bottlenecks?]
+    It can. Gateways are excluded because centrality is expected there; otherwise valid gateway architectures would be flagged. A production profile could make this configurable.
+
+    \item[Q: How do you compare with MARS if MARS detects more patterns?]
+    MARS has broader catalogue coverage. My contribution is the \textbf{integrated workflow}: boundary detection, evidence, scoring, diffing and a web/API application.
+\end{description}
+
+\subsection{Practical}
+
+\begin{description}
+    \item[Q: Were evaluated repository versions pinned?]
+    For strict reproducibility they should be pinned to commit SHAs. If only default branches were cloned, results are a snapshot at analysis time and may change as repositories evolve.
+
+    \item[Q: What were the dataset selection criteria?]
+    Public GitHub/GitLab availability, Java/JVM microservice code, Maven or Gradle build files, and at least three services. I also chose varied sizes and domains to exercise different detectors.
+
+    \item[Q: How would enterprise results differ?]
+    Enterprise systems may have more services, historical debt, messaging, external config and polyglot code. That could reveal more coupling but also more false negatives for the current static Java/Spring scope.
+
+    \item[Q: What about Spring profiles or external config for database URLs?]
+    The detector resolves simple placeholders/defaults, but not full runtime profile activation or Spring Cloud Config. Shared Database detection can miss values resolved only at deployment time.
+
+    \item[Q: What if DesigniteJava is missing or times out?]
+    The analysis continues. Missing JAR means skipped analysis; timeout stops the subprocess; non-zero exit still allows parsing any produced CSV. Code Quality may then have fewer smell records.
+
+    \item[Q: Is cancellation immediate?]
+    It is \textbf{cooperative}. The worker checks cancellation before phases and between per-service steps, but it does not instantly interrupt every low-level Spoon or Designite operation.
+
+    \item[Q: How do you prevent cross-user access by ID?]
+    Controllers use the authenticated principal, and services query/check resources through the owning user or project. An ID alone is not enough to access another user's project or job.
+
+    \item[Q: Why only public GitHub/GitLab HTTPS repos?]
+    It keeps ingestion safe and simple for the prototype. Private repos require token handling, secret storage, revocation and audit controls.
+
+    \item[Q: What are the JWT browser-storage tradeoffs?]
+    It is simple for an SPA, but local storage is exposed if XSS exists. Production could use shorter-lived tokens, CSP, refresh-token rotation or secure HttpOnly cookies.
+
+    \item[Q: Why disable CSRF and CORS?]
+    CSRF is disabled because the API uses stateless bearer tokens, not cookie sessions. CORS is disabled because production is expected to route browser traffic through the frontend/proxy; separate origins need explicit CORS config.
+
+    \item[Q: Are diffs comparable if thresholds change?]
+    Only partly. The diff compares two configured runs, not a pure source-code delta. Strict comparison requires keeping or versioning the same threshold profile.
+
+    \item[Q: What CI gate would you use?]
+    Start with \textbf{no new critical findings} and \textbf{score must not regress}, not failing on every legacy issue.
+\end{description}
+
+\subsection{Source Code}
+
+\begin{description}
+    \item[Q: Where is user ownership enforced?]
+    In the service layer, especially \texttt{ProjectService} and \texttt{JobService}: resources are loaded by owner or checked through the owning project before returning data.
+
+    \item[Q: How is cancellation implemented in code?]
+    \texttt{JobService.cancelJob()} marks the job \texttt{CANCELLED}. \texttt{AnalysisWorker} calls \texttt{isCancelled(jobId)} before and between major phases and stops when it sees that status.
+
+    \item[Q: What if Spoon fails to parse a service/class?]
+    The scanner logs the error and skips that model or class, favouring resilience. The risk is false negatives, so production should surface parse warnings.
+
+    \item[Q: How does fuzzy dependency matching avoid false positives?]
+    It tries safer strategies first: aliases, \texttt{spring.application.name}, and port matching. Fuzzy matching is a fallback and should be interpreted with the stored evidence.
+
+    \item[Q: Why store evidence/details as JSON text?]
+    Detector evidence has different shapes. JSON keeps detector-specific payloads flexible while common fields remain relational. The tradeoff is weaker database-level structure for details.
+
+    \item[Q: How do disabled detectors affect the score?]
+    Disabled detectors produce no findings, so they create no penalties. The score reflects the active detector profile, not an absolute full-catalogue assessment.
+
+    \item[Q: What happens under load?]
+    Analyses run through a configured bounded async executor. Extra jobs wait in the queue; production should add rate limits and worker scaling.
+
+    \item[Q: Why configure pool and queue sizes?]
+    Static analysis is CPU/I/O-heavy. A bounded executor prevents uploads from exhausting the server and lets deployment match hardware capacity.
+
+    \item[Q: Can the diff key misclassify findings?]
+    Yes, in edge cases. The key uses type, affected services and signatures, and duplicates are matched one-to-one with a deque, but renames or weak signatures can still confuse matching.
+
+    \item[Q: Is persisted score authoritative?]
+    The score is stored, but breakdowns/diffs are recomputed by \texttt{HealthScoreCalculator}. If scoring logic changes, old breakdowns can differ unless scoring profiles are versioned.
+
+    \item[Q: Why count LOC from \texttt{.java} files only?]
+    Java LOC matches the Java/Spring analysis scope. It excludes YAML, SQL, frontend code and non-Java services, so it is incomplete for polyglot systems.
+
+    \item[Q: How would you test a new detector?]
+    Positive, negative, threshold-boundary, false-positive, malformed-input and evidence-snippet tests; for graph detectors, also small/disconnected/duplicate-edge graphs.
 \end{description}
 
 \section{Challenge Angles}
@@ -335,8 +428,8 @@
     \item[Q: What about Kafka/RabbitMQ/asynchronous messaging?]
     Current graph extraction targets REST-style calls: Feign, RestTemplate and WebClient. Messaging dependencies are a limitation and a natural future extension.
 
-    \item[Q: Why PostgreSQL?]
-    The model is relational: users, projects, jobs, services, endpoints, dependencies, smells, results and findings. PostgreSQL fits historical analysis and diff persistence well.
+    % \item[Q: Why PostgreSQL?]
+    % The model is relational: users, projects, jobs, services, endpoints, dependencies, smells, results and findings. PostgreSQL fits historical analysis and diff persistence well.
 
     \item[Q: Why persist snippets?]
     Workspaces may be deleted or changed. Persisting snippets during analysis makes results reproducible even if the source checkout is gone.
@@ -347,30 +440,30 @@
     \item[Q: Most context-sensitive vs.\ objective detectors?]
     \textbf{Context-sensitive}: Nano Service and API Versioning Absence. \textbf{More objective}: Shared Database and Cyclic Dependency.
 
-    \item[Q: Is this just a wrapper around existing tools?]
-    No. \textbf{DesigniteJava} is one input. The contribution is the full pipeline: boundary detection, Spoon endpoint/dependency extraction, graph detectors, custom detectors, evidence, scoring, persistence, diffing and UI workflow.
+    % \item[Q: Is this just a wrapper around existing tools?]
+    % No. \textbf{DesigniteJava} is one input. The contribution is the full pipeline: boundary detection, Spoon endpoint/dependency extraction, graph detectors, custom detectors, evidence, scoring, persistence, diffing and UI workflow.
 
-    \item[Q: Isn't the health score subjective?]
-    Yes, like most composite quality scores. The value is that it is \textbf{transparent, decomposed, repeatable}, and useful for comparing runs over time.
+    % \item[Q: Isn't the health score subjective?]
+    % Yes, like most composite quality scores. The value is that it is \textbf{transparent, decomposed, repeatable}, and useful for comparing runs over time.
 
-    \item[Q: If the demo fails?]
-    Say: ``The live run appears slow, so I'll switch to a completed analysis of the same flow.'' Show the backup result; do not debug live.
+    % \item[Q: If the demo fails?]
+    % Say: ``The live run appears slow, so I'll switch to a completed analysis of the same flow.'' Show the backup result; do not debug live.
 
-    \item[Unexpected wording structure]
-    Use: \textbf{input \(\rightarrow\) method \(\rightarrow\) tradeoff \(\rightarrow\) limitation}. Example: dependency graph \(\rightarrow\) Tarjan SCC \(\rightarrow\) static calls not runtime traffic \(\rightarrow\) dynamic/message calls can be missed.
+    % \item[Unexpected wording structure]
+    % Use: \textbf{input \(\rightarrow\) method \(\rightarrow\) tradeoff \(\rightarrow\) limitation}. Example: dependency graph \(\rightarrow\) Tarjan SCC \(\rightarrow\) static calls not runtime traffic \(\rightarrow\) dynamic/message calls can be missed.
 \end{description}
 
-\section{If I Blank}
+% \section{If I Blank}
 
-\begin{description}
-    \item[Q: What can I say if I blank?]
-    \begin{itemize}
-        \item ``Could you repeat the question?''
-        \item ``Let me start from the high level: \ldots''
-        \item ``The exact value I'd need to check, but the idea is \ldots''
-        \item ``That's in Chapter X --- the short version is \ldots''
-    \end{itemize}
-\end{description}
+% \begin{description}
+%     \item[Q: What can I say if I blank?]
+%     \begin{itemize}
+%         \item ``Could you repeat the question?''
+%         \item ``Let me start from the high level: \ldots''
+%         \item ``The exact value I'd need to check, but the idea is \ldots''
+%         \item ``That's in Chapter X --- the short version is \ldots''
+%     \end{itemize}
+% \end{description}
 
 \end{multicols}
 

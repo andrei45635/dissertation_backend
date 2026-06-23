@@ -357,6 +357,116 @@
 **Q: What if they ask why not machine learning?**
 > Lack of labelled data and need for explainability. A rule-based detector can explain exactly which threshold fired and show the source evidence. ML would be interesting later, after collecting enough labelled findings.
 
+## ADDITIONAL EDGE-CASE QUESTIONS
+
+### Additional theoretical questions
+
+**Q: How sensitive are your evaluation results to the default threshold values?**
+> They are sensitive, especially for Nano Service, Chatty Service, God Service and ESB Misuse. That is why I present the thresholds as configurable heuristics, not universal truths. The evaluation shows the behaviour of one documented default profile; enterprise use would require calibration against local architecture conventions.
+
+**Q: Can the same structural problem be penalized twice, for example as both Wrong Cuts and Cyclic Dependency?**
+> Yes, a bidirectional dependency can be both a two-node cycle and evidence of a wrong service boundary. I prevent double counting only for Nano Service and God Service because they are moved into Service Sizing. For cycles and Wrong Cuts I leave both findings visible because they describe different consequences of the same coupling, but I acknowledge that the penalty can be read as an upper bound.
+
+**Q: Why is the same 0.4 threshold reasonable for ESB Misuse signals that measure different things?**
+> It is a pragmatic default for normalized signals, not a mathematically universal cutoff. Caller ratio, callee ratio, mediator ratio and normalized betweenness all map to a 0-1 range, so 0.4 means a service participates in a large share of communication. The tradeoff is that small graphs can produce candidate mediators more easily, so the finding should be inspected rather than accepted blindly.
+
+**Q: Could a God Service escape detection if responsibility is spread across many medium-sized classes instead of one God Class?**
+> Yes. The current detector is designed to catch responsibility concentration visible through at least one God Class. A service with many cohesive but unrelated classes could still be over-broad without crossing those class-level thresholds. Detecting that would require service-level domain cohesion or package/module analysis, which is future work.
+
+**Q: Does the coupling coefficient lose important information by ignoring dependency type, direction meaning, or criticality?**
+> Yes. It compresses the graph into a density measure, so it does not know whether an edge is synchronous, asynchronous, business-critical, or rarely used. That is why it is only one signal in the score and in Distributed Monolith detection. The dependency graph and evidence remain available for interpretation.
+
+**Q: Does DesigniteJava overestimate code-smell density because each service is analyzed separately?**
+> It can. For example, abstractions used across service boundaries may look unused when a service is analyzed in isolation. I treat DesigniteJava smell density as a code-quality proxy and possible upper bound, not exact ground truth.
+
+**Q: What claims can your evaluation support, and what claims can it not support?**
+> It supports feasibility: the tool can analyze real open-source Java microservice projects and produce differentiated, evidence-backed findings. It does not support a statistical claim about precision, recall, or industry-wide anti-pattern prevalence, because that would need a labelled corpus and multiple reviewers.
+
+**Q: Why include a polyglot repository if the detector only analyzes Java services?**
+> Because real microservice repositories are often mixed-language. The current tool analyzes the Java services it can understand and ignores the rest. That demonstrates a realistic limitation: the reported result is for the Java-visible part of the system, not the full polyglot architecture.
+
+**Q: Does excluding gateway-named services from ESB Misuse risk hiding a real central bottleneck?**
+> Yes, it can hide a gateway that is badly implemented as a mediator. I exclude gateways because centrality is expected for API gateways, and otherwise the detector would flag many valid architectures. If a team wants to audit gateway bottlenecks, that exclusion should be configurable or handled by a separate gateway-specific check.
+
+**Q: How do you reconcile the presentation's broad-coverage claim with MARS detecting more anti-pattern types?**
+> Broad coverage in my work means coverage across four dimensions with a working web/API workflow, evidence, scoring and diffing. MARS covers more anti-pattern types and reports precision/recall, so it is broader as a catalogue. My contribution is the integrated developer-facing pipeline rather than having the largest catalogue.
+
+### Additional practical questions
+
+**Q: Were the evaluated repository versions pinned to commits, or could results change if the default branch changes?**
+> If the exact commit is not pinned, results can change as repositories evolve. For strict reproducibility, I would record the commit SHA for each clone and include it in the evaluation table. The current results should be read as a snapshot of the repositories at analysis time.
+
+**Q: What exact criteria did you use to select the eleven projects?**
+> Public GitHub/GitLab availability, Java or JVM microservice code, Maven or Gradle build files, and at least three services so graph-based detectors have meaningful input. I also chose a mix of small demos, reference systems, benchmark projects and larger enterprise-style systems to exercise different detectors.
+
+**Q: How would results differ on enterprise systems versus demo/reference projects?**
+> Enterprise systems would likely introduce more scale, more historical debt, more diverse communication mechanisms, and more external configuration. That could reveal additional coupling, but it could also create more false negatives because the current tool does not fully handle messaging, runtime discovery, or non-Java services.
+
+**Q: What happens if a project uses Spring profiles, environment variables, or external config for datasource URLs?**
+> The detector resolves simple placeholders and defaults, but it cannot fully resolve runtime profile activation or Spring Cloud Config values. In those cases Shared Database detection may miss a real shared database or compare incomplete configuration values. Runtime or deployment configuration analysis would improve this.
+
+**Q: How does the tool behave when DesigniteJava is missing, times out, or exits with an error?**
+> The Designite step is resilient: if the JAR is missing it is skipped, if it times out the process is stopped, and if it exits with a non-zero code the service still tries to parse any output produced. The analysis can continue, but the Code Quality category may have fewer or no smell records.
+
+**Q: Is job cancellation immediate, or only checked between analysis phases?**
+> It is cooperative cancellation. The worker checks the job status before major phases and between per-service analysis steps. It does not forcibly interrupt every low-level Spoon or Designite operation instantly, so cancellation may take effect at the next checkpoint.
+
+**Q: How do you prevent one authenticated user from accessing another user's project or job by ID?**
+> Service methods query by both resource ID and owner, or validate the job through its owning project. The controller receives the authenticated user from Spring Security, so an ID alone is not enough to access another user's resources.
+
+**Q: Why are only public GitHub/GitLab HTTPS repositories supported?**
+> It keeps ingestion simple and safer for a thesis prototype. Supporting private repositories would require token handling, secret storage, revocation rules and stronger audit controls. Public HTTPS URLs are enough for the evaluation and demo.
+
+**Q: What are the security tradeoffs of storing the JWT in browser storage?**
+> It is simple and works well for an SPA, but local storage is exposed to XSS if the frontend has a script injection vulnerability. A production system could use short-lived access tokens, refresh-token rotation, stronger CSP, or secure HttpOnly cookies depending on deployment constraints.
+
+**Q: Why are CSRF and CORS disabled in the backend configuration?**
+> CSRF is disabled because the API uses stateless bearer-token authentication rather than cookie-based sessions. CORS is disabled in this backend setup because production traffic is expected to pass through the frontend/reverse proxy; if the API were exposed to separate browser origins, CORS should be explicitly configured.
+
+**Q: If detector thresholds are changed between two analyses, is the historical diff still comparable?**
+> It is comparable as "what changed under the configured analysis runs," but not as a pure source-code delta. For strict comparisons, threshold profiles should be versioned and kept constant between runs, or displayed in the diff.
+
+**Q: Would you fail a CI build on the total health score, or only on new critical findings?**
+> I would start with "no new critical findings" and "score must not regress" rather than failing on all legacy issues. That matches the Clean as You Code idea: avoid blocking teams on existing debt while preventing new high-risk debt.
+
+### Additional source-code questions
+
+**Q: Show where user ownership is enforced when loading projects, jobs, and results.**
+> I would open the service layer, especially `ProjectService` and `JobService`. Project queries are scoped through the authenticated user's ID or owner entity, and job/result access is checked through the job's project ownership before returning data.
+
+**Q: Show how cooperative cancellation is implemented in `AnalysisWorker`.**
+> `AnalysisWorker` calls `isCancelled(jobId)` before starting and between major phases: service detection, per-service analysis, graph building, detection and completion. `JobService.cancelJob()` marks the job as `CANCELLED`; the worker observes that status and stops before continuing.
+
+**Q: What happens if Spoon fails to parse one service or one class?**
+> The relevant scanner logs the failure and skips that model or class rather than killing the whole analysis. This favours resilience, but it can produce false negatives for that service. A production version should surface parse warnings in the UI.
+
+**Q: How does `DependencyGraphBuilder` avoid false matches from fuzzy service-name resolution?**
+> It tries safer strategies first: service aliases from directory names and `spring.application.name`, then port-based matching, and only then fallback fuzzy matching. The fuzzy step improves recall, but it is the least certain part and should be interpreted with the stored evidence.
+
+**Q: Why are evidence, affected services, and details stored as JSON text instead of fully normalized tables?**
+> The evidence schema differs by detector: cycles, hardcoded URLs, god classes and shared databases all need different fields. JSON keeps detector-specific payloads flexible while the common relational fields remain queryable. The tradeoff is weaker database-level structure for evidence details.
+
+**Q: How are disabled detectors represented in the final score and result interpretation?**
+> Disabled detectors simply do not produce findings, so they do not contribute penalties. That means the score reflects the configured detector set, not an absolute full-catalogue assessment. In production I would display the active detector profile next to the score.
+
+**Q: What happens under load if many users start analyses at the same time?**
+> Analyses run through a configured async executor with bounded pool and queue settings. Jobs beyond active capacity wait in the queue. For production, I would add stronger resource isolation, per-user rate limits and external worker scaling.
+
+**Q: Why does the async executor use configured pool and queue sizes?**
+> Static analysis is CPU- and I/O-heavy. A bounded executor prevents every upload from immediately starting a heavy analysis and exhausting the server. The values are configurable so deployment can match available hardware.
+
+**Q: Could the diff issue key misclassify two different findings as unchanged?**
+> It can in edge cases, because the key is a heuristic based on type, affected services and type-specific signatures. It handles duplicates with a deque so identical findings match one-to-one, but renamed services or weak signatures can still appear as resolved/new or unchanged incorrectly.
+
+**Q: Is the persisted health score authoritative, or is the score recalculated from current scoring logic?**
+> The result stores the health score, but detailed breakdowns and diffs use `HealthScoreCalculator`. If scoring logic changes later, recomputed breakdowns may differ from older stored scores unless the scoring profile is versioned. That is another reason to version scoring rules in a production system.
+
+**Q: Why is source LOC counted from `.java` files only, and what does that exclude?**
+> The detector focuses on Java/Spring source analysis, so Java LOC is the relevant denominator for service sizing and code-smell density. It excludes YAML, SQL, frontend code, generated files and non-Java services, which is acceptable for this scope but incomplete for polyglot systems.
+
+**Q: How would you test a new detector beyond positive and negative cases?**
+> I would add threshold-boundary tests, false-positive fixtures, malformed input cases, evidence-snippet checks, disabled-detector behaviour and integration with the health score if the detector affects scoring. For graph detectors, I would also test small, disconnected and duplicate-edge graphs.
+
 **Answer structure if the wording is unexpected:**
 > Use **input → method → tradeoff → limitation**. For example: "The input is the dependency graph; the method is Tarjan SCC; the tradeoff is static calls rather than runtime traffic; the limitation is that dynamic or message-based calls can be missed."
 
